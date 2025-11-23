@@ -1,4 +1,14 @@
-# 📚 Documentation Tickr - Plateforme de Billetterie (Tunisie)
+# 📚 Documentation Tickr - Plateforme de Billetterie└── 04-infrastructure/                  # INFRASTRUCTURE & DÉPLOIEMENT
+    ├── 01-aws-architecture.md          # ECS, RDS, S3, EventBridge
+    ├── 02-terraform-setup.md           # IaC configuration
+    ├── 03-cicd-pipeline.md             # GitHub Actions
+    └── 04-monitoring.md                # CloudWatch, X-Ray, alerting
+│
+└── 05-git-workflow/                    # GIT WORKFLOW & CI/CD
+    ├── 00-summary.md                   # Git workflow overview
+    ├── 01-branching-strategy.md        # Branching model
+    ├── 02-errors-and-fixes.md          # Common issues & solutions
+    └── 03-architecture-tests-in-cicd.md # Architecture tests in pipelineisie)
 
 **Version:** 1.0  
 **Date:** 20 Novembre 2025  
@@ -39,12 +49,18 @@ docs/
 │   └── 04-modele-economique.md         # Calculs commissions, revenus
 │
 ├── 03-architecture/                    # ARCHITECTURE SYSTÈME
+│   ├── 00-architecture-governance-summary.md  # Governance overview
 │   ├── 01-principes-hexagonaux.md      # Ports & Adapters, DDD
 │   ├── 02-structure-modules.md         # 6 modules (Events, Payments, etc.)
 │   ├── 03-event-driven.md              # Event Bus, Domain Events
-│   └── 04-migration-microservices.md   # Plan migration V1→V2→V3
+│   ├── 04-migration-microservices.md   # Plan migration V1→V2→V3
+│   ├── 05-fitness-functions.md         # 30 architecture tests explained
+│   ├── 06-architecture-quick-ref.md    # Quick commands & fixes
+│   ├── 07-tests-verification.md        # CI/CD integration verification
+│   ├── 08-ci-integration-complete.md   # Complete CI/CD summary
+│   └── 09-backend-setup-guide.md       # NestJS initialization guide
 │
-└── 04-infrastructure/                  # INFRASTRUCTURE & DÉPLOIEMENT
+├── 04-infrastructure/                  # INFRASTRUCTURE & DÉPLOIEMENT
     ├── 01-aws-architecture.md          # ECS, RDS, S3, EventBridge
     ├── 02-terraform-setup.md           # IaC configuration
     ├── 03-cicd-pipeline.md             # GitHub Actions
@@ -192,15 +208,32 @@ docs/
 |-----------|-------|-----------|----------|
 | Fonctionnel | 3 | 100% ✅ | P0 |
 | Technique | 4 | 100% ✅ | P0 |
-| Architecture | 4 | 100% ✅ | P0 |
+| Architecture | 10 | 100% ✅ | P0 |
 | Infrastructure | 4 | 100% ✅ | P1 |
-| **Total** | **15** | **100%** | - |
+| Git Workflow | 4 | 100% ✅ | P0 |
+| **Total** | **25** | **100%** | - |
 
 ### Temps de Lecture
 
 - **Quick Start:** 1h30 (5 docs essentiels)
-- **Complet:** 6h (15 docs)
-- **Par catégorie:** ~1h30 chacune
+- **Complet:** 10h (25 docs)
+- **Par catégorie:** ~1h30-2h chacune
+
+### Architecture Tests & CI/CD (Priority for Developers)
+
+Before writing any code, read these in order:
+
+1. **`03-architecture/06-architecture-quick-ref.md`** (10 min)
+   - Quick commands and common violations
+   
+2. **`03-architecture/01-principes-hexagonaux.md`** (20 min)
+   - Hexagonal architecture fundamentals
+   
+3. **`03-architecture/05-fitness-functions.md`** (30 min)
+   - 30 architecture tests explained
+   
+4. **`05-git-workflow/03-architecture-tests-in-cicd.md`** (15 min)
+   - CI/CD pipeline with architecture enforcement
 
 ---
 

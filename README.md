@@ -434,8 +434,18 @@ La documentation complète est disponible dans le dossier [`docs/`](docs/README.
 | **02-Technique** | [📁](docs/02-technique/) | Stack, API, database, modèle économique |
 | **03-Architecture** | [📁](docs/03-architecture/) | Hexagonal, modules, event-driven, microservices |
 | **04-Infrastructure** | [📁](docs/04-infrastructure/) | AWS, Terraform, CI/CD, monitoring |
+| **05-Git Workflow** | [📁](docs/05-git-workflow/) | Branching strategy, CI/CD, architecture tests |
 
 **📖 Index complet :** [Documentation README](docs/README.md)
+
+### 🏛️ Architecture Quick Reference
+
+For developers starting with the project, check these architecture guides:
+
+- **[Architecture Quick Reference](docs/03-architecture/06-architecture-quick-ref.md)** - Commands, common violations & fixes
+- **[Architecture Tests Verification](docs/03-architecture/07-tests-verification.md)** - CI/CD integration details
+- **[CI Integration Complete](docs/03-architecture/08-ci-integration-complete.md)** - Full integration summary
+- **[Backend Setup Guide](docs/03-architecture/09-backend-setup-guide.md)** - NestJS initialization guide
 
 ---
 
