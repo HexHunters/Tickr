@@ -1,9 +1,10 @@
 name: CD Staging - Deploy to Staging Environment
 
 on:
-  push:
-    branches: [develop]
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only until AWS is configured
+  # Uncomment when AWS infrastructure is ready:
+  # push:
+  #   branches: [develop]
 
 env:
   NODE_VERSION: '20.x'
@@ -81,12 +82,12 @@ jobs:
       - name: 📝 Output image URI
         id: backend
         if: matrix.project == 'backend'
-        run: echo "image=${{ env.ECR_REGISTRY }}/tickr-backend:staging-${{ github.sha::7 }}" >> $GITHUB_OUTPUT
+        run: echo "image=${{ env.ECR_REGISTRY }}/tickr-backend:staging-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - name: 📝 Output image URI
         id: frontend
         if: matrix.project == 'frontend'
-        run: echo "image=${{ env.ECR_REGISTRY }}/tickr-frontend:staging-${{ github.sha::7 }}" >> $GITHUB_OUTPUT
+        run: echo "image=${{ env.ECR_REGISTRY }}/tickr-frontend:staging-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
 
   # Deploy Backend to ECS
   deploy-backend:
@@ -242,7 +243,7 @@ jobs:
             🚀 Staging Deployment
             Status: ${{ job.status }}
             Branch: ${{ github.ref_name }}
-            Commit: ${{ github.sha::7 }}
+            Commit: $(echo ${{ github.sha }} | cut -c1-7)
             Author: ${{ github.actor }}
             URL: https://staging.tickr.tn
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
