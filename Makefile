@@ -21,8 +21,11 @@ help: ## Affiche ce message d'aide
 setup: ## Setup complet du projet (à exécuter une seule fois)
 	@echo "$(GREEN)🚀 Setup complet du projet Tickr...$(NC)"
 	@$(MAKE) check-prerequisites
+	@chmod +x scripts/*.sh 2>/dev/null || true
 	@$(MAKE) env
 	@$(MAKE) docker-up
+	@echo "$(YELLOW)⏳ Waiting for services to be ready...$(NC)"
+	@sleep 15
 	@$(MAKE) install
 	@$(MAKE) db-create
 	@$(MAKE) db-migrate
@@ -32,7 +35,7 @@ setup: ## Setup complet du projet (à exécuter une seule fois)
 check-prerequisites: ## Vérifie que les outils nécessaires sont installés
 	@echo "$(YELLOW)🔍 Vérification des prérequis...$(NC)"
 	@command -v docker >/dev/null 2>&1 || { echo "$(RED)❌ Docker n'est pas installé$(NC)"; exit 1; }
-	@command -v docker-compose >/dev/null 2>&1 || { echo "$(RED)❌ Docker Compose n'est pas installé$(NC)"; exit 1; }
+	@(command -v docker-compose >/dev/null 2>&1 || docker compose version >/dev/null 2>&1) || { echo "$(RED)❌ Docker Compose n'est pas installé$(NC)"; exit 1; }
 	@command -v node >/dev/null 2>&1 || { echo "$(RED)❌ Node.js n'est pas installé$(NC)"; exit 1; }
 	@echo "$(GREEN)✅ Tous les prérequis sont installés$(NC)"
 
@@ -149,14 +152,18 @@ test: ## Lance tous les tests
 
 test-backend: ## Tests backend uniquement
 	@echo "$(GREEN)🧪 Tests backend...$(NC)"
-	@if [ -d "backend" ]; then \
+	@if [ -d "backend" ] && [ -f "backend/package.json" ]; then \
 		cd backend && npm run test; \
+	else \
+		echo "$(YELLOW)⚠️ Backend not found or not initialized, skipping tests$(NC)"; \
 	fi
 
 test-frontend: ## Tests frontend uniquement
 	@echo "$(GREEN)🧪 Tests frontend...$(NC)"
-	@if [ -d "frontend" ]; then \
+	@if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then \
 		cd frontend && npm run test; \
+	else \
+		echo "$(YELLOW)⚠️ Frontend not found or not initialized, skipping tests$(NC)"; \
 	fi
 
 test-unit: ## Tests unitaires uniquement
@@ -283,8 +290,10 @@ status: ## Affiche le statut des services
 
 health: ## Vérifie la santé des services
 	@echo "$(GREEN)🏥 Health check...$(NC)"
-	@curl -s http://localhost:3000/health | jq . || echo "$(RED)❌ Backend non disponible$(NC)"
-	@curl -s http://localhost:5173 >/dev/null && echo "$(GREEN)✅ Frontend OK$(NC)" || echo "$(RED)❌ Frontend non disponible$(NC)"
+	@curl -s http://localhost:3000/health 2>/dev/null | jq . && echo "$(GREEN)✅ Backend OK$(NC)" || echo "$(RED)❌ Backend non disponible$(NC)"
+	@curl -s http://localhost:5173 >/dev/null 2>&1 && echo "$(GREEN)✅ Frontend OK$(NC)" || echo "$(RED)❌ Frontend non disponible$(NC)"
+	@docker-compose exec -T redis redis-cli -a tickr123 ping >/dev/null 2>&1 && echo "$(GREEN)✅ Redis OK$(NC)" || echo "$(RED)❌ Redis non disponible$(NC)"
+	@docker-compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1 && echo "$(GREEN)✅ PostgreSQL OK$(NC)" || echo "$(RED)❌ PostgreSQL non disponible$(NC)"
 
 ##@ Production
 
