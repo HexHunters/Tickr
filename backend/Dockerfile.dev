@@ -1,0 +1,32 @@
+# Tickr Backend - Development Dockerfile
+# Multi-stage build optimized for development with hot reload
+
+FROM node:20-alpine AS development
+
+# Install development tools
+RUN apk add --no-cache \
+    curl \
+    bash \
+    git
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including devDependencies)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Expose ports
+EXPOSE 3000 9229
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Default command (can be overridden in docker-compose)
+CMD ["npm", "run", "start:dev"]
