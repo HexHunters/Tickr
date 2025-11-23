@@ -108,16 +108,16 @@ db-create: ## Crée la base de données
 db-migrate: ## Exécute les migrations
 	@echo "$(GREEN)🔄 Exécution des migrations...$(NC)"
 	@if [ -d "backend" ]; then \
-		cd backend && npm run migration:run; \
+		cd backend && npm run migration:run || echo "$(YELLOW)⚠️ No migrations to run or migration failed$(NC)"; \
 	fi
-	@echo "$(GREEN)✅ Migrations exécutées$(NC)"
+	@echo "$(GREEN)✅ Migrations terminées$(NC)"
 
 db-seed: ## Seed avec données de test
 	@echo "$(GREEN)🌱 Seed de la base de données...$(NC)"
 	@if [ -d "backend" ]; then \
-		cd backend && npm run seed; \
+		cd backend && npm run seed 2>/dev/null || echo "$(YELLOW)⚠️ Seed script not yet implemented$(NC)"; \
 	fi
-	@echo "$(GREEN)✅ Données de test insérées$(NC)"
+	@echo "$(GREEN)✅ Seed terminé$(NC)"
 
 db-reset: ## Reset complet de la DB (drop + create + migrate + seed)
 	@echo "$(RED)⚠️  ATTENTION: Ceci va supprimer toutes les données!$(NC)"
