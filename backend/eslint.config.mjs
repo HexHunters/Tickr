@@ -154,7 +154,7 @@ export default tseslint.config(
 
   // Test files rules
   {
-    files: ['**/*.spec.ts', '**/*.test.ts'],
+    files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

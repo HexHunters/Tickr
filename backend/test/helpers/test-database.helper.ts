@@ -8,6 +8,7 @@
  */
 
 import { DataSource } from 'typeorm';
+
 import { AppDataSource } from '../../src/shared/infrastructure/database/data-source';
 
 export class TestDatabaseHelper {
