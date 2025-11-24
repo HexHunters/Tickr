@@ -207,7 +207,12 @@ jobs:
           timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done'
           timeout 60 bash -c 'until curl -f http://localhost:3001; do sleep 2; done'
 
-      - name: 📦 Install Playwright
+      - name: � Fix permissions
+        run: |
+          sudo chown -R $USER:$USER frontend/node_modules || true
+          sudo chown -R $USER:$USER backend/node_modules || true
+
+      - name: �📦 Install Playwright
         working-directory: ./frontend
         run: |
           npm ci
