@@ -6,6 +6,11 @@ on:
   push:
     branches: [feature/**, bugfix/**]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 env:
   NODE_VERSION: '20.x'
   POSTGRES_VERSION: '15'
