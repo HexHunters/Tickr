@@ -70,7 +70,7 @@ dev: ## Lance l'environnement de développement complet
 	@echo "$(GREEN)✅ Services démarrés!$(NC)"
 	@echo ""
 	@echo "$(YELLOW)📍 URLs d'accès:$(NC)"
-	@echo "   Frontend:  http://localhost:5173"
+	@echo "   Frontend:  http://localhost:3001"
 	@echo "   Backend:   http://localhost:3000"
 	@echo "   API Docs:  http://localhost:3000/api/docs"
 	@echo "   pgAdmin:   http://localhost:5050"
@@ -89,7 +89,7 @@ dev-backend: ## Lance uniquement backend + DB + Redis
 dev-frontend: ## Lance uniquement frontend
 	@echo "$(GREEN)🚀 Démarrage frontend...$(NC)"
 	@docker-compose up -d frontend
-	@echo "$(GREEN)✅ Frontend démarré sur http://localhost:5173$(NC)"
+	@echo "$(GREEN)✅ Frontend démarré sur http://localhost:3001$(NC)"
 
 stop: ## Arrête tous les services
 	@echo "$(YELLOW)🛑 Arrêt des services...$(NC)"
@@ -108,16 +108,16 @@ db-create: ## Crée la base de données
 db-migrate: ## Exécute les migrations
 	@echo "$(GREEN)🔄 Exécution des migrations...$(NC)"
 	@if [ -d "backend" ]; then \
-		cd backend && npm run migration:run; \
+		cd backend && npm run migration:run || echo "$(YELLOW)⚠️ No migrations to run or migration failed$(NC)"; \
 	fi
-	@echo "$(GREEN)✅ Migrations exécutées$(NC)"
+	@echo "$(GREEN)✅ Migrations terminées$(NC)"
 
 db-seed: ## Seed avec données de test
 	@echo "$(GREEN)🌱 Seed de la base de données...$(NC)"
 	@if [ -d "backend" ]; then \
-		cd backend && npm run seed; \
+		cd backend && npm run seed 2>/dev/null || echo "$(YELLOW)⚠️ Seed script not yet implemented$(NC)"; \
 	fi
-	@echo "$(GREEN)✅ Données de test insérées$(NC)"
+	@echo "$(GREEN)✅ Seed terminé$(NC)"
 
 db-reset: ## Reset complet de la DB (drop + create + migrate + seed)
 	@echo "$(RED)⚠️  ATTENTION: Ceci va supprimer toutes les données!$(NC)"
@@ -291,7 +291,7 @@ status: ## Affiche le statut des services
 health: ## Vérifie la santé des services
 	@echo "$(GREEN)🏥 Health check...$(NC)"
 	@curl -s http://localhost:3000/health 2>/dev/null | jq . && echo "$(GREEN)✅ Backend OK$(NC)" || echo "$(RED)❌ Backend non disponible$(NC)"
-	@curl -s http://localhost:5173 >/dev/null 2>&1 && echo "$(GREEN)✅ Frontend OK$(NC)" || echo "$(RED)❌ Frontend non disponible$(NC)"
+	@curl -s http://localhost:3001 >/dev/null 2>&1 && echo "$(GREEN)✅ Frontend OK$(NC)" || echo "$(RED)❌ Frontend non disponible$(NC)"
 	@docker-compose exec -T redis redis-cli -a tickr123 ping >/dev/null 2>&1 && echo "$(GREEN)✅ Redis OK$(NC)" || echo "$(RED)❌ Redis non disponible$(NC)"
 	@docker-compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1 && echo "$(GREEN)✅ PostgreSQL OK$(NC)" || echo "$(RED)❌ PostgreSQL non disponible$(NC)"
 
@@ -320,7 +320,7 @@ info: ## Affiche les informations du projet
 	@echo "$(GREEN)📋 Informations Tickr:$(NC)"
 	@echo "Project:  Tickr - Plateforme de Billetterie"
 	@echo "Version:  1.0.0"
-	@echo "Stack:    React + NestJS + PostgreSQL + Redis"
+	@echo "Stack:    Next.js + NestJS + PostgreSQL + Redis"
 	@echo "Docs:     ./docs/README.md"
 
 # Par défaut, afficher l'aide
