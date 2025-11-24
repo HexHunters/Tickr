@@ -173,7 +173,7 @@ jobs:
 
       - name: 🔗 Run integration tests
         working-directory: ./backend
-        run: npm run test:integration -- --coverage
+        run: npm run test:integration
 
       - name: 📊 Upload coverage
         uses: codecov/codecov-action@v4
