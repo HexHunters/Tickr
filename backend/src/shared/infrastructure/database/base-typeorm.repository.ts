@@ -1,4 +1,4 @@
-import { DeepPartial, FindOptionsWhere, ObjectLiteral, Repository } from 'typeorm';
+import { DeepPartial, FindOptionsOrder, FindOptionsWhere, ObjectLiteral, Repository } from 'typeorm';
 
 import {
   IPaginatedRepository,
@@ -46,12 +46,14 @@ export abstract class BaseTypeOrmRepository<TDomain, TEntity extends ObjectLiter
     const limit = options?.limit ?? 10;
     const skip = (page - 1) * limit;
 
+    const order: FindOptionsOrder<TEntity> | undefined = options?.sortBy
+      ? ({ [options.sortBy]: options.sortOrder ?? 'ASC' } as FindOptionsOrder<TEntity>)
+      : undefined;
+
     const [entities, total] = await this.repository.findAndCount({
       skip,
       take: limit,
-      order: options?.sortBy
-        ? ({ [options.sortBy]: options.sortOrder ?? 'ASC' } as Record<string, 'ASC' | 'DESC'>)
-        : undefined,
+      order,
     });
 
     const totalPages = Math.ceil(total / limit);

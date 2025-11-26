@@ -41,23 +41,23 @@ export class PaginationDto {
  */
 export class PaginatedResponseDto<T> {
   @ApiProperty({ isArray: true })
-  data: T[];
+  data!: T[];
 
   @ApiProperty()
-  total: number;
+  total!: number;
 
   @ApiProperty()
-  page: number;
+  page!: number;
 
   @ApiProperty()
-  limit: number;
+  limit!: number;
 
   @ApiProperty()
-  totalPages: number;
+  totalPages!: number;
 
   @ApiProperty()
-  hasNextPage: boolean;
+  hasNextPage!: boolean;
 
   @ApiProperty()
-  hasPreviousPage: boolean;
+  hasPreviousPage!: boolean;
 }

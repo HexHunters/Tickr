@@ -7,11 +7,11 @@ import { ApiProperty } from '@nestjs/swagger';
  */
 export class ApiResponseDto<T> {
   @ApiProperty()
-  success: boolean;
+  success!: boolean;
 
   @ApiProperty()
-  data: T;
+  data!: T;
 
   @ApiProperty()
-  timestamp: string;
+  timestamp!: string;
 }
