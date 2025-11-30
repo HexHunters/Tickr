@@ -341,11 +341,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: ./${{ matrix.project }}
+        run: npm ci
 
       - name: 🔍 Run npm audit
         working-directory: ./${{ matrix.project }}
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
+        run: npm audit --audit-level=high || true
 
       - name: 🛡️ Run Snyk security scan
         uses: snyk/actions/node@master
