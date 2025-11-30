@@ -210,7 +210,7 @@ jobs:
       - name: ⏳ Wait for services
         run: |
           echo "Waiting for backend to be ready..."
-          timeout 180 bash -c 'until curl -f http://localhost:3000/health 2>/dev/null; do echo "Backend not ready, waiting..."; sleep 5; done' || {
+          timeout 180 bash -c 'until curl -f http://localhost:3000/api/health 2>/dev/null; do echo "Backend not ready, waiting..."; sleep 5; done' || {
             echo "Backend failed to start. Checking logs..."
             docker compose -f docker-compose.yml -f docker-compose.dev.yml logs backend
             docker compose -f docker-compose.yml -f docker-compose.dev.yml logs postgres
