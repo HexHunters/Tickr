@@ -9,6 +9,7 @@ import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
 import redisConfig from './config/redis.config';
+import { UsersModule } from './modules/users/infrastructure/users.module';
 import { CacheModule } from './shared/infrastructure/cache/cache.module';
 import { AllExceptionsFilter } from './shared/infrastructure/common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './shared/infrastructure/common/interceptors/logging.interceptor';
@@ -58,7 +59,8 @@ import { EventBusModule } from './shared/infrastructure/events/event-bus.module'
     CacheModule,
     EventBusModule,
 
-    // Modules will be added here
+    // Feature Modules
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [
