@@ -570,4 +570,235 @@ describe('E2E: Authentication Flow', () => {
         .expect(HttpStatus.UNAUTHORIZED);
     });
   });
+
+  describe('HTTP Login Flow (Local Strategy)', () => {
+    /**
+     * Helper to register and optionally verify a user for login tests
+     */
+    async function registerUser(
+      email: string, 
+      password: string, 
+      options: { verify?: boolean; deactivate?: boolean } = {}
+    ) {
+      // Register the user
+      await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email,
+          password,
+          firstName: 'Test',
+          lastName: 'User',
+        })
+        .expect(HttpStatus.CREATED);
+
+      // Optionally verify email
+      if (options.verify !== false) {
+        const user = await userRepository.findByEmail(email);
+        if (user) {
+          user.emailVerified = true;
+          await userRepository.save(user);
+        }
+      }
+
+      // Optionally deactivate account
+      if (options.deactivate) {
+        const user = await userRepository.findByEmail(email);
+        if (user) {
+          user.isActive = false;
+          await userRepository.save(user);
+        }
+      }
+    }
+
+    it('should login successfully with valid credentials via HTTP', async () => {
+      await registerUser('httplogin@example.com', 'ValidPassword123!', { verify: true });
+
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'httplogin@example.com',
+          password: 'ValidPassword123!',
+        })
+        .expect(HttpStatus.OK);
+
+      expect(response.body).toHaveProperty('accessToken');
+      expect(response.body).toHaveProperty('refreshToken');
+      expect(response.body).toHaveProperty('expiresIn');
+      expect(response.body.user).toMatchObject({
+        email: 'httplogin@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+      });
+    });
+
+    it('should reject login with wrong password', async () => {
+      await registerUser('wrongpass@example.com', 'CorrectPassword123!', { verify: true });
+
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'wrongpass@example.com',
+          password: 'WrongPassword123!',
+        })
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should reject login with non-existent email', async () => {
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'nonexistent@example.com',
+          password: 'AnyPassword123!',
+        })
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should reject login for unverified email', async () => {
+      await registerUser('unverified@example.com', 'ValidPassword123!', { verify: false });
+
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'unverified@example.com',
+          password: 'ValidPassword123!',
+        })
+        .expect(HttpStatus.FORBIDDEN);
+    });
+
+    it('should reject login for deactivated account', async () => {
+      await registerUser('deactivated@example.com', 'ValidPassword123!', { verify: true, deactivate: true });
+
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'deactivated@example.com',
+          password: 'ValidPassword123!',
+        })
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+  });
+
+  describe('Complete Registration to Login Flow', () => {
+    it('should complete full registration → verification → login flow', async () => {
+      // Step 1: Register
+      const registerResponse = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: 'fullflow@example.com',
+          password: 'SecurePassword123!',
+          firstName: 'Full',
+          lastName: 'Flow',
+        })
+        .expect(HttpStatus.CREATED);
+
+      expect(registerResponse.body).toHaveProperty('userId');
+      expect(registerResponse.body.message).toContain('Registration successful');
+
+      // Step 2: Login should fail (email not verified)
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'fullflow@example.com',
+          password: 'SecurePassword123!',
+        })
+        .expect(HttpStatus.FORBIDDEN);
+
+      // Step 3: Manually verify email (simulating email verification)
+      const user = await userRepository.findByEmail('fullflow@example.com');
+      user.emailVerified = true;
+      await userRepository.save(user);
+
+      // Step 4: Login should now succeed
+      const loginResponse = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({
+          email: 'fullflow@example.com',
+          password: 'SecurePassword123!',
+        })
+        .expect(HttpStatus.OK);
+
+      expect(loginResponse.body).toHaveProperty('accessToken');
+      expect(loginResponse.body.user.email).toBe('fullflow@example.com');
+
+      // Step 5: Access protected route with token
+      await request(app.getHttpServer())
+        .get('/api/users/me')
+        .set('Authorization', `Bearer ${loginResponse.body.accessToken}`)
+        .expect(HttpStatus.OK);
+    });
+  });
+
+  describe('Rate Limiting', () => {
+    it('should allow requests within rate limit', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/auth/register')
+        .send({
+          email: 'ratelimit1@example.com',
+          password: 'SecurePassword123!',
+          firstName: 'Rate',
+          lastName: 'Limit',
+        });
+
+      expect(response.status).toBe(HttpStatus.CREATED);
+    });
+
+    it('should allow sequential password reset requests for different emails', async () => {
+      // Make sequential requests - all should succeed with test config
+      for (let i = 0; i < 3; i++) {
+        const response = await request(app.getHttpServer())
+          .post('/api/auth/request-reset')
+          .send({ email: `ratelimit${i}@example.com` });
+        
+        expect(response.status).toBe(HttpStatus.OK);
+      }
+    });
+  });
+
+  describe('Concurrent Request Handling', () => {
+    it('should handle multiple profile requests correctly', async () => {
+      const userId = 'concurrent-user';
+      await userRepository.seedUser({
+        id: userId,
+        email: 'concurrent@example.com',
+        firstName: 'Concurrent',
+        lastName: 'User',
+        role: UserRole.PARTICIPANT,
+        isActive: true,
+        emailVerified: true,
+      });
+
+      const tokens = jwtService.generateTokenPair({
+        userId,
+        email: 'concurrent@example.com',
+        role: UserRole.PARTICIPANT,
+      });
+
+      // Make sequential requests to test token reuse
+      for (let i = 0; i < 3; i++) {
+        const response = await request(app.getHttpServer())
+          .get('/api/users/me')
+          .set('Authorization', `Bearer ${tokens.accessToken}`);
+
+        expect(response.status).toBe(HttpStatus.OK);
+        expect(response.body.id).toBe(userId);
+      }
+    });
+
+    it('should handle sequential registrations correctly', async () => {
+      // Sequential registrations to avoid race conditions
+      for (let i = 0; i < 3; i++) {
+        const response = await request(app.getHttpServer())
+          .post('/api/auth/register')
+          .send({
+            email: `sequential${i}@example.com`,
+            password: 'SecurePassword123!',
+            firstName: `User${i}`,
+            lastName: 'Sequential',
+          });
+        
+        expect(response.status).toBe(HttpStatus.CREATED);
+        expect(response.body).toHaveProperty('userId');
+      }
+    });
+  });
 });
