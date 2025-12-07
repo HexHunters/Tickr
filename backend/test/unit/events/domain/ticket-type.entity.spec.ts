@@ -1,9 +1,27 @@
-import { TicketTypeEntity, CreateTicketTypeProps } from '@modules/events/domain/entities/ticket-type.entity';
+import { TicketTypeEntity } from '@modules/events/domain/entities/ticket-type.entity';
 import { TicketTypeSoldOutEvent } from '@modules/events/domain/events/ticket-type-sold-out.event';
 import { InvalidTicketTypeException } from '@modules/events/domain/exceptions/invalid-ticket-type.exception';
 import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
 import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+
+/**
+ * Local type definition for test purposes
+ * Mirrors the internal CreateTicketTypeProps interface
+ */
+interface CreateTicketTypeProps {
+  id?: string;
+  eventId: string;
+  name: string;
+  description?: string | null;
+  price: TicketPriceVO;
+  quantity: number;
+  salesPeriod: SalesPeriodVO;
+  isActive?: boolean;
+  soldQuantity?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 describe('TicketTypeEntity', () => {
   // Helper to create future dates
