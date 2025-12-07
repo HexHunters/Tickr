@@ -1,10 +1,10 @@
 import { BaseEntity } from '@shared/domain/base-entity';
 import { Result } from '@shared/domain/result';
-import { TicketPriceVO } from '../value-objects/ticket-price.vo';
-import { SalesPeriodVO } from '../value-objects/sales-period.vo';
-import { Currency } from '../value-objects/currency.vo';
-import { InvalidTicketTypeException } from '../exceptions/invalid-ticket-type.exception';
+
 import { TicketTypeSoldOutEvent } from '../events/ticket-type-sold-out.event';
+import { InvalidTicketTypeException } from '../exceptions/invalid-ticket-type.exception';
+import { SalesPeriodVO } from '../value-objects/sales-period.vo';
+import { TicketPriceVO } from '../value-objects/ticket-price.vo';
 
 /**
  * Props for creating a TicketType

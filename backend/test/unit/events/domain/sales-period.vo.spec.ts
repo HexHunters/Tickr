@@ -1,5 +1,5 @@
-import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
 import { InvalidDateRangeException } from '@modules/events/domain/exceptions/invalid-date-range.exception';
+import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
 
 describe('SalesPeriod Value Object', () => {
   // Helper to create future dates

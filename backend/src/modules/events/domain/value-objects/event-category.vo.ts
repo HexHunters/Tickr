@@ -1,4 +1,5 @@
 import { ValueObject } from '@shared/domain/value-object.base';
+
 import { InvalidEventCategoryException } from '../exceptions/invalid-event-category.exception';
 
 /**

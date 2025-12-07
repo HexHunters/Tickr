@@ -1,6 +1,8 @@
 import { ValueObject } from '@shared/domain/value-object.base';
+
 import { InvalidPriceException } from '../exceptions/invalid-price.exception';
-import { Currency, CurrencyVO, CURRENCY_METADATA } from './currency.vo';
+
+import { Currency, CurrencyVO } from './currency.vo';
 
 /**
  * Ticket Price Value Object properties

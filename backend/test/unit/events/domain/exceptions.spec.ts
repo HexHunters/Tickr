@@ -1,12 +1,12 @@
+import { EventNotCancellableException } from '@modules/events/domain/exceptions/event-not-cancellable.exception';
+import { EventNotPublishableException } from '@modules/events/domain/exceptions/event-not-publishable.exception';
+import { InvalidCurrencyException } from '@modules/events/domain/exceptions/invalid-currency.exception';
 import { InvalidDateRangeException } from '@modules/events/domain/exceptions/invalid-date-range.exception';
+import { InvalidEventCategoryException } from '@modules/events/domain/exceptions/invalid-event-category.exception';
+import { InvalidEventException } from '@modules/events/domain/exceptions/invalid-event.exception';
 import { InvalidLocationException } from '@modules/events/domain/exceptions/invalid-location.exception';
 import { InvalidPriceException } from '@modules/events/domain/exceptions/invalid-price.exception';
-import { InvalidCurrencyException } from '@modules/events/domain/exceptions/invalid-currency.exception';
-import { EventNotPublishableException } from '@modules/events/domain/exceptions/event-not-publishable.exception';
-import { EventNotCancellableException } from '@modules/events/domain/exceptions/event-not-cancellable.exception';
 import { InvalidTicketTypeException } from '@modules/events/domain/exceptions/invalid-ticket-type.exception';
-import { InvalidEventException } from '@modules/events/domain/exceptions/invalid-event.exception';
-import { InvalidEventCategoryException } from '@modules/events/domain/exceptions/invalid-event-category.exception';
 
 describe('Events Domain Exceptions', () => {
   describe('InvalidDateRangeException', () => {

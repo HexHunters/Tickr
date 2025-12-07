@@ -1,4 +1,5 @@
 import { DomainException } from '@shared/domain/domain-exception.base';
+
 import { EventCategory } from '../value-objects/event-category.vo';
 
 /**

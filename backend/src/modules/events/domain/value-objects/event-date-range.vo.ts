@@ -1,4 +1,5 @@
 import { ValueObject } from '@shared/domain/value-object.base';
+
 import { InvalidDateRangeException } from '../exceptions/invalid-date-range.exception';
 
 /**

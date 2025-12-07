@@ -1,6 +1,6 @@
-import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
-import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 import { InvalidPriceException } from '@modules/events/domain/exceptions/invalid-price.exception';
+import { Currency } from '@modules/events/domain/value-objects/currency.vo';
+import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
 
 describe('TicketPrice Value Object', () => {
   describe('create', () => {

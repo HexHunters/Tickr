@@ -1,5 +1,5 @@
-import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
 import { InvalidDateRangeException } from '@modules/events/domain/exceptions/invalid-date-range.exception';
+import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
 
 describe('EventDateRange Value Object', () => {
   // Helper to create future dates

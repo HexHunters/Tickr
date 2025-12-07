@@ -1,9 +1,9 @@
+import { InvalidEventCategoryException } from '@modules/events/domain/exceptions/invalid-event-category.exception';
 import {
   EventCategory,
   EventCategoryVO,
   EVENT_CATEGORY_METADATA,
 } from '@modules/events/domain/value-objects/event-category.vo';
-import { InvalidEventCategoryException } from '@modules/events/domain/exceptions/invalid-event-category.exception';
 
 describe('EventCategory', () => {
   describe('EventCategory enum', () => {

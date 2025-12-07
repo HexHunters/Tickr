@@ -1,5 +1,5 @@
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 import { InvalidLocationException } from '@modules/events/domain/exceptions/invalid-location.exception';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 
 describe('Location Value Object', () => {
   describe('create', () => {

@@ -1,13 +1,6 @@
 import { ValueObject } from '@shared/domain/value-object.base';
-import { InvalidLocationException } from '../exceptions/invalid-location.exception';
 
-/**
- * Coordinates type for geographic location (not exported to comply with architecture)
- */
-interface Coordinates {
-  latitude: number;
-  longitude: number;
-}
+import { InvalidLocationException } from '../exceptions/invalid-location.exception';
 
 /**
  * Location Value Object properties
