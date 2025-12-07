@@ -140,7 +140,7 @@ Tickr reçoit net: 1.42 TND
 
 ### Types Billets
 
-**Maximum par événement:** 5 types
+**Maximum par événement:** 10 types
 
 **Exemples valides:**
 - Standard, VIP
@@ -149,10 +149,12 @@ Tickr reçoit net: 1.42 TND
 - Étudiant, Normal, VIP
 
 **Contraintes:**
-- Prix minimum: 5 TND
-- Prix maximum: 5,000 TND
+- Prix minimum: 0.001 (unité devise)
+- Prix maximum: 999,999 (unité devise)
 - Quantité minimum: 1
 - Quantité maximum: 10,000 par type
+- Noms uniques au sein d'un événement
+- Fin des ventes doit précéder le début de l'événement
 
 ### Réservation Temporaire
 
@@ -241,8 +243,6 @@ DRAFT (brouillon)
   ↓
 PUBLISHED (publié)
   ↓
-ONGOING (en cours)
-  ↓
 COMPLETED (terminé)
 
 ou
@@ -250,17 +250,39 @@ ou
 CANCELLED (annulé)
 ```
 
+**Statuts détaillés:**
+- **DRAFT**: Événement en cours de création/modification
+- **PUBLISHED**: Événement visible publiquement, vente de billets active
+- **CANCELLED**: Événement annulé (état terminal)
+- **COMPLETED**: Événement terminé (état terminal)
+
+> **Note:** Pas de statut ONGOING - le passage PUBLISHED → COMPLETED est automatique via un scheduler après la date de fin.
+
 **Règles transition:**
-- DRAFT → PUBLISHED: validation complétude
-- PUBLISHED → ONGOING: date début atteinte
-- ONGOING → COMPLETED: date fin passée
-- ANY → CANCELLED: action manuelle organisateur
+- DRAFT → PUBLISHED: validation complétude (min 1 type billet actif, dates futures, lieu défini)
+- PUBLISHED → COMPLETED: date fin passée (automatique via scheduler)
+- DRAFT → CANCELLED: organisateur abandonne le brouillon
+- PUBLISHED → CANCELLED: organisateur annule avant le début
+
+**États terminaux (aucune modification permise):**
+- CANCELLED: plus aucune modification possible
+- COMPLETED: plus aucune modification possible
 
 ### Annulation
 
+**Règles d'annulation:**
+
+| Statut | Événement non commencé | Événement commencé |
+|--------|------------------------|-------------------|
+| DRAFT | ✅ Annulation permise | N/A |
+| PUBLISHED | ✅ Annulation permise | ❌ Impossible |
+| CANCELLED | ❌ Déjà annulé | ❌ Déjà annulé |
+| COMPLETED | ❌ Déjà terminé | ❌ Déjà terminé |
+
 **Par organisateur:**
-- Possible jusqu'à J-3
-- Remboursement automatique tous billets
+- DRAFT: peut être annulé à tout moment (abandon du brouillon)
+- PUBLISHED: peut être annulé uniquement si l'événement n'a pas commencé
+- Remboursement automatique tous billets vendus
 - Pénalité: commission Tickr conservée
 
 **Par plateforme:**

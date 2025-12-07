@@ -1,5 +1,6 @@
 import { BaseEntity } from '@shared/domain/base-entity';
 import { Result } from '@shared/domain/result';
+import { isUUID } from '@shared/domain/utils';
 
 import { EventCancelledEvent } from '../events/event-cancelled.event';
 import { EventCreatedEvent } from '../events/event-created.event';
@@ -270,7 +271,12 @@ export class EventEntity extends BaseEntity<EventEntity> {
 
   /**
    * Check if event can be cancelled
-   * Can only cancel PUBLISHED events that haven't started yet
+   * 
+   * Business Rule: Both DRAFT and PUBLISHED events can be cancelled if they haven't started.
+   * - DRAFT: Organizer can abandon an incomplete event
+   * - PUBLISHED: Organizer can cancel before the event starts (triggers refunds)
+   * 
+   * Cannot cancel: CANCELLED, COMPLETED, or events that have already started.
    */
   canBeCancelled(): boolean {
     return (
@@ -668,10 +674,23 @@ export class EventEntity extends BaseEntity<EventEntity> {
 
   /**
    * Update event details
+   * 
+   * Business Rules:
+   * - DRAFT: All fields can be updated
+   * - PUBLISHED: Only title, description, category can be updated (not location/dates)
+   * - CANCELLED/COMPLETED: No updates allowed (terminal states)
    */
   updateDetails(
     updates: UpdateEventDetailsProps,
   ): Result<void, InvalidEventException | EventCannotBeModifiedException> {
+    // Validate status allows modifications
+    if (this._status === EventStatus.CANCELLED) {
+      return Result.fail(EventCannotBeModifiedException.cancelled());
+    }
+    if (this._status === EventStatus.COMPLETED) {
+      return Result.fail(EventCannotBeModifiedException.completed());
+    }
+
     const changes: Record<string, unknown> = {};
 
     // Check if dates/location modifications are allowed
@@ -874,9 +893,14 @@ export class EventEntity extends BaseEntity<EventEntity> {
   static create(
     props: CreateEventProps,
   ): Result<EventEntity, InvalidEventException> {
-    // Validate organizerId
+    // Validate organizerId exists
     if (!props.organizerId || props.organizerId.trim().length === 0) {
       return Result.fail(InvalidEventException.missingOrganizer());
+    }
+
+    // Validate organizerId is a valid UUID
+    if (!isUUID(props.organizerId.trim())) {
+      return Result.fail(InvalidEventException.invalidOrganizerId(props.organizerId));
     }
 
     // Validate title

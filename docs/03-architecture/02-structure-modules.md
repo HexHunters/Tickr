@@ -112,58 +112,83 @@ OrganizerCreatedEvent  → Déclenche setup dashboard
 
 ```yaml
 ✅ Création/modification événements
-✅ Gestion types billets
+✅ Gestion types billets (max 10 par événement)
 ✅ Publication/dépublication
+✅ Annulation (DRAFT ou PUBLISHED non commencé)
 ✅ Recherche et filtrage
 ```
 
 ### Entités Domain
 
 ```typescript
-export class Event {
+// Aggregate Root - Voir docs/03-architecture/12-events-module-architecture.md
+export class EventEntity extends BaseEntity {
   id: string;
-  organizerId: string;
-  name: string;
-  slug: string;
-  description: string;
-  category: EventCategory;
-  status: EventStatus;  // DRAFT, PUBLISHED, CANCELLED
-  location: Location;   // Value Object
-  period: DatePeriod;   // Value Object
-  ticketTypes: TicketType[];
-  coverImage: ImageUrl;
+  organizerId: string;           // UUID validé
+  title: string;                 // 1-200 caractères
+  description: string | null;    // Max 5000 caractères
+  category: EventCategory;       // Enum validé
+  status: EventStatus;           // DRAFT, PUBLISHED, CANCELLED, COMPLETED
+  location: LocationVO;          // Value Object
+  dateRange: EventDateRangeVO;   // Value Object
+  ticketTypes: TicketTypeEntity[];
+  imageUrl: string | null;
+  totalCapacity: number;
+  soldTickets: number;
 
-  static create(data: CreateEventData): Event
-  publish(): void
-  cancel(reason: string): void
-  addTicketType(type: TicketType): void
+  // Factory Method (Result pattern)
+  static create(props: CreateEventProps): Result<EventEntity, InvalidEventException>
   
-  private canPublish(): boolean {
-    return this.ticketTypes.length > 0 
-      && this.coverImage.isPresent()
-      && this.period.isFuture();
-  }
+  // Commands
+  addTicketType(ticketType: TicketTypeEntity): Result<void, ...>
+  updateTicketType(id: string, updates): Result<void, ...>
+  removeTicketType(id: string): Result<void, ...>
+  publish(): Result<void, EventNotPublishableException>
+  cancel(reason: string): Result<void, EventNotCancellableException>
+  updateDetails(updates): Result<void, ...>
+  markAsCompleted(): void
+  
+  // Queries
+  canBeCancelled(): boolean      // (DRAFT || PUBLISHED) && !hasStarted
+  canBeModified(): boolean       // status === DRAFT
+  getActiveTicketTypes(): TicketTypeEntity[]
+  getSalesProgress(): number     // 0-100%
 }
 
-export class TicketType {
+// Sub-Entity
+export class TicketTypeEntity extends BaseEntity {
   id: string;
+  eventId: string;
   name: string;
-  price: Money;  // Value Object
-  quantity: number;
-  sold: number;
+  description: string | null;
+  price: TicketPriceVO;         // Value Object
+  quantity: number;              // 1-10,000
+  soldQuantity: number;
+  salesPeriod: SalesPeriodVO;   // Value Object
+  isActive: boolean;
 
-  get available(): number {
-    return this.quantity - this.sold;
+  get availableQuantity(): number {
+    return this.quantity - this.soldQuantity;
   }
 
-  reserve(qty: number): void {
-    if (qty > this.available) throw new InsufficientTicketsException();
-    this.sold += qty;
-  }
+  incrementSold(qty: number): Result<void, InvalidTicketTypeException>
+  decrementSold(qty: number): Result<void, ...>  // Pour remboursements
 }
 ```
 
-### Commands
+### Value Objects
+
+```typescript
+LocationVO        // { address?, city, country, coordinates? }
+EventDateRangeVO  // { startDate, endDate } avec validation
+SalesPeriodVO     // { startDate, endDate } doit finir avant événement
+TicketPriceVO     // { amount, currency: Currency }
+Currency          // Enum: TND, EUR, USD
+EventCategory     // Enum: CONCERT, CONFERENCE, SPORT, etc.
+EventStatus       // Enum: DRAFT, PUBLISHED, CANCELLED, COMPLETED
+```
+
+### Commands (Application Layer - À implémenter)
 
 ```typescript
 CreateEventCommand
@@ -172,9 +197,10 @@ PublishEventCommand
 CancelEventCommand
 AddTicketTypeCommand
 UpdateTicketTypeCommand
+RemoveTicketTypeCommand
 ```
 
-### Queries
+### Queries (Application Layer - À implémenter)
 
 ```typescript
 GetEventByIdQuery
@@ -186,11 +212,21 @@ GetOrganizerEventsQuery
 ### Events Émis
 
 ```typescript
-EventCreatedEvent      → Analytics track
-EventPublishedEvent    → Indexation recherche
-EventCancelledEvent    → Remboursements automatiques
-TicketTypeAddedEvent   → Cache invalidation
+// Sur EventEntity (aggregateId = event ID)
+EventCreatedEvent         → Analytics, indexation
+EventPublishedEvent       → Indexation recherche, notifications
+EventUpdatedEvent         → Mise à jour cache/index
+EventCancelledEvent       → Remboursements automatiques, notifications
+
+// Sur EventEntity (lors d'ajout/modification ticket types)
+TicketTypeAddedEvent      → Cache invalidation
+TicketTypeUpdatedEvent    → Mise à jour prix/capacité
+
+// Sur TicketTypeEntity (quand sold out)
+TicketTypeSoldOutEvent    → Notification organisateur, waitlist
 ```
+
+> **Documentation détaillée:** Voir `docs/03-architecture/12-events-module-architecture.md`
 
 ---
 

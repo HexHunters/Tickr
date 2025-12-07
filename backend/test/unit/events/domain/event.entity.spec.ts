@@ -162,17 +162,23 @@ describe('EventEntity (Aggregate Root)', () => {
     });
 
     describe('Validation Failures', () => {
-      it('should fail with invalid organizerId (not UUID)', () => {
+      it('should fail with invalid organizerId (not UUID format)', () => {
         const props = createValidEventProps();
         props.organizerId = 'invalid-uuid';
         const result = EventEntity.create(props);
 
-        // The implementation may or may not validate UUID format
-        // If it creates successfully, it's lenient validation
-        // If it fails, it's strict validation
-        if (result.isFailure) {
-          expect(result.error.message).toContain('organizerId');
-        }
+        expect(result.isFailure).toBe(true);
+        expect(result.error.message).toContain('Invalid organizer ID');
+        expect(result.error.message).toContain('UUID');
+      });
+
+      it('should fail with numeric organizerId', () => {
+        const props = createValidEventProps();
+        props.organizerId = '12345';
+        const result = EventEntity.create(props);
+
+        expect(result.isFailure).toBe(true);
+        expect(result.error.message).toContain('UUID');
       });
 
       it('should fail with empty organizerId', () => {
@@ -859,8 +865,8 @@ describe('EventEntity (Aggregate Root)', () => {
         expect(result.isFailure).toBe(true);
       });
 
-      it('should allow updating title when event is CANCELLED', () => {
-        // Implementation allows title/description updates even on cancelled events
+      it('should fail when event is CANCELLED', () => {
+        // Terminal state - no modifications allowed
         const event = EventEntity.create(createValidEventProps()).value;
         const ticketType = createValidTicketType({ eventId: event.id });
         event.addTicketType(ticketType);
@@ -869,12 +875,12 @@ describe('EventEntity (Aggregate Root)', () => {
 
         const result = event.updateDetails({ title: 'New Title' });
 
-        expect(result.isSuccess).toBe(true);
-        expect(event.title).toBe('New Title');
+        expect(result.isFailure).toBe(true);
+        expect(result.error.message).toContain('cancelled');
       });
 
-      it('should allow updating title when event is COMPLETED', () => {
-        // Implementation allows title/description updates even on completed events
+      it('should fail when event is COMPLETED', () => {
+        // Terminal state - no modifications allowed
         const event = EventEntity.create(createValidEventProps()).value;
         const ticketType = createValidTicketType({ eventId: event.id });
         event.addTicketType(ticketType);
@@ -883,8 +889,8 @@ describe('EventEntity (Aggregate Root)', () => {
 
         const result = event.updateDetails({ title: 'New Title' });
 
-        expect(result.isSuccess).toBe(true);
-        expect(event.title).toBe('New Title');
+        expect(result.isFailure).toBe(true);
+        expect(result.error.message).toContain('completed');
       });
 
       it('should fail with invalid title', () => {

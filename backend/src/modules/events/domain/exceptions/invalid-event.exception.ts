@@ -39,6 +39,15 @@ export class InvalidEventException extends DomainException {
   }
 
   /**
+   * Factory method for invalid organizer ID (not a valid UUID)
+   */
+  static invalidOrganizerId(organizerId: string): InvalidEventException {
+    return new InvalidEventException(
+      `Invalid organizer ID: "${organizerId}" is not a valid UUID`,
+    );
+  }
+
+  /**
    * Factory method for invalid category
    */
   static invalidCategory(category: string): InvalidEventException {
