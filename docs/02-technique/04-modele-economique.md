@@ -373,7 +373,7 @@ Onglets:
 
 ```yaml
 ✅ Revenus:
-  - [ ] Commission 4% définie
+  - [ ] Commission 6% définie et configurable via environnement
   - [ ] Projections 12 mois établies
   - [ ] Scenarios optimiste/réaliste/pessimiste
 

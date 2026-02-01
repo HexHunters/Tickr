@@ -6,8 +6,8 @@ import { DomainException } from '@shared/domain/domain-exception.base';
  * Used when cancellation validation fails
  */
 export class EventNotCancellableException extends DomainException {
-  constructor(message: string) {
-    super(message, 'EVENT_NOT_CANCELLABLE');
+  constructor(message: string, code?: string) {
+    super(message, code || 'EVENT_NOT_CANCELLABLE');
   }
 
   /**
@@ -16,6 +16,7 @@ export class EventNotCancellableException extends DomainException {
   static wrongStatus(currentStatus: string): EventNotCancellableException {
     return new EventNotCancellableException(
       `Event cannot be cancelled from ${currentStatus} status. Only DRAFT or PUBLISHED events can be cancelled.`,
+      'WRONG_STATUS',
     );
   }
 
@@ -25,6 +26,7 @@ export class EventNotCancellableException extends DomainException {
   static eventAlreadyStarted(): EventNotCancellableException {
     return new EventNotCancellableException(
       'Event cannot be cancelled after it has started',
+      'EVENT_ALREADY_STARTED',
     );
   }
 
@@ -34,6 +36,7 @@ export class EventNotCancellableException extends DomainException {
   static eventAlreadyCompleted(): EventNotCancellableException {
     return new EventNotCancellableException(
       'Event cannot be cancelled because it has already completed',
+      'EVENT_ALREADY_COMPLETED',
     );
   }
 
@@ -41,6 +44,9 @@ export class EventNotCancellableException extends DomainException {
    * Factory method for event already cancelled
    */
   static eventAlreadyCancelled(): EventNotCancellableException {
-    return new EventNotCancellableException('Event is already cancelled');
+    return new EventNotCancellableException(
+      'Event is already cancelled',
+      'EVENT_ALREADY_CANCELLED',
+    );
   }
 }

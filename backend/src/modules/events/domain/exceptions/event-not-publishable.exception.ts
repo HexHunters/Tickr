@@ -6,8 +6,8 @@ import { DomainException } from '@shared/domain/domain-exception.base';
  * Used when publishing validation fails
  */
 export class EventNotPublishableException extends DomainException {
-  constructor(message: string) {
-    super(message, 'EVENT_NOT_PUBLISHABLE');
+  constructor(message: string, code?: string) {
+    super(message, code || 'EVENT_NOT_PUBLISHABLE');
   }
 
   /**
@@ -16,6 +16,7 @@ export class EventNotPublishableException extends DomainException {
   static wrongStatus(currentStatus: string): EventNotPublishableException {
     return new EventNotPublishableException(
       `Event cannot be published from ${currentStatus} status. Only DRAFT events can be published.`,
+      'WRONG_STATUS',
     );
   }
 
@@ -25,6 +26,17 @@ export class EventNotPublishableException extends DomainException {
   static missingTicketTypes(): EventNotPublishableException {
     return new EventNotPublishableException(
       'Event must have at least one active ticket type to be published',
+      'MISSING_TICKET_TYPES',
+    );
+  }
+
+  /**
+   * Factory method for missing title
+   */
+  static missingTitle(): EventNotPublishableException {
+    return new EventNotPublishableException(
+      'Event must have a title to be published',
+      'MISSING_TITLE',
     );
   }
 
@@ -32,21 +44,10 @@ export class EventNotPublishableException extends DomainException {
    * Factory method for missing location
    */
   static missingLocation(): EventNotPublishableException {
-    return new EventNotPublishableException('Event must have a valid location to be published');
-  }
-
-  /**
-   * Factory method for invalid date range
-   */
-  static invalidDateRange(): EventNotPublishableException {
-    return new EventNotPublishableException('Event must have a valid date range to be published');
-  }
-
-  /**
-   * Factory method for missing title
-   */
-  static missingTitle(): EventNotPublishableException {
-    return new EventNotPublishableException('Event must have a title to be published');
+    return new EventNotPublishableException(
+      'Event must have a location to be published',
+      'MISSING_LOCATION',
+    );
   }
 
   /**
@@ -55,6 +56,17 @@ export class EventNotPublishableException extends DomainException {
   static eventDateInPast(): EventNotPublishableException {
     return new EventNotPublishableException(
       'Event cannot be published if start date is in the past',
+      'EVENT_DATE_IN_PAST',
+    );
+  }
+
+  /**
+   * Factory method for invalid date range
+   */
+  static invalidDateRange(): EventNotPublishableException {
+    return new EventNotPublishableException(
+      'Event has an invalid date range',
+      'INVALID_DATE_RANGE',
     );
   }
 

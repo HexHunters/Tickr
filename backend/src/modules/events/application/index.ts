@@ -47,6 +47,11 @@ export { CancelEventHandler } from './commands/cancel-event/cancel-event.handler
 export type { CancelEventResult, CancelEventError } from './commands/cancel-event/cancel-event.handler';
 
 // ============================================
+// Queries (CQRS Read Operations)
+// ============================================
+export * from './queries';
+
+// ============================================
 // DTOs (Data Transfer Objects)
 // ============================================
 export * from './dtos';

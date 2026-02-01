@@ -14,7 +14,7 @@ Documentation complète pour développer une plateforme de billetterie en ligne 
 ### Décisions Validées
 
 - **Architecture:** Monolithe Modulaire Hexagonal V1 → Migration Progressive V2/V3
-- **Commission:** 4% par billet vendu (payé par organisateur)
+- **Commission:** 6% par billet vendu (payé par organisateur) - Configurable via environnement
 - **Paiements:** Clictopay/Edinar (Tunisie) + Stripe (international)
 - **MVP Timeline:** 3 mois (20-40h/semaine)
 - **Budget AWS V1:** $80-100/mois

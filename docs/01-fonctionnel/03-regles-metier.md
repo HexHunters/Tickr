@@ -403,7 +403,7 @@ Avant développement, vérifier compréhension:
   - [ ] Coûts estimés
 
 ✅ Commission:
-  - [ ] Calcul 4% maîtrisé
+  - [ ] Calcul 6% maîtrisé (configurable via PLATFORM_COMMISSION_RATE)
   - [ ] Répartition frais gateway comprise
 
 ✅ Remboursement:
