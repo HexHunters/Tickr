@@ -36,6 +36,7 @@
     "@aws-sdk/client-s3": "^3.937.0",
     "@aws-sdk/client-ses": "^3.936.0",
     "@aws-sdk/client-sns": "^3.936.0",
+    "@aws-sdk/s3-request-presigner": "^3.980.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -59,6 +60,7 @@
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sharp": "^0.34.5",
     "stripe": "^20.0.0",
     "typeorm": "^0.3.27",
     "uuid": "^13.0.0"
@@ -76,6 +78,7 @@
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
+    "@types/sharp": "^0.31.1",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
