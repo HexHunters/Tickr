@@ -142,7 +142,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       });
     });
 
-    it('Les modules ne doivent pas importer d\'autres modules directement', () => {
+    it('Les modules ne doivent pas importer d\'autres modules directement (sauf adapters infrastructure)', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
@@ -153,6 +153,20 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
         const files = getTypeScriptFiles(modulePath);
         files.forEach((file) => {
           const imports = extractImports(file);
+          
+          // Check if file is in infrastructure/adapters - cross-module imports are allowed there
+          const isInfrastructureAdapter = file.includes('infrastructure/adapters/') || 
+                                          file.includes('infrastructure\\adapters\\');
+          
+          // Check if file is the module file itself (events.module.ts, users.module.ts)
+          // Module files are allowed to import other modules
+          const isModuleFile = file.endsWith('.module.ts');
+          
+          // Skip infrastructure adapters and module files - they ARE the integration point
+          if (isInfrastructureAdapter || isModuleFile) {
+            return;
+          }
+          
           const crossModuleImports = imports.filter((imp) => {
             return EXISTING_MODULES.some(
               (otherModule) =>
@@ -164,6 +178,9 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
           if (crossModuleImports.length > 0) {
             console.error(
               `❌ ${file} importe d'autres modules: ${crossModuleImports.join(', ')}`,
+            );
+            console.error(
+              `   → Cross-module imports only allowed in infrastructure/adapters/ or .module.ts files`,
             );
           }
         });
@@ -421,6 +438,9 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
 
         const adapterFiles = fs.readdirSync(adapterPath).filter((f) => f.endsWith('.ts'));
         adapterFiles.forEach((file) => {
+          // Skip index.ts barrel files and .gitkeep
+          if (file === 'index.ts' || file === '.gitkeep') return;
+          
           // Adapter files should follow naming: *.adapter.ts
           expect(file).toMatch(/\.adapter\.ts$/);
         });

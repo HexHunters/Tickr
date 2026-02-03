@@ -1,6 +1,11 @@
 // Events Module - Infrastructure Layer
 
 // ============================================
+// Module
+// ============================================
+export { EventsModule } from './events.module';
+
+// ============================================
 // Controllers
 // ============================================
 export { EventsController } from './controllers/events.controller';
@@ -15,6 +20,11 @@ export * from './guards';
 // ============================================
 export { EventTypeOrmRepository } from './repositories/event.repository';
 export { TicketTypeTypeOrmRepository } from './repositories/ticket-type.repository';
+
+// ============================================
+// Adapters
+// ============================================
+export * from './adapters';
 
 // ============================================
 // Services (External Adapters)

@@ -62,6 +62,11 @@ export { CompleteEventHandler } from './commands/complete-event/complete-event.h
 export * from './queries';
 
 // ============================================
+// Event Handlers (Cross-Module Communication)
+// ============================================
+export * from './event-handlers';
+
+// ============================================
 // DTOs (Data Transfer Objects)
 // ============================================
 export * from './dtos';
