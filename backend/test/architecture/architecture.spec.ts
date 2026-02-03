@@ -10,13 +10,35 @@
  * - Infrastructure implémente les Ports
  * - Pas d'imports cross-module
  * - Naming conventions respectées
+ * - Shared module purity
+ * - No circular dependencies
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
 describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
-  const MODULES = ['users', 'events', 'tickets', 'payments', 'notifications', 'analytics'];
+  // Auto-detect modules from src/modules directory
+  const SRC_MODULES_PATH = path.join(__dirname, '../../src/modules');
+  
+  /**
+   * Dynamically discovers existing modules from the filesystem
+   * This prevents hardcoding module names and allows incremental development
+   */
+  function getExistingModules(): string[] {
+    if (!fs.existsSync(SRC_MODULES_PATH)) return [];
+    return fs.readdirSync(SRC_MODULES_PATH).filter((f) => {
+      const fullPath = path.join(SRC_MODULES_PATH, f);
+      return fs.statSync(fullPath).isDirectory() && !f.startsWith('.');
+    });
+  }
+
+  // Expected modules (for documentation/planning purposes)
+  const EXPECTED_MODULES = ['users', 'events', 'tickets', 'payments', 'notifications', 'analytics'];
+  
+  // Actually existing modules (auto-detected)
+  const EXISTING_MODULES = getExistingModules();
+
   const FORBIDDEN_DOMAIN_IMPORTS = [
     '@nestjs',
     'typeorm',
@@ -24,10 +46,20 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
     'axios',
     'ioredis',
     '@aws-sdk',
+    'class-validator',
+    'class-transformer',
   ];
   const FORBIDDEN_APPLICATION_IMPORTS = [
     'typeorm',
     'express',
+    'ioredis',
+    '@aws-sdk',
+  ];
+  const FORBIDDEN_SHARED_DOMAIN_IMPORTS = [
+    '@nestjs',
+    'typeorm',
+    'express',
+    'axios',
     'ioredis',
     '@aws-sdk',
   ];
@@ -95,7 +127,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
         return;
       }
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const modulePath = path.join(srcPath, module);
         if (!fs.existsSync(modulePath)) {
           console.warn(`⚠️ Module ${module} not found yet`);
@@ -114,7 +146,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const modulePath = path.join(srcPath, module);
         if (!fs.existsSync(modulePath)) return;
 
@@ -122,7 +154,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
         files.forEach((file) => {
           const imports = extractImports(file);
           const crossModuleImports = imports.filter((imp) => {
-            return MODULES.some(
+            return EXISTING_MODULES.some(
               (otherModule) =>
                 otherModule !== module && imp.includes(`modules/${otherModule}`),
             );
@@ -144,7 +176,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const domainPath = path.join(srcPath, module, 'domain');
         if (!fs.existsSync(domainPath)) return;
 
@@ -174,7 +206,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const entitiesPath = path.join(srcPath, module, 'domain/entities');
         if (!fs.existsSync(entitiesPath)) return;
 
@@ -190,7 +222,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const voPath = path.join(srcPath, module, 'domain/value-objects');
         if (!fs.existsSync(voPath)) return;
 
@@ -206,7 +238,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const eventsPath = path.join(srcPath, module, 'domain/events');
         if (!fs.existsSync(eventsPath)) return;
 
@@ -224,7 +256,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const appPath = path.join(srcPath, module, 'application');
         if (!fs.existsSync(appPath)) return;
 
@@ -254,7 +286,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const commandsPath = path.join(srcPath, module, 'application/commands');
         if (!fs.existsSync(commandsPath)) return;
 
@@ -275,7 +307,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const queriesPath = path.join(srcPath, module, 'application/queries');
         if (!fs.existsSync(queriesPath)) return;
 
@@ -296,7 +328,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const portsPath = path.join(srcPath, module, 'application/ports');
         if (!fs.existsSync(portsPath)) return;
 
@@ -327,7 +359,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const repoPath = path.join(srcPath, module, 'infrastructure/repositories');
         if (!fs.existsSync(repoPath)) return;
 
@@ -355,7 +387,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const controllerPath = path.join(srcPath, module, 'infrastructure/controllers');
         if (!fs.existsSync(controllerPath)) return;
 
@@ -383,7 +415,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const adapterPath = path.join(srcPath, module, 'infrastructure/adapters');
         if (!fs.existsSync(adapterPath)) return;
 
@@ -399,7 +431,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const infraPath = path.join(srcPath, module, 'infrastructure');
         if (!fs.existsSync(infraPath)) return;
 
@@ -424,7 +456,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const infraPath = path.join(srcPath, module, 'infrastructure');
         if (!fs.existsSync(infraPath)) return;
 
@@ -456,7 +488,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const infraPath = path.join(srcPath, module, 'infrastructure');
         if (!fs.existsSync(infraPath)) return;
 
@@ -478,7 +510,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
             const imports = extractImports(file);
             const crossModuleRelation = imports.some((imp) => {
               return (
-                MODULES.some((otherModule) => otherModule !== module && imp.includes(otherModule)) &&
+                EXISTING_MODULES.some((otherModule) => otherModule !== module && imp.includes(otherModule)) &&
                 imp.includes(relatedEntity)
               );
             });
@@ -503,7 +535,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const eventsPath = path.join(srcPath, module, 'domain/events');
         if (!fs.existsSync(eventsPath)) return;
 
@@ -552,7 +584,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const modulePath = path.join(srcPath, module);
         if (!fs.existsSync(modulePath)) return;
 
@@ -597,7 +629,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const modulePath = path.join(srcPath, module);
         if (!fs.existsSync(modulePath)) return;
 
@@ -638,7 +670,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const modulePath = path.join(srcPath, module);
         if (!fs.existsSync(modulePath)) return;
 
@@ -662,7 +694,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const exceptionsPath = path.join(srcPath, module, 'domain/exceptions');
         if (!fs.existsSync(exceptionsPath)) return;
 
@@ -695,7 +727,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const controllerPath = path.join(srcPath, module, 'infrastructure/controllers');
         if (!fs.existsSync(controllerPath)) return;
 
@@ -740,7 +772,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       }
 
       // Only check modules that actually exist in src/modules
-      const existingModules = MODULES.filter((module) =>
+      const existingModules = EXISTING_MODULES.filter((module) =>
         fs.existsSync(path.join(srcModulesPath, module)),
       );
 
@@ -763,7 +795,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const testPath = path.join(__dirname, '../unit');
       if (!fs.existsSync(testPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const domainTestPath = path.join(testPath, module, 'domain');
         if (!fs.existsSync(domainTestPath)) return;
 
@@ -795,7 +827,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const controllerPath = path.join(srcPath, module, 'infrastructure/controllers');
         if (!fs.existsSync(controllerPath)) return;
 
@@ -823,7 +855,7 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
       const srcPath = path.join(__dirname, '../../src/modules');
       if (!fs.existsSync(srcPath)) return;
 
-      MODULES.forEach((module) => {
+      EXISTING_MODULES.forEach((module) => {
         const controllerPath = path.join(srcPath, module, 'infrastructure/controllers');
         if (!fs.existsSync(controllerPath)) return;
 
@@ -857,6 +889,276 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
           });
         });
       });
+    });
+  });
+
+  describe('🔄 11. Shared Module Purity', () => {
+    it('Shared domain doit être pur TypeScript (pas de framework)', () => {
+      const sharedDomainPath = path.join(__dirname, '../../src/shared/domain');
+      if (!fs.existsSync(sharedDomainPath)) {
+        console.warn('⚠️ src/shared/domain/ not found yet');
+        return;
+      }
+
+      const sharedDomainFiles = getTypeScriptFiles(sharedDomainPath);
+      sharedDomainFiles.forEach((file) => {
+        const imports = extractImports(file);
+        const externalImports = imports.filter(isExternalImport);
+        const forbiddenImport = hasForbiddenImport(
+          externalImports,
+          FORBIDDEN_SHARED_DOMAIN_IMPORTS,
+        );
+
+        expect(forbiddenImport).toBeNull();
+        if (forbiddenImport) {
+          console.error(
+            `❌ Shared domain file ${file} imports forbidden dependency: ${forbiddenImport}`,
+          );
+          console.error(
+            `   → Shared domain must be PURE TypeScript (no @nestjs, typeorm, express, etc)`,
+          );
+        }
+      });
+    });
+
+    it('Shared application peut utiliser @nestjs mais pas TypeORM directement', () => {
+      const sharedAppPath = path.join(__dirname, '../../src/shared/application');
+      if (!fs.existsSync(sharedAppPath)) {
+        console.warn('⚠️ src/shared/application/ not found yet');
+        return;
+      }
+
+      const sharedAppFiles = getTypeScriptFiles(sharedAppPath);
+      sharedAppFiles.forEach((file) => {
+        const imports = extractImports(file);
+        const externalImports = imports.filter(isExternalImport);
+        const forbiddenImport = hasForbiddenImport(externalImports, ['typeorm']);
+
+        expect(forbiddenImport).toBeNull();
+        if (forbiddenImport) {
+          console.error(
+            `❌ Shared application file ${file} imports typeorm directly: ${forbiddenImport}`,
+          );
+          console.error(`   → Use repository interfaces instead`);
+        }
+      });
+    });
+  });
+
+  describe('🔁 12. Circular Dependency Detection', () => {
+    /**
+     * Build a dependency graph from imports
+     */
+    function buildDependencyGraph(
+      modulePath: string,
+    ): Map<string, Set<string>> {
+      const graph = new Map<string, Set<string>>();
+      const files = getTypeScriptFiles(modulePath);
+
+      files.forEach((file) => {
+        const relativePath = path.relative(modulePath, file);
+        const imports = extractImports(file);
+        const dependencies = new Set<string>();
+
+        imports.forEach((imp) => {
+          if (imp.startsWith('.')) {
+            // Resolve relative import to absolute path
+            const dir = path.dirname(file);
+            let resolvedPath = path.resolve(dir, imp);
+            // Add .ts extension if not present
+            if (!resolvedPath.endsWith('.ts')) {
+              resolvedPath += '.ts';
+            }
+            // Make relative to module path
+            if (resolvedPath.startsWith(modulePath)) {
+              dependencies.add(path.relative(modulePath, resolvedPath));
+            }
+          }
+        });
+
+        graph.set(relativePath, dependencies);
+      });
+
+      return graph;
+    }
+
+    /**
+     * Detect cycles using DFS
+     */
+    function detectCycles(graph: Map<string, Set<string>>): string[][] {
+      const cycles: string[][] = [];
+      const visited = new Set<string>();
+      const recursionStack = new Set<string>();
+      const path: string[] = [];
+
+      function dfs(node: string): void {
+        visited.add(node);
+        recursionStack.add(node);
+        path.push(node);
+
+        const neighbors = graph.get(node) || new Set();
+        neighbors.forEach((neighbor) => {
+          if (!visited.has(neighbor)) {
+            dfs(neighbor);
+          } else if (recursionStack.has(neighbor)) {
+            // Found a cycle
+            const cycleStart = path.indexOf(neighbor);
+            if (cycleStart !== -1) {
+              cycles.push([...path.slice(cycleStart), neighbor]);
+            }
+          }
+        });
+
+        path.pop();
+        recursionStack.delete(node);
+      }
+
+      graph.forEach((_, node) => {
+        if (!visited.has(node)) {
+          dfs(node);
+        }
+      });
+
+      return cycles;
+    }
+
+    /**
+     * Check if a cycle is acceptable (DDD patterns allow some cycles)
+     * Acceptable patterns:
+     * - Value Object ↔ Exception (VO uses exception for validation, exception uses VO for messages)
+     * - ORM Entity bidirectional relations (TypeORM pattern)
+     */
+    function isAcceptableCycle(cycle: string[]): boolean {
+      // VO ↔ Exception cycle (common DDD pattern)
+      const isVoExceptionCycle = cycle.every(
+        (file) => file.includes('value-objects/') || file.includes('exceptions/'),
+      );
+      if (isVoExceptionCycle) return true;
+
+      // ORM entities with bidirectional relations (TypeORM pattern in infrastructure)
+      const isOrmBidirectionalRelation = cycle.every(
+        (file) => file.includes('infrastructure/persistence/entities/'),
+      );
+      if (isOrmBidirectionalRelation) return true;
+
+      return false;
+    }
+
+    it('Pas de dépendances circulaires problématiques dans les modules', () => {
+      const srcPath = path.join(__dirname, '../../src/modules');
+      if (!fs.existsSync(srcPath)) return;
+
+      EXISTING_MODULES.forEach((module) => {
+        const modulePath = path.join(srcPath, module);
+        if (!fs.existsSync(modulePath)) return;
+
+        const graph = buildDependencyGraph(modulePath);
+        const cycles = detectCycles(graph);
+
+        // Filter out:
+        // - Self-references and very short cycles (false positives)
+        // - Acceptable DDD patterns (VO ↔ Exception, ORM bidirectional)
+        const problematicCycles = cycles.filter(
+          (cycle) => cycle.length > 2 && !isAcceptableCycle(cycle),
+        );
+
+        expect(problematicCycles).toEqual([]);
+        if (problematicCycles.length > 0) {
+          console.error(`❌ Circular dependencies detected in module ${module}:`);
+          problematicCycles.forEach((cycle) => {
+            console.error(`   → ${cycle.join(' → ')}`);
+          });
+        }
+      });
+    });
+
+    it('Pas de dépendances circulaires dans shared', () => {
+      const sharedPath = path.join(__dirname, '../../src/shared');
+      if (!fs.existsSync(sharedPath)) return;
+
+      const graph = buildDependencyGraph(sharedPath);
+      const cycles = detectCycles(graph);
+      const significantCycles = cycles.filter((cycle) => cycle.length > 2);
+
+      expect(significantCycles).toEqual([]);
+      if (significantCycles.length > 0) {
+        console.error('❌ Circular dependencies detected in shared:');
+        significantCycles.forEach((cycle) => {
+          console.error(`   → ${cycle.join(' → ')}`);
+        });
+      }
+    });
+  });
+
+  describe('🏗️ 13. Infrastructure Layer - DI Correctness', () => {
+    it('Repositories doivent avoir @Injectable() decorator', () => {
+      const srcPath = path.join(__dirname, '../../src/modules');
+      if (!fs.existsSync(srcPath)) return;
+
+      EXISTING_MODULES.forEach((module) => {
+        const repoPath = path.join(srcPath, module, 'infrastructure/repositories');
+        if (!fs.existsSync(repoPath)) return;
+
+        const repoFiles = getTypeScriptFiles(repoPath).filter((f) =>
+          f.endsWith('.repository.ts'),
+        );
+
+        repoFiles.forEach((file) => {
+          const content = fs.readFileSync(file, 'utf-8');
+          const hasInjectable = /@Injectable\(\)/g.test(content);
+
+          expect(hasInjectable).toBe(true);
+          if (!hasInjectable) {
+            console.error(
+              `❌ Repository ${path.basename(file)} should have @Injectable() decorator`,
+            );
+          }
+        });
+      });
+    });
+
+    it('Services dans infrastructure doivent avoir @Injectable() decorator', () => {
+      const srcPath = path.join(__dirname, '../../src/modules');
+      if (!fs.existsSync(srcPath)) return;
+
+      EXISTING_MODULES.forEach((module) => {
+        const servicesPath = path.join(srcPath, module, 'infrastructure/services');
+        if (!fs.existsSync(servicesPath)) return;
+
+        const serviceFiles = getTypeScriptFiles(servicesPath).filter(
+          (f) => f.endsWith('.service.ts') || f.endsWith('.adapter.ts'),
+        );
+
+        serviceFiles.forEach((file) => {
+          const content = fs.readFileSync(file, 'utf-8');
+          const hasInjectable = /@Injectable\(\)/g.test(content);
+
+          expect(hasInjectable).toBe(true);
+          if (!hasInjectable) {
+            console.error(
+              `❌ Service ${path.basename(file)} should have @Injectable() decorator`,
+            );
+          }
+        });
+      });
+    });
+  });
+
+  describe('📊 14. Module Coverage Report', () => {
+    it('Liste les modules existants et manquants (info seulement)', () => {
+      console.log('\n📊 Module Implementation Status:');
+      console.log('================================');
+      
+      EXPECTED_MODULES.forEach((module) => {
+        const exists = EXISTING_MODULES.includes(module);
+        const status = exists ? '✅' : '⏳';
+        console.log(`   ${status} ${module}`);
+      });
+
+      console.log(`\n   Total: ${EXISTING_MODULES.length}/${EXPECTED_MODULES.length} modules implemented`);
+      
+      // This test always passes - it's informational only
+      expect(true).toBe(true);
     });
   });
 });
