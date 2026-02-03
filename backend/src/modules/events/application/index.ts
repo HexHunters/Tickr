@@ -48,7 +48,7 @@ export type { CancelEventResult, CancelEventError } from './commands/cancel-even
 
 // Upload Event Image
 export { UploadEventImageCommand } from './commands/upload-event-image/upload-event-image.command';
-export type { UploadEventImageResult, UploadEventImageError } from './commands/upload-event-image/upload-event-image.command';
+export type { UploadEventImageResultCommand, UploadEventImageError } from './commands/upload-event-image/upload-event-image.command';
 export { UploadEventImageHandler } from './commands/upload-event-image/upload-event-image.handler';
 
 // Complete Event (Scheduler)

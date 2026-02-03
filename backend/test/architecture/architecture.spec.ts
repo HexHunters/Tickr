@@ -261,6 +261,8 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
         const commandFiles = getTypeScriptFiles(commandsPath);
         commandFiles.forEach((file) => {
           const fileName = path.basename(file);
+          // Skip index.ts barrel export files (standard TypeScript pattern)
+          if (fileName === 'index.ts') return;
           // Command/Handler files should follow naming
           expect(
             fileName.includes('.command.ts') || fileName.includes('.handler.ts'),
@@ -280,6 +282,8 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
         const queryFiles = getTypeScriptFiles(queriesPath);
         queryFiles.forEach((file) => {
           const fileName = path.basename(file);
+          // Skip index.ts barrel export files (standard TypeScript pattern)
+          if (fileName === 'index.ts') return;
           // Query/Handler files should follow naming
           expect(fileName.includes('.query.ts') || fileName.includes('.handler.ts')).toBe(
             true,

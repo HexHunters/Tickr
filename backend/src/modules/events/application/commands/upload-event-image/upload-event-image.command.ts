@@ -44,7 +44,7 @@ export class UploadEventImageCommand {
 /**
  * Successful upload result
  */
-export interface UploadEventImageResult {
+export interface UploadEventImageResultCommand {
   imageUrl: string;
   thumbnailUrl?: string;
 }

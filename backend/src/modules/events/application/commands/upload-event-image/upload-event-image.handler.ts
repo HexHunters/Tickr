@@ -10,13 +10,13 @@ import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
 
 import type { EventRepositoryPort } from '../../ports/event.repository.port';
 import type {
-  UploadEventImageResult,
+  UploadEventImageResultCommand,
   UploadEventImageError,
 } from './upload-event-image.command';
 import { UploadEventImageCommand } from './upload-event-image.command';
 
 // Re-export types
-export type { UploadEventImageResult, UploadEventImageError };
+export type { UploadEventImageResultCommand, UploadEventImageError };
 
 // ============================================
 // Handler
@@ -49,7 +49,7 @@ export class UploadEventImageHandler {
    */
   async execute(
     command: UploadEventImageCommand,
-  ): Promise<Result<UploadEventImageResult, UploadEventImageError>> {
+  ): Promise<Result<UploadEventImageResultCommand, UploadEventImageError>> {
     this.logger.debug(
       `Uploading image for event ${command.eventId} by user ${command.userId}`,
     );

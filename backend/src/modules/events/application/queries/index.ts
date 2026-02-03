@@ -1,31 +1,19 @@
-// Events Module - Application Layer - Queries
+// Events Module - Queries barrel export
 
-// ============================================
-// GetEventById
-// ============================================
+// Get Event By Id
 export * from './get-event-by-id';
 
-// ============================================
-// GetOrganizerEvents
-// ============================================
-export * from './get-organizer-events';
-
-// ============================================
-// GetPublishedEvents
-// ============================================
+// Get Published Events
 export * from './get-published-events';
 
-// ============================================
-// SearchEvents
-// ============================================
+// Search Events
 export * from './search-events';
 
-// ============================================
-// GetEventsByCategory
-// ============================================
+// Get Events By Category
 export * from './get-events-by-category';
 
-// ============================================
-// GetUpcomingEvents
-// ============================================
+// Get Upcoming Events
 export * from './get-upcoming-events';
+
+// Get Organizer Events
+export * from './get-organizer-events';

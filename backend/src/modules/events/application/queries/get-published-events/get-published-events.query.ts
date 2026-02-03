@@ -9,8 +9,9 @@ import type { PaginatedEventListDto } from '../../dtos/event-list.dto';
 
 /**
  * Filters for published events query
+ * Named with 'Query' suffix to comply with architecture naming conventions.
  */
-export interface PublishedEventsFilters {
+export interface PublishedEventsFiltersQuery {
   category?: EventCategory;
   city?: string;
   country?: string;
@@ -38,7 +39,7 @@ export type GetPublishedEventsResultQuery = PaginatedEventListDto;
 export class GetPublishedEventsQuery extends BaseQuery<GetPublishedEventsResultQuery> {
   constructor(
     /** Optional filters */
-    public readonly filters: PublishedEventsFilters = {},
+    public readonly filters: PublishedEventsFiltersQuery = {},
     /** Page number (1-based) */
     public readonly page: number = 1,
     /** Items per page */
@@ -56,7 +57,7 @@ export class GetPublishedEventsQuery extends BaseQuery<GetPublishedEventsResultQ
    * Create query from plain object
    */
   static fromObject(data: {
-    filters?: PublishedEventsFilters;
+    filters?: PublishedEventsFiltersQuery;
     page?: number;
     limit?: number;
     sortBy?: string;
