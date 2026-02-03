@@ -46,6 +46,16 @@ export type { CancelEventResultCommand, CancelEventErrorCommand } from './comman
 export { CancelEventHandler } from './commands/cancel-event/cancel-event.handler';
 export type { CancelEventResult, CancelEventError } from './commands/cancel-event/cancel-event.handler';
 
+// Upload Event Image
+export { UploadEventImageCommand } from './commands/upload-event-image/upload-event-image.command';
+export type { UploadEventImageResult, UploadEventImageError } from './commands/upload-event-image/upload-event-image.command';
+export { UploadEventImageHandler } from './commands/upload-event-image/upload-event-image.handler';
+
+// Complete Event (Scheduler)
+export { CompleteEventCommand } from './commands/complete-event/complete-event.command';
+export type { CompleteEventError } from './commands/complete-event/complete-event.command';
+export { CompleteEventHandler } from './commands/complete-event/complete-event.handler';
+
 // ============================================
 // Queries (CQRS Read Operations)
 // ============================================
@@ -71,3 +81,4 @@ export * from './models';
 // Services (Domain Service Interfaces)
 // ============================================
 export * from './services/event-capacity.service.port';
+export { EventSchedulerService } from './services/event-scheduler.service';
