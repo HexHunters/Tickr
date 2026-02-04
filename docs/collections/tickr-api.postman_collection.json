@@ -1,9 +1,19 @@
 {
   "info": {
-    "_postman_id": "tickr-api-collection",
-    "name": "Tickr API",
-    "description": "Collection for testing the Tickr Event Ticketing Platform API",
+    "_postman_id": "tickr-api-v1",
+    "name": "Tickr API v1.0",
+    "description": "# Tickr Event Ticketing Platform API\n\nComplete API collection for the Tickr event ticketing platform.\n\n## Base URL\n- **Local Development**: `http://localhost:3000/api`\n- **Staging**: `https://staging.tickr.com/api`\n- **Production**: `https://api.tickr.com/api`\n\n## Authentication\nMost endpoints require JWT Bearer authentication. Use the Login endpoint to obtain tokens.\n\n## Getting Started\n1. Register a new user\n2. Login to get access token\n3. Use the access token in Authorization header for protected endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
     {
@@ -15,60 +25,108 @@
       "key": "accessToken",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticketTypeId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Health",
+      "name": "🏥 Health & Status",
+      "description": "Health check and status endpoints",
       "item": [
+        {
+          "name": "API Root",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            },
+            "description": "Get API root - returns Hello World"
+          },
+          "response": []
+        },
         {
           "name": "Health Check",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/health",
               "host": ["{{baseUrl}}"],
               "path": ["health"]
-            }
-          }
-        },
-        {
-          "name": "API Root",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}",
-              "host": ["{{baseUrl}}"]
-            }
-          }
+            },
+            "description": "Check API health status"
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "Authentication",
+      "name": "🔐 Authentication",
+      "description": "User authentication and authorization endpoints",
       "item": [
         {
-          "name": "Register",
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.id) {",
+                  "        pm.collectionVariables.set('userId', jsonData.id);",
+                  "        console.log('User ID saved:', jsonData.id);",
+                  "    }",
+                  "    pm.test('User registered successfully', function() {",
+                  "        pm.response.to.have.status(201);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+              "raw": "{\n  \"email\": \"organizer@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+21612345678\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "register"]
-            }
-          }
+            },
+            "description": "Register a new user account.\n\n**Password Requirements:**\n- Minimum 8 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character"
+          },
+          "response": []
         },
         {
           "name": "Login",
@@ -77,9 +135,24 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.accessToken) {",
-                  "    pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+                  "        console.log('Access token saved');",
+                  "    }",
+                  "    if (jsonData.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "        console.log('Refresh token saved');",
+                  "    }",
+                  "    if (jsonData.user && jsonData.user.id) {",
+                  "        pm.collectionVariables.set('userId', jsonData.user.id);",
+                  "        console.log('User ID saved:', jsonData.user.id);",
+                  "    }",
+                  "    pm.test('Login successful', function() {",
+                  "        pm.response.to.have.status(200);",
+                  "        pm.expect(jsonData).to.have.property('accessToken');",
+                  "    });",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -87,33 +160,48 @@
             }
           ],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\"\n}"
+              "raw": "{\n  \"email\": \"organizer@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
-            }
-          }
+            },
+            "description": "Login with email and password.\n\n**Returns:**\n- `accessToken`: JWT for API requests (15min expiry)\n- `refreshToken`: Token to refresh access (7 days expiry)\n- `user`: User profile information"
+          },
+          "response": []
         },
         {
           "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+                  "        console.log('New access token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
@@ -123,83 +211,313 @@
               "raw": "{{baseUrl}}/auth/refresh-token",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "refresh-token"]
-            }
-          }
+            },
+            "description": "Get a new access token using a refresh token."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"YOUR_VERIFICATION_TOKEN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-email"]
+            },
+            "description": "Verify email address with the token received via email."
+          },
+          "response": []
+        },
+        {
+          "name": "Request Password Reset",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"organizer@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/request-reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "request-reset"]
+            },
+            "description": "Request a password reset email. If the email exists, a reset link will be sent."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"YOUR_RESET_TOKEN\",\n  \"newPassword\": \"NewSecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Reset password using the token received via email."
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "Events (Public)",
+      "name": "👤 Users",
+      "description": "User profile management endpoints",
       "item": [
         {
-          "name": "Get Published Events",
+          "name": "Get My Profile",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/events?page=1&limit=20",
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Get the current authenticated user's profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Smith\",\n  \"phone\": \"+21698765432\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Update the current user's profile information."
+          },
+          "response": []
+        },
+        {
+          "name": "Change My Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"SecurePass123!\",\n  \"newPassword\": \"NewSecurePass456!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me", "password"]
+            },
+            "description": "Change the current user's password."
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate My Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Deactivate the current user's account."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id"],
+              "variable": [
+                { "key": "id", "value": "{{userId}}", "description": "User UUID" }
+              ]
+            },
+            "description": "Get a specific user by ID. **Admin only.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page" },
+                { "key": "role", "value": "ORGANIZER", "description": "Filter by role", "disabled": true }
+              ]
+            },
+            "description": "Get paginated list of users. **Admin only.**\n\n**Filters:**\n- `role`: ADMIN, ORGANIZER, PARTICIPANT"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🎫 Events (Public)",
+      "description": "Public event endpoints - no authentication required",
+      "item": [
+        {
+          "name": "Get Published Events",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has pagination', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('page');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events",
               "host": ["{{baseUrl}}"],
               "path": ["events"],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                { "key": "category", "value": "CONCERT", "disabled": true, "description": "Event category" },
+                { "key": "city", "value": "Tunis", "disabled": true, "description": "Filter by city" },
+                { "key": "country", "value": "Tunisia", "disabled": true, "description": "Filter by country" },
+                { "key": "dateFrom", "value": "2026-07-01T00:00:00Z", "disabled": true, "description": "Start date filter" },
+                { "key": "dateTo", "value": "2026-12-31T23:59:59Z", "disabled": true, "description": "End date filter" },
+                { "key": "minPrice", "value": "0", "disabled": true, "description": "Minimum ticket price" },
+                { "key": "maxPrice", "value": "500", "disabled": true, "description": "Maximum ticket price" },
+                { "key": "sortBy", "value": "startDate", "disabled": true, "description": "Sort field" },
+                { "key": "sortOrder", "value": "ASC", "disabled": true, "description": "Sort direction: ASC or DESC" }
               ]
-            }
-          }
+            },
+            "description": "Get all published events with optional filters.\n\n**Categories:**\nCONCERT, CONFERENCE, SPORT, THEATER, WORKSHOP, FESTIVAL, EXHIBITION, NETWORKING, COMEDY, OTHER\n\n**Sort Fields:**\ncreatedAt, updatedAt, startDate, endDate, title, totalCapacity, soldTickets, publishedAt"
+          },
+          "response": []
         },
         {
           "name": "Search Events",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/events/search?q=concert&page=1&limit=20",
+              "raw": "{{baseUrl}}/events/search?q=music",
               "host": ["{{baseUrl}}"],
               "path": ["events", "search"],
               "query": [
-                { "key": "q", "value": "concert" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                { "key": "q", "value": "music", "description": "Search query (required)" }
               ]
-            }
-          }
+            },
+            "description": "Search events by title.\n\n**Required:** `q` parameter with search term."
+          },
+          "response": []
         },
         {
           "name": "Get Events by Category",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/events/category/MUSIC?page=1&limit=20",
+              "raw": "{{baseUrl}}/events/category/:category",
               "host": ["{{baseUrl}}"],
-              "path": ["events", "category", "MUSIC"],
-              "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+              "path": ["events", "category", ":category"],
+              "variable": [
+                { "key": "category", "value": "CONCERT", "description": "Event category" }
               ]
-            }
-          }
+            },
+            "description": "Get events filtered by category.\n\n**Valid Categories:**\nCONCERT, CONFERENCE, SPORT, THEATER, WORKSHOP, FESTIVAL, EXHIBITION, NETWORKING, COMEDY, OTHER"
+          },
+          "response": []
         },
         {
           "name": "Get Upcoming Events",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/events/upcoming?days=30&page=1&limit=20",
+              "raw": "{{baseUrl}}/events/upcoming",
               "host": ["{{baseUrl}}"],
               "path": ["events", "upcoming"],
               "query": [
-                { "key": "days", "value": "30" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                { "key": "city", "value": "Tunis", "disabled": true },
+                { "key": "country", "value": "Tunisia", "disabled": true }
               ]
-            }
-          }
+            },
+            "description": "Get upcoming events (events starting in the future)."
+          },
+          "response": []
         },
         {
           "name": "Get Event by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.id) {",
+                  "        pm.collectionVariables.set('eventId', jsonData.id);",
+                  "    }",
+                  "    if (jsonData.ticketTypes && jsonData.ticketTypes.length > 0) {",
+                  "        pm.collectionVariables.set('ticketTypeId', jsonData.ticketTypes[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
             "url": {
@@ -207,15 +525,18 @@
               "host": ["{{baseUrl}}"],
               "path": ["events", ":id"],
               "variable": [
-                { "key": "id", "value": "{{eventId}}" }
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" }
               ]
-            }
-          }
+            },
+            "description": "Get detailed information about a specific event, including ticket types."
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "Events (Protected)",
+      "name": "🎫 Events (Protected)",
+      "description": "Protected event endpoints - authentication required",
       "item": [
         {
           "name": "Create Event",
@@ -224,9 +545,15 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.id) {",
-                  "    pm.collectionVariables.set('eventId', jsonData.id);",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.id) {",
+                  "        pm.collectionVariables.set('eventId', jsonData.id);",
+                  "        console.log('Event ID saved:', jsonData.id);",
+                  "    }",
+                  "    pm.test('Event created successfully', function() {",
+                  "        pm.response.to.have.status(201);",
+                  "    });",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -236,104 +563,150 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Summer Music Festival 2026\",\n  \"description\": \"A fantastic summer music event featuring top artists.\",\n  \"category\": \"MUSIC\",\n  \"startDate\": \"2026-07-15T18:00:00.000Z\",\n  \"endDate\": \"2026-07-15T23:00:00.000Z\",\n  \"venue\": {\n    \"name\": \"Central Park Arena\",\n    \"address\": \"123 Park Avenue\",\n    \"city\": \"New York\",\n    \"country\": \"USA\",\n    \"postalCode\": \"10001\"\n  },\n  \"capacity\": 5000\n}"
+              "raw": "{\n  \"title\": \"Summer Music Festival 2026\",\n  \"description\": \"A three-day music festival featuring top artists from around the world.\",\n  \"category\": \"CONCERT\",\n  \"location\": {\n    \"address\": \"123 Festival Avenue\",\n    \"city\": \"Tunis\",\n    \"country\": \"Tunisia\",\n    \"postalCode\": \"1000\"\n  },\n  \"startDate\": \"2026-07-15T18:00:00Z\",\n  \"endDate\": \"2026-07-17T23:00:00Z\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/events",
               "host": ["{{baseUrl}}"],
               "path": ["events"]
-            }
-          }
+            },
+            "description": "Create a new event.\n\n**Note:** Events are created in DRAFT status. Use 'Publish Event' to make them visible."
+          },
+          "response": []
         },
         {
           "name": "Update Event",
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Summer Music Festival 2026 - Updated\",\n  \"description\": \"An amazing summer music event featuring top artists worldwide.\"\n}"
+              "raw": "{\n  \"title\": \"Summer Music Festival 2026 - Extended Edition\",\n  \"description\": \"Now featuring additional artists and a fourth day of music!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/events/:id",
               "host": ["{{baseUrl}}"],
               "path": ["events", ":id"],
               "variable": [
-                { "key": "id", "value": "{{eventId}}" }
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" }
               ]
-            }
-          }
+            },
+            "description": "Update an existing event."
+          },
+          "response": []
         },
         {
           "name": "Publish Event",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/events/:id/publish",
               "host": ["{{baseUrl}}"],
               "path": ["events", ":id", "publish"],
               "variable": [
-                { "key": "id", "value": "{{eventId}}" }
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" }
               ]
-            }
-          }
+            },
+            "description": "Publish a draft event.\n\n**Requirements:**\n- Event must be in DRAFT status\n- Event must have at least one active ticket type"
+          },
+          "response": []
         },
         {
           "name": "Cancel Event",
           "request": {
             "method": "DELETE",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Venue no longer available.\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/events/:id",
               "host": ["{{baseUrl}}"],
               "path": ["events", ":id"],
               "variable": [
-                { "key": "id", "value": "{{eventId}}" }
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" }
               ]
-            }
-          }
+            },
+            "description": "Cancel an event. A reason is required."
+          },
+          "response": []
         },
         {
-          "name": "Add Ticket Type",
+          "name": "Get Organizer Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/organizer/:organizerId",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "organizer", ":organizerId"],
+              "query": [
+                { "key": "status", "value": "DRAFT", "disabled": true, "description": "DRAFT, PUBLISHED, CANCELLED, COMPLETED" }
+              ],
+              "variable": [
+                { "key": "organizerId", "value": "{{userId}}", "description": "Organizer UUID" }
+              ]
+            },
+            "description": "Get all events for an organizer."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Event Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "Image file (JPEG, PNG, WebP, max 5MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/:id/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", ":id", "image"],
+              "variable": [
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" }
+              ]
+            },
+            "description": "Upload an image for an event.\n\n**Formats:** JPEG, PNG, WebP\n**Max size:** 5MB"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🎟️ Ticket Types",
+      "description": "Ticket type management for events",
+      "item": [
+        {
+          "name": "Add Ticket Type (VIP)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.ticketTypes && jsonData.ticketTypes.length > 0) {",
-                  "    pm.collectionVariables.set('ticketTypeId', jsonData.ticketTypes[0].id);",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.ticketTypes && jsonData.ticketTypes.length > 0) {",
+                  "        var lastTicketType = jsonData.ticketTypes[jsonData.ticketTypes.length - 1];",
+                  "        pm.collectionVariables.set('ticketTypeId', lastTicketType.id);",
+                  "    }",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -343,169 +716,161 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"VIP\",\n  \"description\": \"VIP access with backstage pass\",\n  \"price\": 150.00,\n  \"quantity\": 100,\n  \"maxPerOrder\": 4,\n  \"salesStartDate\": \"2026-06-01T00:00:00.000Z\",\n  \"salesEndDate\": \"2026-07-14T23:59:59.000Z\"\n}"
+              "raw": "{\n  \"name\": \"VIP Access\",\n  \"description\": \"VIP ticket with backstage access\",\n  \"price\": 150,\n  \"currency\": \"TND\",\n  \"quantity\": 100,\n  \"salesStartDate\": \"2026-06-01T00:00:00Z\",\n  \"salesEndDate\": \"2026-07-14T23:59:59Z\",\n  \"isActive\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/events/:id/ticket-types",
               "host": ["{{baseUrl}}"],
               "path": ["events", ":id", "ticket-types"],
               "variable": [
-                { "key": "id", "value": "{{eventId}}" }
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" }
               ]
-            }
-          }
+            },
+            "description": "Add a VIP ticket type.\n\n**Currencies:** TND, EUR, USD"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Ticket Type (Standard)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Standard\",\n  \"description\": \"General admission ticket\",\n  \"price\": 50,\n  \"currency\": \"TND\",\n  \"quantity\": 500,\n  \"salesStartDate\": \"2026-06-01T00:00:00Z\",\n  \"salesEndDate\": \"2026-07-14T23:59:59Z\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/:id/ticket-types",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", ":id", "ticket-types"],
+              "variable": [
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" }
+              ]
+            },
+            "description": "Add a standard ticket type."
+          },
+          "response": []
         },
         {
           "name": "Update Ticket Type",
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"price\": 175.00,\n  \"quantity\": 150\n}"
+              "raw": "{\n  \"name\": \"Super VIP Access\",\n  \"description\": \"Now includes afterparty!\",\n  \"price\": 175,\n  \"quantity\": 150\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/events/:id/ticket-types/:typeId",
               "host": ["{{baseUrl}}"],
               "path": ["events", ":id", "ticket-types", ":typeId"],
               "variable": [
-                { "key": "id", "value": "{{eventId}}" },
-                { "key": "typeId", "value": "{{ticketTypeId}}" }
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" },
+                { "key": "typeId", "value": "{{ticketTypeId}}", "description": "Ticket Type UUID" }
               ]
-            }
-          }
+            },
+            "description": "Update an existing ticket type."
+          },
+          "response": []
         },
         {
           "name": "Remove Ticket Type",
           "request": {
             "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/events/:id/ticket-types/:typeId",
               "host": ["{{baseUrl}}"],
               "path": ["events", ":id", "ticket-types", ":typeId"],
               "variable": [
-                { "key": "id", "value": "{{eventId}}" },
-                { "key": "typeId", "value": "{{ticketTypeId}}" }
+                { "key": "id", "value": "{{eventId}}", "description": "Event UUID" },
+                { "key": "typeId", "value": "{{ticketTypeId}}", "description": "Ticket Type UUID" }
               ]
-            }
-          }
-        },
-        {
-          "name": "Get Organizer Events",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/events/organizer/:organizerId?page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["events", "organizer", ":organizerId"],
-              "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
-              ],
-              "variable": [
-                { "key": "organizerId", "value": "{{userId}}" }
-              ]
-            }
-          }
+            },
+            "description": "Remove a ticket type from an event."
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "Users",
+      "name": "📋 Workflow: Create & Publish Event",
+      "description": "Complete workflow to create and publish an event",
       "item": [
         {
-          "name": "Get Current User",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+          "name": "1. Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) pm.collectionVariables.set('accessToken', jsonData.accessToken);",
+                  "if (jsonData.refreshToken) pm.collectionVariables.set('refreshToken', jsonData.refreshToken);",
+                  "if (jsonData.user) pm.collectionVariables.set('userId', jsonData.user.id);"
+                ],
+                "type": "text/javascript"
               }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/users/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me"]
             }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"organizer@example.com\",\n  \"password\": \"SecurePass123!\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
           }
         },
         {
-          "name": "Update Profile",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+          "name": "2. Create Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["var jsonData = pm.response.json();", "if (jsonData.id) pm.collectionVariables.set('eventId', jsonData.id);"],
+                "type": "text/javascript"
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me"]
             }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Tech Conference 2026\",\n  \"description\": \"Annual tech conference\",\n  \"category\": \"CONFERENCE\",\n  \"location\": { \"city\": \"Tunis\", \"country\": \"Tunisia\" },\n  \"startDate\": \"2026-09-15T09:00:00Z\",\n  \"endDate\": \"2026-09-16T18:00:00Z\"\n}" },
+            "url": { "raw": "{{baseUrl}}/events", "host": ["{{baseUrl}}"], "path": ["events"] }
           }
         },
         {
-          "name": "Get Users (Admin)",
+          "name": "3. Add Ticket Type",
           "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Standard\",\n  \"price\": 75,\n  \"currency\": \"TND\",\n  \"quantity\": 200,\n  \"salesStartDate\": \"2026-08-01T00:00:00Z\",\n  \"salesEndDate\": \"2026-09-14T23:59:59Z\"\n}" },
+            "url": { "raw": "{{baseUrl}}/events/{{eventId}}/ticket-types", "host": ["{{baseUrl}}"], "path": ["events", "{{eventId}}", "ticket-types"] }
+          }
+        },
+        {
+          "name": "4. Publish Event",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/events/{{eventId}}/publish", "host": ["{{baseUrl}}"], "path": ["events", "{{eventId}}", "publish"] }
+          }
+        },
+        {
+          "name": "5. Verify Published",
+          "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/users?page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
-              "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
-              ]
-            }
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["events", "{{eventId}}"] }
           }
         }
       ]
