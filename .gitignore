@@ -176,3 +176,6 @@ dist
 *.key
 *.crt
 secrets/
+
+# OpenCode Config
+opencode.json

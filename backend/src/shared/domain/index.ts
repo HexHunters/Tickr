@@ -11,3 +11,6 @@ export * from './value-objects/phone.vo';
 export * from './value-objects/money.vo';
 export * from './value-objects/date-range.vo';
 export * from './value-objects/url.vo';
+
+// Utilities
+export * from './utils';

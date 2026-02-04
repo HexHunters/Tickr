@@ -136,7 +136,7 @@ Plateforme web de billetterie en ligne permettant aux organisateurs d'événemen
    ↓
 5. Confirme commande
    • Voit récapitulatif
-   • Prix total (prix + commission 4%)
+   • Prix total (prix + commission 6%)
    ↓
 6. Choisit mode paiement:
    • Carte bancaire locale (Clictopay/Edinar)
