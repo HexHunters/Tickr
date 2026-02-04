@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Import all entities explicitly for reliability
+import { EventOrmEntity } from '../../../modules/events/infrastructure/persistence/entities/event.orm-entity';
+import { TicketTypeOrmEntity } from '../../../modules/events/infrastructure/persistence/entities/ticket-type.orm-entity';
 import { UserEntity } from '../../../modules/users/infrastructure/persistence/entities/user.orm-entity';
 import { VerificationTokenEntity } from '../../../modules/users/infrastructure/persistence/entities/verification-token.orm-entity';
 
@@ -19,7 +21,14 @@ import { VerificationTokenEntity } from '../../../modules/users/infrastructure/p
         username: configService.get<string>('DB_USERNAME', 'postgres'),
         password: configService.get<string>('DB_PASSWORD', 'postgres'),
         database: configService.get<string>('DB_DATABASE', 'tickr'),
-        entities: [UserEntity, VerificationTokenEntity],
+        entities: [
+          // Users module entities
+          UserEntity,
+          VerificationTokenEntity,
+          // Events module entities
+          EventOrmEntity,
+          TicketTypeOrmEntity,
+        ],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         synchronize: configService.get<string>('NODE_ENV') === 'development',
         logging: configService.get<string>('NODE_ENV') === 'development',

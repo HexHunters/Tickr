@@ -12,9 +12,9 @@ NC     := \033[0m # No Color
 ##@ Aide
 
 help: ## Affiche ce message d'aide
-	@echo '$(GREEN)Tickr - Commandes Disponibles$(NC)'
+	@printf '$(GREEN)Tickr - Commandes Disponibles$(NC)\n'
 	@echo ''
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Setup & Installation
 
@@ -172,10 +172,36 @@ test-unit: ## Tests unitaires uniquement
 		cd backend && npm run test:unit; \
 	fi
 
-test-e2e: ## Tests E2E uniquement
-	@echo "$(GREEN)🧪 Tests E2E...$(NC)"
+test-e2e: ## Tests E2E backend uniquement
+	@echo "$(GREEN)🧪 Tests E2E backend...$(NC)"
 	@if [ -d "backend" ]; then \
 		cd backend && npm run test:e2e; \
+	fi
+
+test-e2e-frontend: ## Tests E2E frontend (Playwright)
+	@echo "$(GREEN)🧪 Tests E2E frontend (Playwright)...$(NC)"
+	@if [ -d "frontend" ] && [ -f "frontend/playwright.config.ts" ]; then \
+		cd frontend && npx playwright test; \
+	else \
+		echo "$(YELLOW)⚠️ Playwright not configured, skipping$(NC)"; \
+	fi
+
+test-integration: ## Tests d'intégration uniquement
+	@echo "$(GREEN)🧪 Tests d'intégration...$(NC)"
+	@if [ -d "backend" ]; then \
+		cd backend && npm run test:integration; \
+	fi
+
+test-arch: ## Tests d'architecture (fitness functions)
+	@echo "$(GREEN)🏛️ Tests d'architecture...$(NC)"
+	@if [ -d "backend" ]; then \
+		cd backend && npm run test:arch; \
+	fi
+
+test-all: ## Tous les tests (unit + integration + e2e + arch)
+	@echo "$(GREEN)🧪 Exécution de tous les tests...$(NC)"
+	@if [ -d "backend" ]; then \
+		cd backend && npm run test:all; \
 	fi
 
 test-watch: ## Tests en mode watch
@@ -250,6 +276,14 @@ docker-clean: ## Nettoie les images et volumes Docker
 	@echo "$(RED)🧹 Nettoyage Docker...$(NC)"
 	@docker-compose down -v --rmi local
 	@echo "$(GREEN)✅ Nettoyage terminé$(NC)"
+
+docker-rebuild: ## Rebuild complet des containers dev (reset node_modules)
+	@echo "$(YELLOW)🔄 Rebuild complet des containers de dev...$(NC)"
+	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+	@docker volume rm tickr_backend_node_modules tickr_frontend_node_modules 2>/dev/null || true
+	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache backend frontend
+	@echo "$(GREEN)✅ Containers reconstruits avec node_modules frais$(NC)"
+	@echo "$(YELLOW)💡 Lancez 'make dev' pour démarrer$(NC)"
 
 docker-prune: ## Nettoie tous les containers/images inutilisés
 	@echo "$(RED)🧹 Nettoyage profond Docker...$(NC)"
