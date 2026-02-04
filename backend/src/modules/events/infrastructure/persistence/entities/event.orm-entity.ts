@@ -8,9 +8,9 @@ import {
   Index,
 } from 'typeorm';
 
+import { Currency } from '../../../domain/value-objects/currency.vo';
 import { EventCategory } from '../../../domain/value-objects/event-category.vo';
 import { EventStatus } from '../../../domain/value-objects/event-status.vo';
-import { Currency } from '../../../domain/value-objects/currency.vo';
 
 import { TicketTypeOrmEntity } from './ticket-type.orm-entity';
 

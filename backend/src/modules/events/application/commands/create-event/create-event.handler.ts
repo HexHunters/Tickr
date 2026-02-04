@@ -6,9 +6,8 @@ import { EventEntity } from '../../../domain/entities/event.entity';
 import { EventDateRangeVO } from '../../../domain/value-objects/event-date-range.vo';
 import { LocationVO } from '../../../domain/value-objects/location.vo';
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
-import { USER_VALIDATION_SERVICE } from '../../ports/user-validation.service.port';
-
 import type { EventRepositoryPort } from '../../ports/event.repository.port';
+import { USER_VALIDATION_SERVICE } from '../../ports/user-validation.service.port';
 import type { UserValidationServicePort } from '../../ports/user-validation.service.port';
 
 import {

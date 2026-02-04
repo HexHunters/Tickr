@@ -18,7 +18,7 @@ import { MaxTicketTypesReachedException } from '../exceptions/max-ticket-types-r
 import { Currency } from '../value-objects/currency.vo';
 import { EventCategory, EventCategoryVO } from '../value-objects/event-category.vo';
 import { EventDateRangeVO } from '../value-objects/event-date-range.vo';
-import { EventStatus, EventStatusVO } from '../value-objects/event-status.vo';
+import { EventStatus } from '../value-objects/event-status.vo';
 import { LocationVO } from '../value-objects/location.vo';
 import { TicketPriceVO } from '../value-objects/ticket-price.vo';
 

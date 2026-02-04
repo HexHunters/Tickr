@@ -3,9 +3,8 @@ import { Result } from '@shared/domain/result';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
-import { USER_VALIDATION_SERVICE } from '../../ports/user-validation.service.port';
-
 import type { EventRepositoryPort } from '../../ports/event.repository.port';
+import { USER_VALIDATION_SERVICE } from '../../ports/user-validation.service.port';
 import type { UserValidationServicePort } from '../../ports/user-validation.service.port';
 
 import {

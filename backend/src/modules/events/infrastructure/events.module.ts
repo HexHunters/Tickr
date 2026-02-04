@@ -1,90 +1,44 @@
+import { UsersModule } from '@modules/users/infrastructure/users.module';
 import { Module, Provider } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-// ============================================
-// Shared Infrastructure
-// ============================================
 import { CacheModule } from '@shared/infrastructure/cache/cache.module';
 
-// ============================================
-// Cross-Module Import (Users Module)
-// ============================================
-import { UsersModule } from '@modules/users/infrastructure/users.module';
-
-// ============================================
-// Application Layer - Command Handlers
-// ============================================
-import { CreateEventHandler } from '../application/commands/create-event/create-event.handler';
-import { UpdateEventHandler } from '../application/commands/update-event/update-event.handler';
-import { PublishEventHandler } from '../application/commands/publish-event/publish-event.handler';
-import { CancelEventHandler } from '../application/commands/cancel-event/cancel-event.handler';
 import { AddTicketTypeHandler } from '../application/commands/add-ticket-type/add-ticket-type.handler';
-import { UpdateTicketTypeHandler } from '../application/commands/update-ticket-type/update-ticket-type.handler';
-import { RemoveTicketTypeHandler } from '../application/commands/remove-ticket-type/remove-ticket-type.handler';
-import { UploadEventImageHandler } from '../application/commands/upload-event-image/upload-event-image.handler';
+import { CancelEventHandler } from '../application/commands/cancel-event/cancel-event.handler';
 import { CompleteEventHandler } from '../application/commands/complete-event/complete-event.handler';
-
-// ============================================
-// Application Layer - Query Handlers
-// ============================================
-import { GetEventByIdHandler } from '../application/queries/get-event-by-id/get-event-by-id.handler';
-import { GetPublishedEventsHandler } from '../application/queries/get-published-events/get-published-events.handler';
-import { SearchEventsHandler } from '../application/queries/search-events/search-events.handler';
-import { GetEventsByCategoryHandler } from '../application/queries/get-events-by-category/get-events-by-category.handler';
-import { GetUpcomingEventsHandler } from '../application/queries/get-upcoming-events/get-upcoming-events.handler';
-import { GetOrganizerEventsHandler } from '../application/queries/get-organizer-events/get-organizer-events.handler';
-
-// ============================================
-// Application Layer - Event Handlers (Cross-Module)
-// ============================================
-import { EventPublishedEventHandler } from '../application/event-handlers/event-published.handler';
+import { CreateEventHandler } from '../application/commands/create-event/create-event.handler';
+import { PublishEventHandler } from '../application/commands/publish-event/publish-event.handler';
+import { RemoveTicketTypeHandler } from '../application/commands/remove-ticket-type/remove-ticket-type.handler';
+import { UpdateEventHandler } from '../application/commands/update-event/update-event.handler';
+import { UpdateTicketTypeHandler } from '../application/commands/update-ticket-type/update-ticket-type.handler';
+import { UploadEventImageHandler } from '../application/commands/upload-event-image/upload-event-image.handler';
 import { EventCancelledEventHandler } from '../application/event-handlers/event-cancelled.handler';
+import { EventPublishedEventHandler } from '../application/event-handlers/event-published.handler';
 import { TicketTypeSoldOutEventHandler } from '../application/event-handlers/ticket-type-sold-out.handler';
-
-// ============================================
-// Application Layer - Ports & Services
-// ============================================
 import { EVENT_REPOSITORY } from '../application/ports/event.repository.port';
 import { USER_VALIDATION_SERVICE } from '../application/ports/user-validation.service.port';
+import { GetEventByIdHandler } from '../application/queries/get-event-by-id/get-event-by-id.handler';
+import { GetEventsByCategoryHandler } from '../application/queries/get-events-by-category/get-events-by-category.handler';
+import { GetOrganizerEventsHandler } from '../application/queries/get-organizer-events/get-organizer-events.handler';
+import { GetPublishedEventsHandler } from '../application/queries/get-published-events/get-published-events.handler';
+import { GetUpcomingEventsHandler } from '../application/queries/get-upcoming-events/get-upcoming-events.handler';
+import { SearchEventsHandler } from '../application/queries/search-events/search-events.handler';
 import { EventSchedulerService } from '../application/services/event-scheduler.service';
 
-// ============================================
-// Infrastructure Layer - Persistence
-// ============================================
+import { UserValidationServiceAdapter } from './adapters/user-validation.service.adapter';
+import { EventsController } from './controllers/events.controller';
+import { IsEventOwnerGuard } from './guards/is-event-owner.guard';
 import { EventOrmEntity } from './persistence/entities/event.orm-entity';
 import { TicketTypeOrmEntity } from './persistence/entities/ticket-type.orm-entity';
 import { EventMapper } from './persistence/mappers/event.mapper';
 import { TicketTypeMapper } from './persistence/mappers/ticket-type.mapper';
-
-// ============================================
-// Infrastructure Layer - Repositories
-// ============================================
 import { EventTypeOrmRepository } from './repositories/event.repository';
 import { TicketTypeTypeOrmRepository } from './repositories/ticket-type.repository';
-
-// ============================================
-// Infrastructure Layer - Adapters
-// ============================================
-import { UserValidationServiceAdapter } from './adapters/user-validation.service.adapter';
-
-// ============================================
-// Infrastructure Layer - Services
-// ============================================
-import { S3StorageService } from './services/s3-storage.service';
 import { EventCacheService } from './services/event-cache.service';
-
-// ============================================
-// Infrastructure Layer - Controllers
-// ============================================
-import { EventsController } from './controllers/events.controller';
-
-// ============================================
-// Infrastructure Layer - Guards
-// ============================================
-import { IsEventOwnerGuard } from './guards/is-event-owner.guard';
+import { S3StorageService } from './services/s3-storage.service';
 
 // ============================================
 // Command Handlers Collection

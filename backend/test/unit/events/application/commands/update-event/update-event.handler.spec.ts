@@ -1,7 +1,4 @@
-import { Logger } from '@nestjs/common';
 
-import { Result } from '@shared/domain/result';
-import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import {
   UpdateEventCommand,
@@ -9,12 +6,16 @@ import {
 } from '@modules/events/application/commands/update-event';
 import type { EventRepositoryPort } from '@modules/events/application/ports/event.repository.port';
 import type { UserValidationServicePort } from '@modules/events/application/ports/user-validation.service.port';
-
 import { EventEntity } from '@modules/events/domain/entities/event.entity';
+import { TicketTypeEntity } from '@modules/events/domain/entities/ticket-type.entity';
+import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
-import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
+import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
+import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { Logger } from '@nestjs/common';
+import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 describe('UpdateEventHandler', () => {
   let handler: UpdateEventHandler;
@@ -233,12 +234,12 @@ describe('UpdateEventHandler', () => {
     it('should prevent location change on PUBLISHED event', async () => {
       const event = createDraftEvent();
       
-      const ticketTypeResult = require('@modules/events/domain/entities/ticket-type.entity').TicketTypeEntity.create({
+      const ticketTypeResult = TicketTypeEntity.create({
         eventId,
         name: 'General',
-        price: require('@modules/events/domain/value-objects/ticket-price.vo').TicketPriceVO.create(50, require('@modules/events/domain/value-objects/currency.vo').Currency.TND),
+        price: TicketPriceVO.create(50, Currency.TND),
         quantity: 100,
-        salesPeriod: require('@modules/events/domain/value-objects/sales-period.vo').SalesPeriodVO.create(
+        salesPeriod: SalesPeriodVO.create(
           new Date('2026-06-01T00:00:00Z'),
           new Date('2026-07-14T23:59:59Z'),
         ),
@@ -265,12 +266,12 @@ describe('UpdateEventHandler', () => {
     it('should allow title/description change on PUBLISHED event', async () => {
       const event = createDraftEvent();
       
-      const ticketTypeResult = require('@modules/events/domain/entities/ticket-type.entity').TicketTypeEntity.create({
+      const ticketTypeResult = TicketTypeEntity.create({
         eventId,
         name: 'General',
-        price: require('@modules/events/domain/value-objects/ticket-price.vo').TicketPriceVO.create(50, require('@modules/events/domain/value-objects/currency.vo').Currency.TND),
+        price: TicketPriceVO.create(50, Currency.TND),
         quantity: 100,
-        salesPeriod: require('@modules/events/domain/value-objects/sales-period.vo').SalesPeriodVO.create(
+        salesPeriod: SalesPeriodVO.create(
           new Date('2026-06-01T00:00:00Z'),
           new Date('2026-07-14T23:59:59Z'),
         ),

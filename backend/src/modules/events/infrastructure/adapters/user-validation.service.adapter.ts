@@ -1,10 +1,10 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
 
 import {
   USER_REPOSITORY,
 } from '@modules/users/application/ports/user.repository.port';
 import type { UserRepositoryPort } from '@modules/users/application/ports/user.repository.port';
 import { UserRole } from '@modules/users/domain/value-objects/user-role.vo';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 
 import {
   UserValidationServicePort,

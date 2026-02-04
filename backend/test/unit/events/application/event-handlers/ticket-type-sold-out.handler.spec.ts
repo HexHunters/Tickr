@@ -1,8 +1,8 @@
+import { TicketTypeSoldOutEventHandler } from '@modules/events/application/event-handlers/ticket-type-sold-out.handler';
+import { TicketTypeSoldOutEvent } from '@modules/events/domain/events/ticket-type-sold-out.event';
 import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { TicketTypeSoldOutEvent } from '@modules/events/domain/events/ticket-type-sold-out.event';
-import { TicketTypeSoldOutEventHandler } from '@modules/events/application/event-handlers/ticket-type-sold-out.handler';
 
 describe('TicketTypeSoldOutEventHandler', () => {
   let handler: TicketTypeSoldOutEventHandler;

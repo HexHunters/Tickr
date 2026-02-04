@@ -3,18 +3,17 @@
  * @description Tests for S3 image upload, deletion, and URL generation
  */
 
-import { ConfigService } from '@nestjs/config';
-import { S3Client } from '@aws-sdk/client-s3';
-
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { FileSizeExceededException } from '@modules/events/infrastructure/exceptions/file-size-exceeded.exception';
+import { InvalidFileTypeException } from '@modules/events/infrastructure/exceptions/invalid-file-type.exception';
+import { S3DeleteFailedException } from '@modules/events/infrastructure/exceptions/s3-delete-failed.exception';
+import { S3UploadFailedException } from '@modules/events/infrastructure/exceptions/s3-upload-failed.exception';
 import {
   S3StorageService,
   ALLOWED_IMAGE_TYPES,
   IMAGE_SIZES,
 } from '@modules/events/infrastructure/services/s3-storage.service';
-import { InvalidFileTypeException } from '@modules/events/infrastructure/exceptions/invalid-file-type.exception';
-import { FileSizeExceededException } from '@modules/events/infrastructure/exceptions/file-size-exceeded.exception';
-import { S3UploadFailedException } from '@modules/events/infrastructure/exceptions/s3-upload-failed.exception';
-import { S3DeleteFailedException } from '@modules/events/infrastructure/exceptions/s3-delete-failed.exception';
+import { ConfigService } from '@nestjs/config';
 
 // Mock AWS SDK
 jest.mock('@aws-sdk/client-s3', () => {
@@ -228,7 +227,6 @@ describe('S3StorageService', () => {
     });
 
     it('should accept custom expiration time', async () => {
-      const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
       const imageUrl = `https://tickr-event-images.s3.eu-west-1.amazonaws.com/test/${testEventId}/1234-image.jpg`;
 
       await service.generateSignedUrl(imageUrl, 7200); // 2 hours

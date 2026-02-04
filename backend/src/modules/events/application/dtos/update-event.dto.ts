@@ -1,3 +1,6 @@
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
@@ -11,10 +14,6 @@ import {
   IsLongitude,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 
 /**
  * Location data for event update

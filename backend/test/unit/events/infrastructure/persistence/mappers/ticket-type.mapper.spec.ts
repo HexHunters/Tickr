@@ -3,12 +3,12 @@
  * @description Tests for TicketTypeMapper conversion methods
  */
 
-import { TicketTypeMapper } from '@modules/events/infrastructure/persistence/mappers/ticket-type.mapper';
-import { TicketTypeOrmEntity } from '@modules/events/infrastructure/persistence/entities/ticket-type.orm-entity';
 import { TicketTypeEntity } from '@modules/events/domain/entities/ticket-type.entity';
-import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
-import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
 import { Currency } from '@modules/events/domain/value-objects/currency.vo';
+import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
+import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { TicketTypeOrmEntity } from '@modules/events/infrastructure/persistence/entities/ticket-type.orm-entity';
+import { TicketTypeMapper } from '@modules/events/infrastructure/persistence/mappers/ticket-type.mapper';
 
 describe('TicketTypeMapper', () => {
   let mapper: TicketTypeMapper;

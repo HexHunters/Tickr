@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { TicketTypeEntity } from '../../domain/entities/ticket-type.entity';
 import { TicketTypeRepositoryPort } from '../../application/ports/event.repository.port';
+import { TicketTypeEntity } from '../../domain/entities/ticket-type.entity';
 import { TicketTypeOrmEntity } from '../persistence/entities/ticket-type.orm-entity';
 import { TicketTypeMapper } from '../persistence/mappers/ticket-type.mapper';
 

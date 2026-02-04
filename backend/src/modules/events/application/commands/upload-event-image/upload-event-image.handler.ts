@@ -2,13 +2,13 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Result } from '@shared/domain/result';
 
 import { EventStatus } from '../../../domain/value-objects/event-status.vo';
-import { S3StorageService, ALLOWED_IMAGE_TYPES } from '../../../infrastructure/services/s3-storage.service';
-import { InvalidFileTypeException } from '../../../infrastructure/exceptions/invalid-file-type.exception';
 import { FileSizeExceededException } from '../../../infrastructure/exceptions/file-size-exceeded.exception';
+import { InvalidFileTypeException } from '../../../infrastructure/exceptions/invalid-file-type.exception';
 import { S3UploadFailedException } from '../../../infrastructure/exceptions/s3-upload-failed.exception';
+import { S3StorageService } from '../../../infrastructure/services/s3-storage.service';
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
-
 import type { EventRepositoryPort } from '../../ports/event.repository.port';
+
 import type {
   UploadEventImageResultCommand,
   UploadEventImageError,

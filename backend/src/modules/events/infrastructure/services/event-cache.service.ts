@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-
 import { CacheService } from '@shared/infrastructure/cache/cache.service';
 
-import type { EventDto } from '../../application/dtos/event.dto';
 import type { PaginatedEventListDto } from '../../application/dtos/event-list.dto';
+import type { EventDto } from '../../application/dtos/event.dto';
 
 /**
  * Cache Key Prefixes

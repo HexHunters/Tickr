@@ -1,11 +1,10 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
-import { EVENT_REPOSITORY } from '../ports/event.repository.port';
 import { CompleteEventCommand } from '../commands/complete-event/complete-event.command';
 import { CompleteEventHandler } from '../commands/complete-event/complete-event.handler';
-
+import { EVENT_REPOSITORY } from '../ports/event.repository.port';
 import type { EventRepositoryPort } from '../ports/event.repository.port';
 
 // ============================================

@@ -1,8 +1,8 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
+import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
-import { Currency } from '@modules/events/domain/value-objects/currency.vo';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
 
 import { TicketTypeDto } from './ticket-type.dto';
 

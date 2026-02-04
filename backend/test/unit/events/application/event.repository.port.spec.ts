@@ -1,5 +1,3 @@
-import { EventCategory } from '../../../../src/modules/events/domain/value-objects/event-category.vo';
-import { EventStatus } from '../../../../src/modules/events/domain/value-objects/event-status.vo';
 import {
   EventFilters,
   EventSortField,
@@ -9,6 +7,8 @@ import {
   EVENT_REPOSITORY,
   TICKET_TYPE_REPOSITORY,
 } from '../../../../src/modules/events/application/ports/event.repository.port';
+import { EventCategory } from '../../../../src/modules/events/domain/value-objects/event-category.vo';
+import { EventStatus } from '../../../../src/modules/events/domain/value-objects/event-status.vo';
 
 /**
  * Unit Tests for Event Repository Port Types

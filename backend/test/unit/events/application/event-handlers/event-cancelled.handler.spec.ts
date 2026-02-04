@@ -1,8 +1,8 @@
+import { EventCancelledEventHandler } from '@modules/events/application/event-handlers/event-cancelled.handler';
+import { EventCancelledEvent } from '@modules/events/domain/events/event-cancelled.event';
 import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { EventCancelledEvent } from '@modules/events/domain/events/event-cancelled.event';
-import { EventCancelledEventHandler } from '@modules/events/application/event-handlers/event-cancelled.handler';
 
 describe('EventCancelledEventHandler', () => {
   let handler: EventCancelledEventHandler;

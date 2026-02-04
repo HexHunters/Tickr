@@ -3,8 +3,8 @@ import { Result } from '@shared/domain/result';
 
 import { EventStatus } from '../../../domain/value-objects/event-status.vo';
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
-
 import type { EventRepositoryPort } from '../../ports/event.repository.port';
+
 import type { CompleteEventError } from './complete-event.command';
 import { CompleteEventCommand } from './complete-event.command';
 

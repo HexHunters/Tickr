@@ -3,18 +3,17 @@
  * @description Tests for the event scheduler service and cron jobs
  */
 
-import { Logger } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
-
-import { EventEntity } from '@modules/events/domain/entities/event.entity';
-import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
-import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
-import { EventSchedulerService } from '@modules/events/application/services/event-scheduler.service';
 import { CompleteEventHandler } from '@modules/events/application/commands/complete-event/complete-event.handler';
 import { EVENT_REPOSITORY } from '@modules/events/application/ports/event.repository.port';
+import { EventSchedulerService } from '@modules/events/application/services/event-scheduler.service';
+import { EventEntity } from '@modules/events/domain/entities/event.entity';
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
+import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
+import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
+import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import { Result } from '@shared/domain/result';
 
 describe('EventSchedulerService', () => {

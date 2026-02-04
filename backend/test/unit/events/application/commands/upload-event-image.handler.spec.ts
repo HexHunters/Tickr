@@ -1,19 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
 
-import { Result } from '@shared/domain/result';
 
-import { EventEntity } from '@modules/events/domain/entities/event.entity';
-import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
-import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
 import { UploadEventImageCommand } from '@modules/events/application/commands/upload-event-image/upload-event-image.command';
 import { UploadEventImageHandler } from '@modules/events/application/commands/upload-event-image/upload-event-image.handler';
 import { EVENT_REPOSITORY } from '@modules/events/application/ports/event.repository.port';
-import { S3StorageService } from '@modules/events/infrastructure/services/s3-storage.service';
-import { InvalidFileTypeException } from '@modules/events/infrastructure/exceptions/invalid-file-type.exception';
+import { EventEntity } from '@modules/events/domain/entities/event.entity';
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
+import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
+import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 import { FileSizeExceededException } from '@modules/events/infrastructure/exceptions/file-size-exceeded.exception';
+import { InvalidFileTypeException } from '@modules/events/infrastructure/exceptions/invalid-file-type.exception';
 import { S3UploadFailedException } from '@modules/events/infrastructure/exceptions/s3-upload-failed.exception';
+import { S3StorageService } from '@modules/events/infrastructure/services/s3-storage.service';
+import { Test, TestingModule } from '@nestjs/testing';
 
 describe('UploadEventImageHandler', () => {
   let handler: UploadEventImageHandler;

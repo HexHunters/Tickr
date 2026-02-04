@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 
 import { EVENT_REPOSITORY } from '../../application/ports/event.repository.port';
-
 import type { EventRepositoryPort } from '../../application/ports/event.repository.port';
 
 /**

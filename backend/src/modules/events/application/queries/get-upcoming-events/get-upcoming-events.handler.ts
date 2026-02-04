@@ -1,12 +1,12 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Result } from '@shared/domain/result';
 
-import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
 
 import type { EventEntity } from '../../../domain/entities/event.entity';
-import type { EventRepositoryPort, EventPaginationOptions, EventFilters } from '../../ports/event.repository.port';
 import type { EventListDto, PaginatedEventListDto } from '../../dtos/event-list.dto';
 import type { TicketTypeSummaryDto } from '../../dtos/ticket-type.dto';
+import type { EventRepositoryPort, EventPaginationOptions, EventFilters } from '../../ports/event.repository.port';
+import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
 
 import {
   GetUpcomingEventsQuery,

@@ -4,17 +4,7 @@
  * Tests for EventsController handling HTTP requests and delegating to handlers
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  ForbiddenException,
-  InternalServerErrorException,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
-import { Result } from '@shared/domain/result';
 
-import { EventsController } from '@modules/events/infrastructure/controllers/events.controller';
 import {
   CreateEventHandler,
   UpdateEventHandler,
@@ -38,11 +28,21 @@ import {
   PaginationDto,
   CancelEventDto,
 } from '@modules/events/application';
+import { EVENT_REPOSITORY } from '@modules/events/application/ports/event.repository.port';
+import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
-import { Currency } from '@modules/events/domain/value-objects/currency.vo';
-import { EVENT_REPOSITORY } from '@modules/events/application/ports/event.repository.port';
+import { EventsController } from '@modules/events/infrastructure/controllers/events.controller';
 import { IsEventOwnerGuard } from '@modules/events/infrastructure/guards/is-event-owner.guard';
+import {
+  BadRequestException,
+  ForbiddenException,
+  InternalServerErrorException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { Result } from '@shared/domain/result';
 
 // ============================================
 // Mock Handlers

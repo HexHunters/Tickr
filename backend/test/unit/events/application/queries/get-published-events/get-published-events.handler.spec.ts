@@ -3,21 +3,21 @@
  * @description Tests for GetPublishedEvents query handler
  */
 
-import { Logger } from '@nestjs/common';
 
+import type { EventRepositoryPort } from '@modules/events/application/ports/event.repository.port';
 import {
   GetPublishedEventsQuery,
   GetPublishedEventsHandler,
 } from '@modules/events/application/queries/get-published-events';
-import type { EventRepositoryPort } from '@modules/events/application/ports/event.repository.port';
 import { EventEntity } from '@modules/events/domain/entities/event.entity';
 import { TicketTypeEntity } from '@modules/events/domain/entities/ticket-type.entity';
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 import { Currency } from '@modules/events/domain/value-objects/currency.vo';
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
-import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
+import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { Logger } from '@nestjs/common';
 
 describe('GetPublishedEventsHandler', () => {
   let handler: GetPublishedEventsHandler;

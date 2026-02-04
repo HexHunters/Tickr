@@ -3,18 +3,18 @@
  * @description Tests for CompleteEvent command handler
  */
 
-import { Logger } from '@nestjs/common';
 
-import { EventEntity } from '@modules/events/domain/entities/event.entity';
-import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
-import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
 import {
   CompleteEventCommand,
   CompleteEventHandler,
 } from '@modules/events/application/commands/complete-event';
 import type { EventRepositoryPort } from '@modules/events/application/ports/event.repository.port';
+import { EventEntity } from '@modules/events/domain/entities/event.entity';
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
+import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
+import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
+import { Logger } from '@nestjs/common';
 
 describe('CompleteEventHandler', () => {
   let handler: CompleteEventHandler;

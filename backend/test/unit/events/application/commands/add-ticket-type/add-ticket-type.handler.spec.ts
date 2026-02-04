@@ -1,6 +1,4 @@
-import { Logger } from '@nestjs/common';
 
-import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import {
   AddTicketTypeCommand,
@@ -8,12 +6,16 @@ import {
 } from '@modules/events/application/commands/add-ticket-type';
 import type { EventRepositoryPort } from '@modules/events/application/ports/event.repository.port';
 import type { UserValidationServicePort } from '@modules/events/application/ports/user-validation.service.port';
-
 import { EventEntity } from '@modules/events/domain/entities/event.entity';
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
+import { TicketTypeEntity } from '@modules/events/domain/entities/ticket-type.entity';
 import { Currency } from '@modules/events/domain/value-objects/currency.vo';
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
+import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
+import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { Logger } from '@nestjs/common';
+import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 describe('AddTicketTypeHandler', () => {
   let handler: AddTicketTypeHandler;
@@ -239,13 +241,13 @@ describe('AddTicketTypeHandler', () => {
       const event = createDraftEvent();
 
       for (let i = 0; i < 10; i++) {
-        const addResult = event.addTicketType(
-          require('@modules/events/domain/entities/ticket-type.entity').TicketTypeEntity.create({
+        event.addTicketType(
+          TicketTypeEntity.create({
             eventId,
             name: `Type ${i}`,
-            price: require('@modules/events/domain/value-objects/ticket-price.vo').TicketPriceVO.create(50, Currency.TND),
+            price: TicketPriceVO.create(50, Currency.TND),
             quantity: 100,
-            salesPeriod: require('@modules/events/domain/value-objects/sales-period.vo').SalesPeriodVO.create(
+            salesPeriod: SalesPeriodVO.create(
               new Date('2026-06-01'),
               new Date('2026-07-14'),
             ),
@@ -266,12 +268,12 @@ describe('AddTicketTypeHandler', () => {
 
     it('should fail with duplicate ticket type name', async () => {
       const event = createDraftEvent();
-      const ticketType = require('@modules/events/domain/entities/ticket-type.entity').TicketTypeEntity.create({
+      const ticketType = TicketTypeEntity.create({
         eventId,
         name: 'VIP Ticket',
-        price: require('@modules/events/domain/value-objects/ticket-price.vo').TicketPriceVO.create(100, Currency.TND),
+        price: TicketPriceVO.create(100, Currency.TND),
         quantity: 50,
-        salesPeriod: require('@modules/events/domain/value-objects/sales-period.vo').SalesPeriodVO.create(
+        salesPeriod: SalesPeriodVO.create(
           new Date('2026-06-01'),
           new Date('2026-07-14'),
         ),

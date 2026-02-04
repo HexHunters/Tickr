@@ -3,10 +3,10 @@
  * @description Tests for S3-related infrastructure exceptions
  */
 
-import { InvalidFileTypeException } from '@modules/events/infrastructure/exceptions/invalid-file-type.exception';
 import { FileSizeExceededException } from '@modules/events/infrastructure/exceptions/file-size-exceeded.exception';
-import { S3UploadFailedException } from '@modules/events/infrastructure/exceptions/s3-upload-failed.exception';
+import { InvalidFileTypeException } from '@modules/events/infrastructure/exceptions/invalid-file-type.exception';
 import { S3DeleteFailedException } from '@modules/events/infrastructure/exceptions/s3-delete-failed.exception';
+import { S3UploadFailedException } from '@modules/events/infrastructure/exceptions/s3-upload-failed.exception';
 
 describe('S3 Infrastructure Exceptions', () => {
   describe('InvalidFileTypeException', () => {

@@ -1,14 +1,14 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Result } from '@shared/domain/result';
 
-import { EventStatus } from '../../../domain/value-objects/event-status.vo';
-import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
 
 import type { EventEntity } from '../../../domain/entities/event.entity';
 import type { TicketTypeEntity } from '../../../domain/entities/ticket-type.entity';
-import type { EventRepositoryPort } from '../../ports/event.repository.port';
+import { EventStatus } from '../../../domain/value-objects/event-status.vo';
 import type { EventDto, EventLocationDto, EventOrganizerDto } from '../../dtos/event.dto';
 import type { TicketTypeDto } from '../../dtos/ticket-type.dto';
+import type { EventRepositoryPort } from '../../ports/event.repository.port';
+import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
 
 import {
   GetEventByIdQuery,

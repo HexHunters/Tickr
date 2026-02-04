@@ -1,6 +1,4 @@
-import { Logger } from '@nestjs/common';
 
-import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import {
   CancelEventCommand,
@@ -8,15 +6,17 @@ import {
 } from '@modules/events/application/commands/cancel-event';
 import type { EventRepositoryPort } from '@modules/events/application/ports/event.repository.port';
 import type { UserValidationServicePort } from '@modules/events/application/ports/user-validation.service.port';
-
 import { EventEntity } from '@modules/events/domain/entities/event.entity';
 import { TicketTypeEntity } from '@modules/events/domain/entities/ticket-type.entity';
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 import { Currency } from '@modules/events/domain/value-objects/currency.vo';
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
-import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
+import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { Logger } from '@nestjs/common';
+import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 describe('CancelEventHandler', () => {
   let handler: CancelEventHandler;
@@ -262,9 +262,9 @@ describe('CancelEventHandler', () => {
       event.publish();
       event.markAsCompleted();
 
-      if (event.status !== require('@modules/events/domain/value-objects/event-status.vo').EventStatus.COMPLETED) {
+      if (event.status !== EventStatus.COMPLETED) {
         console.warn('Event not marked as completed - adjusting test');
-        (event as any)._status = require('@modules/events/domain/value-objects/event-status.vo').EventStatus.COMPLETED;
+        (event as any)._status = EventStatus.COMPLETED;
       }
 
       const command = new CancelEventCommand(eventId, userId, validReason);

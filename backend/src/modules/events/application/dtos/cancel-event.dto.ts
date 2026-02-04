@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, MaxLength, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, MaxLength, MinLength } from 'class-validator';
 
 /**
  * DTO for cancelling an event

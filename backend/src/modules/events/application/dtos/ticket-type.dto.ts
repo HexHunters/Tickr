@@ -1,6 +1,6 @@
+import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 
 /**
  * DTO for ticket type response

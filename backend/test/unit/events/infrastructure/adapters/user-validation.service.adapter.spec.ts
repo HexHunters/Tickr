@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-
+import { UserValidationServiceAdapter } from '@modules/events/infrastructure/adapters/user-validation.service.adapter';
 import { USER_REPOSITORY } from '@modules/users/application/ports/user.repository.port';
 import { UserRole } from '@modules/users/domain/value-objects/user-role.vo';
-import { UserValidationServiceAdapter } from '@modules/events/infrastructure/adapters/user-validation.service.adapter';
+import { Test, TestingModule } from '@nestjs/testing';
+
 
 describe('UserValidationServiceAdapter', () => {
   let adapter: UserValidationServiceAdapter;

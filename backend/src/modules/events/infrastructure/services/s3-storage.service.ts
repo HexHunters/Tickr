@@ -1,5 +1,3 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
@@ -8,12 +6,14 @@ import {
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import sharp from 'sharp';
 
-import { InvalidFileTypeException } from '../exceptions/invalid-file-type.exception';
 import { FileSizeExceededException } from '../exceptions/file-size-exceeded.exception';
-import { S3UploadFailedException } from '../exceptions/s3-upload-failed.exception';
+import { InvalidFileTypeException } from '../exceptions/invalid-file-type.exception';
 import { S3DeleteFailedException } from '../exceptions/s3-delete-failed.exception';
+import { S3UploadFailedException } from '../exceptions/s3-upload-failed.exception';
 
 // ============================================
 // Types

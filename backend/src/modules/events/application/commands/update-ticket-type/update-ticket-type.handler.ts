@@ -5,9 +5,8 @@ import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event
 import { SalesPeriodVO } from '../../../domain/value-objects/sales-period.vo';
 import { TicketPriceVO } from '../../../domain/value-objects/ticket-price.vo';
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
-import { USER_VALIDATION_SERVICE } from '../../ports/user-validation.service.port';
-
 import type { EventRepositoryPort } from '../../ports/event.repository.port';
+import { USER_VALIDATION_SERVICE } from '../../ports/user-validation.service.port';
 import type { UserValidationServicePort } from '../../ports/user-validation.service.port';
 
 import {

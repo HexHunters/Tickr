@@ -32,19 +32,12 @@ import {
   ApiConsumes,
   ApiBody,
 } from '@nestjs/swagger';
-
-// ============================================
-// Shared Infrastructure (Guards & Decorators)
-// ============================================
+import { CurrentUser } from '@shared/infrastructure/common/decorators/current-user.decorator';
+import { Public } from '@shared/infrastructure/common/decorators/public.decorator';
+import { Roles } from '@shared/infrastructure/common/decorators/roles.decorator';
 import { JwtAuthGuard } from '@shared/infrastructure/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@shared/infrastructure/common/guards/roles.guard';
-import { Roles } from '@shared/infrastructure/common/decorators/roles.decorator';
-import { Public } from '@shared/infrastructure/common/decorators/public.decorator';
-import { CurrentUser } from '@shared/infrastructure/common/decorators/current-user.decorator';
 
-// ============================================
-// Application Layer Imports
-// ============================================
 import {
   // Commands
   CreateEventCommand,
@@ -87,7 +80,6 @@ import {
   PaginationDto,
   CancelEventDto,
 } from '../../application';
-
 import { EventCategory } from '../../domain/value-objects/event-category.vo';
 import { EventStatus } from '../../domain/value-objects/event-status.vo';
 import { IsEventOwnerGuard } from '../guards/is-event-owner.guard';

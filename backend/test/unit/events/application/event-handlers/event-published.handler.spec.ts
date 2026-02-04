@@ -1,8 +1,8 @@
+import { EventPublishedEventHandler } from '@modules/events/application/event-handlers/event-published.handler';
+import { EventPublishedEvent } from '@modules/events/domain/events/event-published.event';
 import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { EventPublishedEvent } from '@modules/events/domain/events/event-published.event';
-import { EventPublishedEventHandler } from '@modules/events/application/event-handlers/event-published.handler';
 
 describe('EventPublishedEventHandler', () => {
   let handler: EventPublishedEventHandler;

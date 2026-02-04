@@ -1,19 +1,17 @@
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
+import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsOptional,
   IsEnum,
   IsString,
   IsDateString,
   IsNumber,
-  IsPositive,
   Min,
   Max,
   MaxLength,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ApiPropertyOptional } from '@nestjs/swagger';
-
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
-import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
 
 /**
  * DTO for event filtering parameters

@@ -1,3 +1,5 @@
+import { Currency } from '@modules/events/domain/value-objects/currency.vo';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsNotEmpty,
@@ -11,9 +13,7 @@ import {
   IsInt,
   IsBoolean,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 
 /**
  * DTO for adding a ticket type to an event

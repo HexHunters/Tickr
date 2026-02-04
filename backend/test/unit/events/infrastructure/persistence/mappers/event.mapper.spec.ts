@@ -3,19 +3,19 @@
  * @description Tests for EventMapper conversion methods
  */
 
-import { EventMapper } from '@modules/events/infrastructure/persistence/mappers/event.mapper';
-import { TicketTypeMapper } from '@modules/events/infrastructure/persistence/mappers/ticket-type.mapper';
-import { EventOrmEntity } from '@modules/events/infrastructure/persistence/entities/event.orm-entity';
-import { TicketTypeOrmEntity } from '@modules/events/infrastructure/persistence/entities/ticket-type.orm-entity';
 import { EventEntity } from '@modules/events/domain/entities/event.entity';
 import { TicketTypeEntity } from '@modules/events/domain/entities/ticket-type.entity';
-import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
-import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
-import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
-import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
 import { Currency } from '@modules/events/domain/value-objects/currency.vo';
-import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
+import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
+import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
+import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
+import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
+import { EventOrmEntity } from '@modules/events/infrastructure/persistence/entities/event.orm-entity';
+import { TicketTypeOrmEntity } from '@modules/events/infrastructure/persistence/entities/ticket-type.orm-entity';
+import { EventMapper } from '@modules/events/infrastructure/persistence/mappers/event.mapper';
+import { TicketTypeMapper } from '@modules/events/infrastructure/persistence/mappers/ticket-type.mapper';
 
 describe('EventMapper', () => {
   let mapper: EventMapper;

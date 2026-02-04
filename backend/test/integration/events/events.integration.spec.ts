@@ -1,5 +1,5 @@
 import { INestApplication, ValidationPipe, HttpStatus } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -7,17 +7,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
-import { EventCategory } from '../../../src/modules/events/domain/value-objects/event-category.vo';
-import { EventStatus } from '../../../src/modules/events/domain/value-objects/event-status.vo';
-import { Currency } from '../../../src/modules/events/domain/value-objects/currency.vo';
-import { EventsController } from '../../../src/modules/events/infrastructure/controllers/events.controller';
-import { EventMapper } from '../../../src/modules/events/infrastructure/persistence/mappers/event.mapper';
-import { TicketTypeMapper } from '../../../src/modules/events/infrastructure/persistence/mappers/ticket-type.mapper';
-import { S3StorageService } from '../../../src/modules/events/infrastructure/services/s3-storage.service';
-import { EVENT_REPOSITORY } from '../../../src/modules/events/application/ports/event.repository.port';
-import { USER_VALIDATION_SERVICE } from '../../../src/modules/events/application/ports/user-validation.service.port';
-
-// Import all handlers through index
 import {
   CreateEventHandler,
   UpdateEventHandler,
@@ -35,10 +24,16 @@ import {
   GetUpcomingEventsHandler,
   SearchEventsHandler,
 } from '../../../src/modules/events/application';
-
-// Shared
+import { EVENT_REPOSITORY } from '../../../src/modules/events/application/ports/event.repository.port';
+import { USER_VALIDATION_SERVICE } from '../../../src/modules/events/application/ports/user-validation.service.port';
+import { Currency } from '../../../src/modules/events/domain/value-objects/currency.vo';
+import { EventCategory } from '../../../src/modules/events/domain/value-objects/event-category.vo';
+import { EventStatus } from '../../../src/modules/events/domain/value-objects/event-status.vo';
+import { EventsController } from '../../../src/modules/events/infrastructure/controllers/events.controller';
+import { EventMapper } from '../../../src/modules/events/infrastructure/persistence/mappers/event.mapper';
+import { TicketTypeMapper } from '../../../src/modules/events/infrastructure/persistence/mappers/ticket-type.mapper';
+import { S3StorageService } from '../../../src/modules/events/infrastructure/services/s3-storage.service';
 import { DomainEventPublisher } from '../../../src/shared/infrastructure/events/domain-event.publisher';
-import { EventBus } from '@nestjs/cqrs';
 
 // ============================================
 // Mock User Validation Service
@@ -70,7 +65,7 @@ class MockEventRepository {
     return this.events.get(id) || null;
   }
 
-  async findPublished(filters: any = {}, options: any = {}) {
+  async findPublished(_filters: any = {}, options: any = {}) {
     const published = Array.from(this.events.values()).filter(
       (e) => e.status === EventStatus.PUBLISHED,
     );

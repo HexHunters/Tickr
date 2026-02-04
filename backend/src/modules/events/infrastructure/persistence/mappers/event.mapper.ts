@@ -7,7 +7,6 @@ import { EventDateRangeVO } from '../../../domain/value-objects/event-date-range
 import { EventStatus } from '../../../domain/value-objects/event-status.vo';
 import { LocationVO } from '../../../domain/value-objects/location.vo';
 import { EventOrmEntity } from '../entities/event.orm-entity';
-import { TicketTypeOrmEntity } from '../entities/ticket-type.orm-entity';
 
 import { TicketTypeMapper } from './ticket-type.mapper';
 

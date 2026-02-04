@@ -3,14 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PaginatedResult } from '@shared/application/interfaces/repository.interface';
 import { Repository, SelectQueryBuilder, Brackets } from 'typeorm';
 
-import { EventEntity } from '../../domain/entities/event.entity';
-import { EventCategory } from '../../domain/value-objects/event-category.vo';
-import { EventStatus } from '../../domain/value-objects/event-status.vo';
 import {
   EventRepositoryPort,
   EventFilters,
   EventPaginationOptions,
 } from '../../application/ports/event.repository.port';
+import { EventEntity } from '../../domain/entities/event.entity';
+import { EventCategory } from '../../domain/value-objects/event-category.vo';
+import { EventStatus } from '../../domain/value-objects/event-status.vo';
 import { EventOrmEntity } from '../persistence/entities/event.orm-entity';
 import { EventMapper } from '../persistence/mappers/event.mapper';
 
@@ -318,7 +318,7 @@ export class EventTypeOrmRepository implements EventRepositoryPort {
   /**
    * Find event by slug (not implemented yet)
    */
-  async findBySlug(slug: string): Promise<EventEntity | null> {
+  async findBySlug(_slug: string): Promise<EventEntity | null> {
     // Slug field not yet added to schema
     // This is a placeholder for future implementation
     this.logger.warn('findBySlug not yet implemented');
@@ -328,7 +328,7 @@ export class EventTypeOrmRepository implements EventRepositoryPort {
   /**
    * Check if slug is available (not implemented yet)
    */
-  async isSlugAvailable(slug: string, excludeEventId?: string): Promise<boolean> {
+  async isSlugAvailable(_slug: string, _excludeEventId?: string): Promise<boolean> {
     // Slug field not yet added to schema
     this.logger.warn('isSlugAvailable not yet implemented');
     return true;

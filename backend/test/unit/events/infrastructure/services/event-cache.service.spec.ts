@@ -1,13 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { EventCacheService } from '../../../../../src/modules/events/infrastructure/services/event-cache.service';
-import { CacheService } from '../../../../../src/shared/infrastructure/cache/cache.service';
+import type { PaginatedEventListDto } from '../../../../../src/modules/events/application/dtos/event-list.dto';
+import type { EventDto } from '../../../../../src/modules/events/application/dtos/event.dto';
+import { Currency } from '../../../../../src/modules/events/domain/value-objects/currency.vo';
 import { EventCategory } from '../../../../../src/modules/events/domain/value-objects/event-category.vo';
 import { EventStatus } from '../../../../../src/modules/events/domain/value-objects/event-status.vo';
-import { Currency } from '../../../../../src/modules/events/domain/value-objects/currency.vo';
-
-import type { EventDto } from '../../../../../src/modules/events/application/dtos/event.dto';
-import type { PaginatedEventListDto } from '../../../../../src/modules/events/application/dtos/event-list.dto';
+import { EventCacheService } from '../../../../../src/modules/events/infrastructure/services/event-cache.service';
+import { CacheService } from '../../../../../src/shared/infrastructure/cache/cache.service';
 
 // ============================================
 // Mocks

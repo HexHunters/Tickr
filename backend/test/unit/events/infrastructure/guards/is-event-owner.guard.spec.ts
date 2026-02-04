@@ -4,11 +4,11 @@
  * Tests for the guard that validates event ownership before allowing mutations.
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { ExecutionContext, ForbiddenException, NotFoundException } from '@nestjs/common';
-
-import { IsEventOwnerGuard } from '@modules/events/infrastructure/guards/is-event-owner.guard';
 import { EVENT_REPOSITORY } from '@modules/events/application/ports/event.repository.port';
+import { IsEventOwnerGuard } from '@modules/events/infrastructure/guards/is-event-owner.guard';
+import { ExecutionContext, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+
 
 describe('IsEventOwnerGuard', () => {
   let guard: IsEventOwnerGuard;
