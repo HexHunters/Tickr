@@ -43,11 +43,11 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('Authentication', 'User authentication and authorization endpoints')
     .addTag('Users', 'User profile management endpoints')
-    .addTag('events', 'Event management endpoints')
-    .addTag('tickets', 'Ticket management endpoints')
-    .addTag('payments', 'Payment processing endpoints')
-    .addTag('notifications', 'Notification endpoints')
-    .addTag('analytics', 'Analytics and reporting endpoints')
+    .addTag('Events', 'Event management endpoints')
+    .addTag('Tickets', 'Ticket management endpoints')
+    .addTag('Payments', 'Payment processing endpoints')
+    .addTag('Notifications', 'Notification endpoints')
+    .addTag('Analytics', 'Analytics and reporting endpoints')
     .addBearerAuth()
     .build();
 
