@@ -1,7 +1,7 @@
 # 📚 Documentation Tickr - Plateforme de Billetterie (Tunisie)
 
-**Version:** 1.0  
-**Date:** 23 Novembre 2025  
+**Version:** 1.1  
+**Date:** February 4, 2026  
 **Équipe:** Solo/Duo Developer  
 **Stack:** React + NestJS + PostgreSQL + AWS
 
@@ -26,6 +26,9 @@ Documentation complète pour développer une plateforme de billetterie en ligne 
 ```
 docs/
 ├── README.md                           # Ce fichier - Index principal
+├── PROJECT_STATUS.md                   # 📊 Project status tracking
+├── COMMISSION_RATE_UPDATE.md           # Commission rate changes log
+├── DEVELOPMENT.md                      # Development setup guide
 │
 ├── 01-fonctionnel/                     # SPÉCIFICATIONS MÉTIER
 │   ├── 01-vue-ensemble.md              # Vision produit, acteurs, workflows
@@ -38,7 +41,7 @@ docs/
 │   ├── 03-database-schema.md           # Schémas PostgreSQL + ERD
 │   └── 04-modele-economique.md         # Calculs commissions, revenus
 │
-├── 03-architecture/                    # ARCHITECTURE SYSTÈME
+├── 03-architecture/                    # ARCHITECTURE SYSTÈME (14 docs)
 │   ├── 00-architecture-governance-summary.md  # Governance overview
 │   ├── 01-principes-hexagonaux.md      # Ports & Adapters, DDD
 │   ├── 02-structure-modules.md         # 6 modules (Events, Payments, etc.)
@@ -51,7 +54,8 @@ docs/
 │   ├── 09-backend-setup-guide.md       # NestJS initialization guide
 │   ├── 10-development-cicd-alignment.md # Dev/CI/CD alignment guide
 │   ├── 11-database-testing-strategy.md # Database testing strategy
-│   └── DATABASE_TESTING_QUICK_GUIDE.md # Database testing quick guide
+│   ├── 12-events-module-architecture.md # Events module (✅ 100%)
+│   └── 13-users-module-architecture.md # Users module (✅ 95%)
 │
 ├── 04-infrastructure/                  # INFRASTRUCTURE & DÉPLOIEMENT
 │   ├── 01-aws-architecture.md          # ECS, RDS, S3, EventBridge
@@ -60,10 +64,10 @@ docs/
 │   └── 04-monitoring.md                # CloudWatch, X-Ray, alerting
 │
 ├── 05-git-workflow/                    # GIT WORKFLOW & CI/CD
-    ├── 00-summary.md                   # Git workflow overview
-    ├── 01-branching-strategy.md        # Branching model
-    ├── 02-errors-and-fixes.md          # Common issues & solutions
-    └── 03-architecture-tests-in-cicd.md # Architecture tests in pipeline
+│   ├── 00-summary.md                   # Git workflow overview
+│   ├── 01-branching-strategy.md        # Branching model
+│   ├── 02-errors-and-fixes.md          # Common issues & solutions
+│   └── 03-architecture-tests-in-cicd.md # Architecture tests in pipeline
 │
 └── 06-testing/                         # TESTING GUIDES
     ├── README.md                       # Testing overview & quick reference

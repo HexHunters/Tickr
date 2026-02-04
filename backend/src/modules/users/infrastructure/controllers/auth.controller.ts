@@ -16,6 +16,7 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 
@@ -31,6 +32,7 @@ import { ValidatedUser } from '../strategies/local.strategy';
 
 import {
   RegisterUserDto,
+  LoginDto,
   VerifyEmailDto,
   RequestPasswordResetDto,
   ResetPasswordDto,
@@ -171,6 +173,7 @@ export class AuthController {
   @Throttle({ default: { ttl: 900000, limit: 5 } }) // 5 requests per 15 minutes
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
+  @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
     description: 'Login successful',

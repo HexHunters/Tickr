@@ -39,23 +39,25 @@ Tickr/
 │   ├── 01-fonctionnel/            # Spécifications métier
 │   ├── 02-technique/              # Stack & API
 │   ├── 03-architecture/           # Architecture hexagonale
-│   └── 04-infrastructure/         # AWS & déploiement
+│   ├── 04-infrastructure/         # AWS & déploiement
+│   ├── PROJECT_STATUS.md          # Status tracking
+│   └── COMMISSION_RATE_UPDATE.md  # Commission rate changes
 │
-├── backend/                       # ⚙️ API NestJS (à venir)
+├── backend/                       # ⚙️ API NestJS
 │   ├── src/
 │   │   ├── modules/
-│   │   │   ├── events/           # Module Événements
-│   │   │   ├── tickets/          # Module Billets
-│   │   │   ├── payments/         # Module Paiements
-│   │   │   ├── users/            # Module Utilisateurs
-│   │   │   ├── notifications/    # Module Notifications
-│   │   │   └── analytics/        # Module Analytics
+│   │   │   ├── events/           # Module Événements ✅
+│   │   │   ├── users/            # Module Utilisateurs ✅
+│   │   │   ├── tickets/          # Module Billets (planned)
+│   │   │   ├── payments/         # Module Paiements (planned)
+│   │   │   ├── notifications/    # Module Notifications (planned)
+│   │   │   └── analytics/        # Module Analytics (planned)
 │   │   ├── shared/               # Code partagé
 │   │   └── config/               # Configuration
-│   ├── test/                     # Tests
+│   ├── test/                     # Tests (1805+ passing)
 │   └── migrations/               # Migrations DB
 │
-├── frontend/                      # 🎨 Application NextJs (à venir)
+├── frontend/                      # 🎨 Application NextJs
 │   ├── src/
 │   │   ├── app/                  # Routes & pages
 │   │   ├── components/           # Composants UI
@@ -63,22 +65,15 @@ Tickr/
 │   │   └── types/                # TypeScript types
 │   └── public/
 │
-├── mobile/                        # 📱 App Mobile (V2)
-│   └── (React Native - planifié)
-│
-├── infrastructure/                # 🏗️ Infrastructure as Code (à venir)
-│   ├── terraform/                # Configuration Terraform
-│   │   ├── modules/
-│   │   ├── environments/
-│   │   └── main.tf
-│   └── docker/                   # Docker configurations
-│       ├── docker-compose.yml
-│       └── Dockerfile.*
+├── infrastructure/                # 🏗️ Infrastructure as Code
+│   ├── monitoring/               # Monitoring config
+│   └── nginx/                    # Nginx config
 │
 ├── scripts/                       # 🛠️ Scripts utilitaires
-│   ├── localstack-init.sh                  # Setup local cloud stack
-│   └── init-db.sql             # init db
+│   ├── localstack-init.sh        # Setup local cloud stack
+│   └── init-db.sql               # Init database
 │
+├── AGENTS.md                      # 🤖 AI development guide
 └── README.md                      # 📖 Ce fichier
 ```
 
