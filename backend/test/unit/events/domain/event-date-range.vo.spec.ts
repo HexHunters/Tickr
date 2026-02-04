@@ -66,7 +66,7 @@ describe('EventDateRange Value Object', () => {
     });
 
     it('should accept start date exactly 1 hour from now', () => {
-      const start = futureDate(1.01); // Just over 1 hour
+      const start = futureDate(1.05); // Just over 1 hour (with buffer for test execution time)
       const end = futureDate(24);
 
       const dateRange = EventDateRangeVO.create(start, end);

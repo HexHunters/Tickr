@@ -5,6 +5,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // ============================================
+// Shared Infrastructure
+// ============================================
+import { CacheModule } from '@shared/infrastructure/cache/cache.module';
+
+// ============================================
 // Cross-Module Import (Users Module)
 // ============================================
 import { UsersModule } from '@modules/users/infrastructure/users.module';
@@ -69,6 +74,7 @@ import { UserValidationServiceAdapter } from './adapters/user-validation.service
 // Infrastructure Layer - Services
 // ============================================
 import { S3StorageService } from './services/s3-storage.service';
+import { EventCacheService } from './services/event-cache.service';
 
 // ============================================
 // Infrastructure Layer - Controllers
@@ -171,6 +177,9 @@ const userValidationServiceProvider: Provider = {
     // Schedule module for cron jobs (event completion)
     ScheduleModule.forRoot(),
 
+    // Cache module for Redis caching
+    CacheModule,
+
     // Users module for organizer validation
     UsersModule,
   ],
@@ -190,6 +199,9 @@ const userValidationServiceProvider: Provider = {
     // S3 Storage service
     S3StorageService,
 
+    // Cache service
+    EventCacheService,
+
     // Scheduler service
     EventSchedulerService,
 
@@ -207,6 +219,9 @@ const userValidationServiceProvider: Provider = {
 
     // Export event mapper for DTO transformations
     EventMapper,
+
+    // Export cache service for cross-module use
+    EventCacheService,
   ],
 })
 export class EventsModule {}
