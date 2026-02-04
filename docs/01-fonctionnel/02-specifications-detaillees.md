@@ -219,7 +219,7 @@ Livrer plateforme fonctionnelle permettant de:
 - [ ] Sélection type + quantité billets
 - [ ] Validation disponibilité temps réel
 - [ ] Affichage prix unitaire + total
-- [ ] Commission 4% visible séparément
+- [ ] Commission 6% visible séparément (lecture depuis configuration)
 - [ ] Prix final TTC affiché
 - [ ] Réservation temporaire 15 min
 - [ ] Timer countdown visible
@@ -374,7 +374,7 @@ Livrer plateforme fonctionnelle permettant de:
 - [ ] Dashboard affiche:
   - Billets vendus / Total (%)
   - Chiffre affaires brut (TND)
-  - Commission plateforme (4%)
+  - Commission plateforme (6% - configurable)
   - Chiffre affaires net
   - Graphique ventes par jour
   - Top types billets vendus

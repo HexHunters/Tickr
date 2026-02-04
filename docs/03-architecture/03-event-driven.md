@@ -29,31 +29,53 @@
 ```typescript
 // src/shared/domain/domain-event.base.ts
 export abstract class DomainEvent {
-  public readonly occurredAt: Date;
-  public readonly eventId: string;
+  public readonly occurredOn: Date;
+  public readonly eventId: string;     // ID unique de l'événement domaine
 
-  constructor(
-    public readonly aggregateId: string,
-  ) {
-    this.eventId = uuid();
-    this.occurredAt = new Date();
-  }
-
-  abstract get eventName(): string;
-}
-
-// Exemple concret
-export class EventPublishedEvent extends DomainEvent {
-  constructor(
-    public readonly eventId: string,
-    public readonly organizerId: string,
-    public readonly eventName: string,
-  ) {
-    super(eventId);
+  constructor() {
+    this.occurredOn = new Date();
+    this.eventId = this.generateEventId();
   }
 
   get eventName(): string {
-    return 'event.published';
+    return this.constructor.name;
+  }
+
+  protected getData(): Record<string, unknown> { ... }
+}
+```
+
+**Conventions de nommage:**
+
+| Type d'événement | Propriété ID | Exemple |
+|------------------|--------------|---------|
+| Événement Aggregate | `aggregateId` | `EventPublishedEvent.aggregateId` |
+| Événement Sub-Entity | `entityId` + `aggregateId` | `TicketTypeSoldOutEvent.ticketTypeId` + `eventId` |
+
+```typescript
+// Exemple: Événement sur Aggregate Root
+export class EventPublishedEvent extends DomainEvent {
+  constructor(
+    public readonly aggregateId: string,    // Event ID (c'est l'aggregate)
+    public readonly organizerId: string,
+    public readonly title: string,
+    public readonly publishedAt: Date,
+    public readonly ticketTypeCount: number,
+    public readonly totalCapacity: number,
+  ) {
+    super();
+  }
+}
+
+// Exemple: Événement sur Sub-Entity
+export class TicketTypeSoldOutEvent extends DomainEvent {
+  constructor(
+    public readonly ticketTypeId: string,   // L'entité source
+    public readonly eventId: string,        // L'aggregate parent (pour corrélation)
+    public readonly ticketTypeName: string,
+    public readonly totalQuantity: number,
+  ) {
+    super();
   }
 }
 ```

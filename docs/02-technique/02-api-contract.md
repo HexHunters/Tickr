@@ -79,6 +79,37 @@ GET /events?page=1&limit=12
 
 ---
 
+## ⚙️ Configuration Publique
+
+### GET /config/public
+
+**Description:** Récupère la configuration publique de la plateforme (taux de commission, version)
+
+**Authentification:** Non requise (public)
+
+**Response 200:**
+```json
+{
+  "commission": {
+    "rate": 0.06,
+    "displayPercentage": "6.0%"
+  },
+  "version": "1.0.0"
+}
+```
+
+**Utilisation Frontend:**
+- Cache recommandé: 1 heure
+- Fallback si échec: 6% par défaut
+- Utilisé pour afficher prix dynamiquement
+
+**Notes:**
+- ✅ Endpoint public (pas de token requis)
+- ✅ Réponse cachée côté serveur (5 min)
+- ✅ Permet changement commission sans redéployer frontend
+
+---
+
 ## 🔐 Authentification
 
 ### POST /auth/register
