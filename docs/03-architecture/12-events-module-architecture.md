@@ -2,17 +2,19 @@
 
 ## Overview
 
-The Events module follows **Hexagonal Architecture** (Ports and Adapters) principles, serving as the core bounded context for event management in Tickr. It handles event creation, ticket type management, publishing workflow, and capacity management.
+The Events module follows **Hexagonal Architecture** (Ports and Adapters) principles, serving as the core bounded context for event management in Tickr. It handles event creation, ticket type management, publishing workflow, capacity management, and Redis caching.
+
+**Status:** ✅ **100% COMPLETE** (as of February 4, 2026)
 
 ## Module Structure
 
 ```
 src/modules/events/
-├── domain/                           # Domain Layer (Core Business Logic)
+├── domain/                           # Domain Layer (Core Business Logic) ✅
 │   ├── entities/                    # Aggregate Root & Entities
-│   │   ├── event.entity.ts          # Event Aggregate Root
-│   │   └── ticket-type.entity.ts    # TicketType Sub-Entity
-│   ├── events/                      # Domain Events
+│   │   ├── event.entity.ts          # Event Aggregate Root (1097 lines)
+│   │   └── ticket-type.entity.ts    # TicketType Sub-Entity (525 lines)
+│   ├── events/                      # Domain Events (7 events)
 │   │   ├── event-created.event.ts
 │   │   ├── event-published.event.ts
 │   │   ├── event-updated.event.ts
@@ -20,21 +22,9 @@ src/modules/events/
 │   │   ├── ticket-type-added.event.ts
 │   │   ├── ticket-type-updated.event.ts
 │   │   └── ticket-type-sold-out.event.ts
-│   ├── exceptions/                  # Domain Exceptions
-│   │   ├── invalid-event.exception.ts
-│   │   ├── invalid-ticket-type.exception.ts
-│   │   ├── invalid-location.exception.ts
-│   │   ├── invalid-date-range.exception.ts
-│   │   ├── invalid-price.exception.ts
-│   │   ├── invalid-currency.exception.ts
-│   │   ├── invalid-sales-period.exception.ts
-│   │   ├── event-not-publishable.exception.ts
-│   │   ├── event-not-cancellable.exception.ts
-│   │   ├── event-already-published.exception.ts
-│   │   ├── event-cannot-be-modified.exception.ts
-│   │   ├── max-ticket-types-reached.exception.ts
-│   │   └── duplicate-ticket-type-name.exception.ts
-│   ├── value-objects/               # Value Objects
+│   ├── exceptions/                  # Domain Exceptions (14 exceptions)
+│   │   └── *.exception.ts
+│   ├── value-objects/               # Value Objects (7 VOs)
 │   │   ├── event-category.vo.ts     # Event category enum & validation
 │   │   ├── event-status.vo.ts       # Event lifecycle states
 │   │   ├── location.vo.ts           # Location with geocoding
@@ -43,17 +33,67 @@ src/modules/events/
 │   │   ├── ticket-price.vo.ts       # Price with currency
 │   │   └── currency.vo.ts           # Supported currencies (TND)
 │   └── index.ts                     # Barrel exports
-├── application/                      # Application Layer (Use Cases) - Future
-│   ├── commands/
-│   ├── queries/
-│   ├── event-handlers/
-│   ├── dtos/
-│   └── ports/
-└── infrastructure/                   # Infrastructure Layer - Future
+├── application/                      # Application Layer (Use Cases) ✅
+│   ├── commands/                    # 9 Command Handlers
+│   │   ├── create-event/
+│   │   ├── update-event/
+│   │   ├── publish-event/
+│   │   ├── cancel-event/
+│   │   ├── complete-event/
+│   │   ├── add-ticket-type/
+│   │   ├── update-ticket-type/
+│   │   ├── remove-ticket-type/
+│   │   └── upload-event-image/
+│   ├── queries/                     # 6 Query Handlers
+│   │   ├── get-event-by-id/
+│   │   ├── get-published-events/
+│   │   ├── get-events-by-category/
+│   │   ├── get-organizer-events/
+│   │   ├── get-upcoming-events/
+│   │   └── search-events/
+│   ├── event-handlers/              # 3 Domain Event Handlers
+│   │   ├── event-published.handler.ts
+│   │   ├── event-cancelled.handler.ts
+│   │   └── ticket-type-sold-out.handler.ts
+│   ├── dtos/                        # Request/Response DTOs
+│   ├── ports/                       # Port Interfaces
+│   ├── services/                    # Application Services
+│   └── index.ts
+└── infrastructure/                   # Infrastructure Layer ✅
     ├── controllers/
+    │   └── events.controller.ts     # REST API endpoints
     ├── persistence/
-    └── events.module.ts
+    │   ├── entities/
+    │   │   ├── event.orm-entity.ts
+    │   │   └── ticket-type.orm-entity.ts
+    │   └── mappers/
+    │       ├── event.mapper.ts
+    │       └── ticket-type.mapper.ts
+    ├── repositories/
+    │   ├── event.repository.ts      # EventRepositoryPort implementation
+    │   └── ticket-type.repository.ts
+    ├── adapters/
+    │   └── user-validation.service.adapter.ts
+    ├── services/
+    │   ├── event-cache.service.ts   # Redis caching
+    │   └── s3-storage.service.ts    # AWS S3 image storage
+    ├── guards/
+    │   └── is-event-owner.guard.ts
+    ├── exceptions/
+    │   └── s3.exceptions.ts
+    └── events.module.ts             # NestJS module configuration
 ```
+
+---
+
+## Implementation Summary
+
+| Layer | Components | Status |
+|-------|------------|--------|
+| **Domain** | 2 Entities, 7 VOs, 7 Events, 14 Exceptions | ✅ 100% |
+| **Application** | 9 Commands, 6 Queries, 3 Event Handlers, DTOs, Ports | ✅ 100% |
+| **Infrastructure** | Controller, Repositories, Mappers, Services, Guards | ✅ 100% |
+| **Testing** | 40 test files, 1805+ passing tests | ✅ 100% |
 
 ---
 
@@ -329,18 +369,37 @@ enum Currency {
 | Value Objects (avg) | 96.98% | 94.25% | 97.31% |
 | Exceptions (avg) | 95.32% | 100% | 93.5% |
 
-**Total Tests:** 549 (Events domain layer)
+**Total Tests:** 1805+ passing (40 test files for events module)
 
 ---
 
-## Future Work (Sub-Issues 3.2.4+)
+## Redis Caching Strategy
 
-- [ ] Repository Interface (3.2.4)
-- [ ] Application Layer Commands (3.2.5)
-- [ ] Application Layer Queries (3.2.6)
-- [ ] Persistence Layer (3.2.7)
-- [ ] AWS S3 Service for images (3.2.8)
-- [ ] Image Upload & Scheduler (3.2.9)
-- [ ] Controllers & Guards (3.2.10)
-- [ ] Module Integration (3.2.11)
-- [ ] Testing & Documentation (3.2.12)
+The Events module uses Redis caching for improved performance:
+
+| Cache Type | TTL | Key Pattern | Description |
+|------------|-----|-------------|-------------|
+| Single Event | 5 min | `event:{id}` | Individual event details |
+| Event Lists | 1 min | `events:list:{hash}` | Published/filtered lists |
+| Search Results | 30 sec | `events:search:{hash}` | Search query results |
+
+**Cache Invalidation:**
+- Event create/update/delete → Invalidates single event + all lists
+- Publish/cancel → Invalidates single event + all lists
+- Pattern-based bulk invalidation supported
+
+---
+
+## Implementation Status (All Sub-Issues Complete) ✅
+
+- [x] Domain Layer (3.2.1-3.2.3) - ✅ Complete
+- [x] Repository Interface (3.2.4) - ✅ Complete  
+- [x] Application Layer Commands (3.2.5) - ✅ Complete (9 handlers)
+- [x] Application Layer Queries (3.2.6) - ✅ Complete (6 handlers)
+- [x] Persistence Layer (3.2.7) - ✅ Complete (TypeORM entities, mappers, repositories)
+- [x] AWS S3 Service for images (3.2.8) - ✅ Complete
+- [x] Image Upload & Scheduler (3.2.9) - ✅ Complete
+- [x] Controllers & Guards (3.2.10) - ✅ Complete
+- [x] Module Integration (3.2.11) - ✅ Complete (with UserValidationServiceAdapter)
+- [x] Testing & Documentation (3.2.12) - ✅ Complete
+- [x] Redis Caching (URG) - ✅ Complete (EventCacheService)
