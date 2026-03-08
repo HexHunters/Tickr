@@ -1,6 +1,6 @@
 import { BaseEntity } from '@shared/domain/base-entity';
 import { Result } from '@shared/domain/result';
-import { isUUID } from '@shared/domain/utils';
+import { isUUID, generateUUID } from '@shared/domain/utils';
 
 import { EventCancelledEvent } from '../events/event-cancelled.event';
 import { EventCreatedEvent } from '../events/event-created.event';
@@ -969,7 +969,7 @@ export class EventEntity extends BaseEntity<EventEntity> {
    * Generate a unique ID for a new event
    */
   private static generateId(): string {
-    return `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return generateUUID();
   }
 
   // ============================================

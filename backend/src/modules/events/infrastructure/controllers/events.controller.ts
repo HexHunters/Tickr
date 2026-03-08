@@ -77,7 +77,6 @@ import {
   EventDto,
   PaginatedEventListDto,
   EventFilterDto,
-  PaginationDto,
   CancelEventDto,
 } from '../../application';
 import { EventCategory } from '../../domain/value-objects/event-category.vo';
@@ -225,7 +224,6 @@ export class EventsController {
   @ApiResponse({ status: 422, description: 'Validation error' })
   async getPublishedEvents(
     @Query() filters: EventFilterDto,
-    @Query() pagination: PaginationDto,
   ): Promise<PaginatedEventListDto> {
     const query = new GetPublishedEventsQuery(
       {
@@ -237,10 +235,10 @@ export class EventsController {
         minPrice: filters.minPrice,
         maxPrice: filters.maxPrice,
       },
-      pagination.page ?? 1,
-      pagination.limit ?? 20,
-      pagination.sortBy,
-      pagination.sortOrder,
+      filters.page ?? 1,
+      filters.limit ?? 20,
+      filters.sortBy,
+      filters.sortOrder,
     );
 
     const result = await this.getPublishedEventsHandler.execute(query);
@@ -278,6 +276,17 @@ export class EventsController {
     );
 
     const result = await this.searchEventsHandler.execute(query);
+
+    if (!result.isSuccess) {
+      const error = result.error!;
+      switch (error.type) {
+        case 'INVALID_SEARCH_TERM':
+          throw new BadRequestException(error.message);
+        default:
+          throw new BadRequestException(error.message);
+      }
+    }
+
     return result.value!;
   }
 
@@ -905,6 +914,8 @@ export class EventsController {
           throw new NotFoundException(error.message);
         case 'NOT_ORGANIZER':
           throw new ForbiddenException(error.message);
+        case 'EVENT_NOT_MODIFIABLE':
+          throw new BadRequestException(error.message);
         case 'INVALID_FILE_TYPE':
           throw new UnsupportedMediaTypeException(error.message);
         case 'FILE_TOO_LARGE':

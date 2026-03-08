@@ -68,3 +68,18 @@ export function assertUUID(value: string, fieldName: string): void {
     throw new Error(`${fieldName} must be a valid UUID`);
   }
 }
+
+/**
+ * Generate a random UUID v4
+ *
+ * Uses Node.js built-in crypto.randomUUID() for secure UUID generation.
+ * Safe for use in the domain layer (no external dependencies).
+ *
+ * @returns A new random UUID v4 string
+ *
+ * @example
+ * generateUUID() // '550e8400-e29b-41d4-a716-446655440000'
+ */
+export function generateUUID(): string {
+  return crypto.randomUUID();
+}

@@ -74,7 +74,7 @@ export class EventMapper {
 
     // Nested ticket types
     entity.ticketTypes = this.ticketTypeMapper.toPersistenceArray(
-      domain.ticketTypes as any[],
+      [...domain.ticketTypes],
     );
 
     return entity;
@@ -235,7 +235,7 @@ export class EventMapper {
 
     // Update ticket types
     target.ticketTypes = this.ticketTypeMapper.toPersistenceArray(
-      source.ticketTypes as any[],
+      [...source.ticketTypes],
     );
 
     return target;

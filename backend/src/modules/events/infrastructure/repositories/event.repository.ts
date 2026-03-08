@@ -181,7 +181,7 @@ export class EventTypeOrmRepository implements EventRepositoryPort {
     // Sort by relevance by default for search
     const searchOptions = {
       ...options,
-      sortBy: options?.sortBy ?? ('relevance' as any),
+      sortBy: options?.sortBy ?? 'relevance',
       sortOrder: options?.sortOrder ?? 'DESC',
     };
 
