@@ -257,7 +257,7 @@ describe('E2E: Event Lifecycle', () => {
 
       const savedEvent = await eventRepository.findById(response.body.eventId);
       expect(savedEvent).not.toBeNull();
-      expect(savedEvent.title).toBe('Persisted Event');
+      expect(savedEvent!.title).toBe('Persisted Event');
     });
 
     it('should reject event creation without authentication', async () => {
