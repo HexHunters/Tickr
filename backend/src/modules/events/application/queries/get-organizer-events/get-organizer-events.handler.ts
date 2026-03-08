@@ -80,18 +80,28 @@ export class GetOrganizerEventsHandler {
     );
 
     // ============================================
-    // 4. Map to EventListDto
+    // 4. Filter by status if specified
     // ============================================
-    const eventDtos = result.data.map(event => this.mapToEventListDto(event));
+    let filteredData = result.data;
+    let filteredTotal = result.total;
+    if (query.status) {
+      filteredData = result.data.filter(event => event.status === query.status);
+      filteredTotal = filteredData.length;
+    }
 
     // ============================================
-    // 5. Build paginated response
+    // 5. Map to EventListDto
     // ============================================
-    const totalPages = Math.ceil(result.total / query.limit);
+    const eventDtos = filteredData.map(event => this.mapToEventListDto(event));
+
+    // ============================================
+    // 6. Build paginated response
+    // ============================================
+    const totalPages = Math.ceil(filteredTotal / query.limit);
 
     const paginatedResult: PaginatedEventListDto = {
       data: eventDtos,
-      total: result.total,
+      total: filteredTotal,
       page: query.page,
       limit: query.limit,
       totalPages,
@@ -99,7 +109,7 @@ export class GetOrganizerEventsHandler {
       hasPreviousPage: query.page > 1,
     };
 
-    this.logger.debug(`Found ${result.total} events for organizer: ${query.organizerId}`);
+    this.logger.debug(`Found ${filteredTotal} events for organizer: ${query.organizerId}`);
 
     return Result.ok(paginatedResult);
   }

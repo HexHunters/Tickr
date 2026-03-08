@@ -48,6 +48,13 @@ import {
   createTestTicketTypeDto,
   futureDate,
   generateTestToken,
+  TEST_ORGANIZER_ID,
+  TEST_OTHER_ORGANIZER_ID,
+  TEST_PARTICIPANT_ID,
+  TEST_ADMIN_ID,
+  TEST_NO_EVENTS_ORGANIZER_ID,
+  TEST_EVENT_IDS,
+  TEST_TICKET_IDS,
 } from './helpers/test-setup';
 
 const JWT_SECRET = 'e2e-test-secret-key-for-events-module-32-chars';
@@ -73,10 +80,12 @@ describe('E2E: Event Lifecycle', () => {
   let organizerToken: string;
   let otherOrganizerToken: string;
   let participantToken: string;
+  let adminToken: string;
 
-  const organizerId = 'organizer-user-001';
-  const otherOrganizerId = 'organizer-user-002';
-  const participantId = 'participant-user-001';
+  const organizerId = TEST_ORGANIZER_ID;
+  const otherOrganizerId = TEST_OTHER_ORGANIZER_ID;
+  const participantId = TEST_PARTICIPANT_ID;
+  const adminId = TEST_ADMIN_ID;
 
   beforeAll(async () => {
     eventRepository = new InMemoryEventRepository();
@@ -189,6 +198,12 @@ describe('E2E: Event Lifecycle', () => {
       sub: participantId,
       email: 'participant@test.com',
       role: 'PARTICIPANT',
+    });
+
+    adminToken = generateTestToken(jwtService, {
+      sub: adminId,
+      email: 'admin@test.com',
+      role: 'ADMIN',
     });
 
     await app.init();
@@ -334,7 +349,7 @@ describe('E2E: Event Lifecycle', () => {
   describe('GET /api/events/:id — Get Event By ID', () => {
     it('should return a published event without authentication', async () => {
       await eventRepository.seedEvent({
-        id: 'evt-published-1',
+        id: TEST_EVENT_IDS.published,
         title: 'Public Concert',
         status: EventStatus.PUBLISHED,
         organizerId,
@@ -347,10 +362,10 @@ describe('E2E: Event Lifecycle', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get('/api/events/evt-published-1')
+        .get(`/api/events/${TEST_EVENT_IDS.published}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body.id).toBe('evt-published-1');
+      expect(response.body.id).toBe(TEST_EVENT_IDS.published);
       expect(response.body.title).toBe('Public Concert');
     });
 
@@ -368,7 +383,7 @@ describe('E2E: Event Lifecycle', () => {
 
     it('should allow organizer to view their own draft event', async () => {
       await eventRepository.seedEvent({
-        id: 'evt-draft-own',
+        id: TEST_EVENT_IDS.draftOwn,
         title: 'My Draft Event',
         status: EventStatus.DRAFT,
         organizerId,
@@ -380,11 +395,11 @@ describe('E2E: Event Lifecycle', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get('/api/events/evt-draft-own')
+        .get(`/api/events/${TEST_EVENT_IDS.draftOwn}`)
         .set('Authorization', `Bearer ${organizerToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body.id).toBe('evt-draft-own');
+      expect(response.body.id).toBe(TEST_EVENT_IDS.draftOwn);
       expect(response.body.status).toBe('DRAFT');
     });
   });
@@ -397,7 +412,7 @@ describe('E2E: Event Lifecycle', () => {
     let draftEventId: string;
 
     beforeEach(async () => {
-      draftEventId = 'evt-draft-update';
+      draftEventId = TEST_EVENT_IDS.draftUpdate;
       await eventRepository.seedEvent({
         id: draftEventId,
         title: 'Original Title',
@@ -462,7 +477,7 @@ describe('E2E: Event Lifecycle', () => {
     let draftEventId: string;
 
     beforeEach(async () => {
-      draftEventId = 'evt-to-publish';
+      draftEventId = TEST_EVENT_IDS.toPublish;
       await eventRepository.seedEvent({
         id: draftEventId,
         title: 'Event Ready to Publish',
@@ -475,7 +490,7 @@ describe('E2E: Event Lifecycle', () => {
         location: { city: 'Tunis', country: 'Tunisia', address: '123 Main St', postalCode: '1000' },
         ticketTypes: [
           {
-            id: 'tkt-1',
+            id: TEST_TICKET_IDS.tkt1,
             name: 'General Admission',
             priceAmount: 50,
             priceCurrency: Currency.TND,
@@ -520,7 +535,7 @@ describe('E2E: Event Lifecycle', () => {
 
     it('should reject publishing an event without ticket types', async () => {
       await eventRepository.seedEvent({
-        id: 'evt-no-tickets',
+        id: TEST_EVENT_IDS.noTickets,
         title: 'Event Without Tickets',
         status: EventStatus.DRAFT,
         organizerId,
@@ -532,7 +547,7 @@ describe('E2E: Event Lifecycle', () => {
       });
 
       await request(app.getHttpServer())
-        .post('/api/events/evt-no-tickets/publish')
+        .post(`/api/events/${TEST_EVENT_IDS.noTickets}/publish`)
         .set('Authorization', `Bearer ${organizerToken}`)
         .expect(HttpStatus.BAD_REQUEST);
     });
@@ -553,7 +568,7 @@ describe('E2E: Event Lifecycle', () => {
     let publishedEventId: string;
 
     beforeEach(async () => {
-      publishedEventId = 'evt-to-cancel';
+      publishedEventId = TEST_EVENT_IDS.toCancel;
       await eventRepository.seedEvent({
         id: publishedEventId,
         title: 'Event to Cancel',
@@ -619,7 +634,7 @@ describe('E2E: Event Lifecycle', () => {
 
     it('should reject cancellation of already cancelled event', async () => {
       await eventRepository.seedEvent({
-        id: 'evt-already-cancelled',
+        id: TEST_EVENT_IDS.alreadyCancelled,
         title: 'Already Cancelled',
         status: EventStatus.CANCELLED,
         organizerId,
@@ -633,7 +648,7 @@ describe('E2E: Event Lifecycle', () => {
       });
 
       await request(app.getHttpServer())
-        .delete('/api/events/evt-already-cancelled')
+        .delete(`/api/events/${TEST_EVENT_IDS.alreadyCancelled}`)
         .set('Authorization', `Bearer ${organizerToken}`)
         .send({ reason: 'Cancel again' })
         .expect(HttpStatus.BAD_REQUEST);
@@ -647,7 +662,7 @@ describe('E2E: Event Lifecycle', () => {
   describe('GET /api/events/organizer/:organizerId — Get Organizer Events', () => {
     beforeEach(async () => {
       await eventRepository.seedEvent({
-        id: 'evt-org-1',
+        id: TEST_EVENT_IDS.org1,
         title: 'My Concert',
         status: EventStatus.PUBLISHED,
         organizerId,
@@ -660,7 +675,7 @@ describe('E2E: Event Lifecycle', () => {
       });
 
       await eventRepository.seedEvent({
-        id: 'evt-org-2',
+        id: TEST_EVENT_IDS.org2,
         title: 'My Draft',
         status: EventStatus.DRAFT,
         organizerId,
@@ -672,7 +687,7 @@ describe('E2E: Event Lifecycle', () => {
       });
 
       await eventRepository.seedEvent({
-        id: 'evt-other-org',
+        id: TEST_EVENT_IDS.otherOrg,
         title: 'Other Organizer Event',
         status: EventStatus.PUBLISHED,
         organizerId: otherOrganizerId,
@@ -693,7 +708,7 @@ describe('E2E: Event Lifecycle', () => {
 
       expect(response.body.data).toHaveLength(2);
       expect(
-        response.body.data.every((e: any) => e.organizerId === organizerId),
+        response.body.data.every((e: any) => e.organizer.id === organizerId),
       ).toBe(true);
     });
 
@@ -708,6 +723,246 @@ describe('E2E: Event Lifecycle', () => {
       await request(app.getHttpServer())
         .get(`/api/events/organizer/${organizerId}`)
         .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should filter organizer events by DRAFT status', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/events/organizer/${organizerId}?status=DRAFT`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].title).toBe('My Draft');
+    });
+
+    it('should filter organizer events by PUBLISHED status', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/events/organizer/${organizerId}?status=PUBLISHED`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].title).toBe('My Concert');
+    });
+
+    it('should return empty list when filtering by status with no matches', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/events/organizer/${organizerId}?status=CANCELLED`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data).toHaveLength(0);
+      expect(response.body.total).toBe(0);
+    });
+
+    it('should allow admin to view another organizer events', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/events/organizer/${otherOrganizerId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].title).toBe('Other Organizer Event');
+    });
+
+    it('should paginate organizer events', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/events/organizer/${organizerId}?page=1&limit=1`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.total).toBe(2);
+      expect(response.body.hasNextPage).toBe(true);
+    });
+
+    it('should return empty list for organizer with no events', async () => {
+      const noEventsOrganizerId = TEST_NO_EVENTS_ORGANIZER_ID;
+      const noEventsToken = generateTestToken(jwtService, {
+        sub: noEventsOrganizerId,
+        email: 'no-events@test.com',
+        role: 'ORGANIZER',
+      });
+
+      const response = await request(app.getHttpServer())
+        .get(`/api/events/organizer/${noEventsOrganizerId}`)
+        .set('Authorization', `Bearer ${noEventsToken}`)
+        .expect(HttpStatus.OK);
+
+      expect(response.body.data).toHaveLength(0);
+      expect(response.body.total).toBe(0);
+    });
+  });
+
+  // ============================================
+  // State Machine Edge Cases
+  // ============================================
+
+  describe('Event State Machine Edge Cases', () => {
+    it('should reject publishing an already published event', async () => {
+      await eventRepository.seedEvent({
+        id: TEST_EVENT_IDS.alreadyPublished,
+        title: 'Already Published Event',
+        status: EventStatus.PUBLISHED,
+        organizerId,
+        category: EventCategory.CONCERT,
+        startDate: futureDate(48),
+        endDate: futureDate(52),
+        location: { city: 'Tunis', country: 'Tunisia', address: '1 Ave', postalCode: '1000' },
+        ticketTypes: [
+          {
+            id: TEST_TICKET_IDS.tktPub,
+            name: 'GA',
+            priceAmount: 30,
+            priceCurrency: Currency.TND,
+            quantity: 50,
+            soldQuantity: 0,
+            salesStartDate: futureDate(2),
+            salesEndDate: futureDate(46),
+            isActive: true,
+          },
+        ],
+        publishedAt: new Date(),
+      });
+
+      await request(app.getHttpServer())
+        .post(`/api/events/${TEST_EVENT_IDS.alreadyPublished}/publish`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('should reject publishing a cancelled event', async () => {
+      await eventRepository.seedEvent({
+        id: TEST_EVENT_IDS.cancelledPublish,
+        title: 'Cancelled Event',
+        status: EventStatus.CANCELLED,
+        organizerId,
+        category: EventCategory.CONCERT,
+        startDate: futureDate(48),
+        endDate: futureDate(52),
+        location: { city: 'Tunis', country: 'Tunisia', address: '1 Ave', postalCode: '1000' },
+        ticketTypes: [
+          {
+            id: TEST_TICKET_IDS.tktCancel,
+            name: 'GA',
+            priceAmount: 30,
+            priceCurrency: Currency.TND,
+            quantity: 50,
+            soldQuantity: 0,
+            salesStartDate: futureDate(2),
+            salesEndDate: futureDate(46),
+            isActive: true,
+          },
+        ],
+        cancelledAt: new Date(),
+        cancellationReason: 'Cancelled for testing',
+      });
+
+      await request(app.getHttpServer())
+        .post(`/api/events/${TEST_EVENT_IDS.cancelledPublish}/publish`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('should reject updating a cancelled event', async () => {
+      await eventRepository.seedEvent({
+        id: TEST_EVENT_IDS.cancelledUpdate,
+        title: 'Cancelled Event',
+        status: EventStatus.CANCELLED,
+        organizerId,
+        category: EventCategory.CONCERT,
+        startDate: futureDate(48),
+        endDate: futureDate(52),
+        location: { city: 'Tunis', country: 'Tunisia' },
+        ticketTypes: [],
+        cancelledAt: new Date(),
+        cancellationReason: 'No longer available',
+      });
+
+      await request(app.getHttpServer())
+        .put(`/api/events/${TEST_EVENT_IDS.cancelledUpdate}`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .send({ title: 'Trying to update cancelled event' })
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('should reject cancelling a draft event without a reason', async () => {
+      await eventRepository.seedEvent({
+        id: TEST_EVENT_IDS.draftCancel,
+        title: 'Draft Event',
+        status: EventStatus.DRAFT,
+        organizerId,
+        category: EventCategory.CONCERT,
+        startDate: futureDate(48),
+        endDate: futureDate(52),
+        location: { city: 'Tunis', country: 'Tunisia' },
+        ticketTypes: [],
+      });
+
+      await request(app.getHttpServer())
+        .delete(`/api/events/${TEST_EVENT_IDS.draftCancel}`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .send({})
+        .expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('should allow cancelling a draft event with a reason', async () => {
+      await eventRepository.seedEvent({
+        id: TEST_EVENT_IDS.draftCancelOk,
+        title: 'Draft Event to Cancel',
+        status: EventStatus.DRAFT,
+        organizerId,
+        category: EventCategory.CONCERT,
+        startDate: futureDate(48),
+        endDate: futureDate(52),
+        location: { city: 'Tunis', country: 'Tunisia' },
+        ticketTypes: [],
+      });
+
+      const response = await request(app.getHttpServer())
+        .delete(`/api/events/${TEST_EVENT_IDS.draftCancelOk}`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .send({ reason: 'Changed my mind' })
+        .expect(HttpStatus.OK);
+
+      expect(response.body.message).toBe('Event cancelled successfully');
+    });
+
+    it('should allow limited updates to a published event (title, description)', async () => {
+      await eventRepository.seedEvent({
+        id: TEST_EVENT_IDS.pubUpdate,
+        title: 'Published Event',
+        description: 'Original description',
+        status: EventStatus.PUBLISHED,
+        organizerId,
+        category: EventCategory.CONCERT,
+        startDate: futureDate(48),
+        endDate: futureDate(52),
+        location: { city: 'Tunis', country: 'Tunisia', address: '1 Ave', postalCode: '1000' },
+        ticketTypes: [
+          {
+            id: TEST_TICKET_IDS.tktPubUpd,
+            name: 'GA',
+            priceAmount: 30,
+            priceCurrency: Currency.TND,
+            quantity: 50,
+            soldQuantity: 0,
+            salesStartDate: futureDate(2),
+            salesEndDate: futureDate(46),
+            isActive: true,
+          },
+        ],
+        publishedAt: new Date(),
+      });
+
+      await request(app.getHttpServer())
+        .put(`/api/events/${TEST_EVENT_IDS.pubUpdate}`)
+        .set('Authorization', `Bearer ${organizerToken}`)
+        .send({ title: 'Updated Title' })
+        .expect(HttpStatus.OK);
+
+      const updated = await eventRepository.findById(TEST_EVENT_IDS.pubUpdate);
+      expect(updated!.title).toBe('Updated Title');
     });
   });
 

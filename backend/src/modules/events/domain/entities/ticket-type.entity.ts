@@ -1,5 +1,6 @@
 import { BaseEntity } from '@shared/domain/base-entity';
 import { Result } from '@shared/domain/result';
+import { generateUUID } from '@shared/domain/utils';
 
 import { TicketTypeSoldOutEvent } from '../events/ticket-type-sold-out.event';
 import { InvalidTicketTypeException } from '../exceptions/invalid-ticket-type.exception';
@@ -439,7 +440,7 @@ export class TicketTypeEntity extends BaseEntity<TicketTypeEntity> {
    * Generate a unique ID for a new ticket type
    */
   private static generateId(): string {
-    return `tt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return generateUUID();
   }
 
   // ============================================

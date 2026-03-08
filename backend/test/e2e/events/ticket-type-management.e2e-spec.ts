@@ -46,6 +46,11 @@ import {
   createTestTicketTypeDto,
   futureDate,
   generateTestToken,
+  TEST_ORGANIZER_ID,
+  TEST_OTHER_ORGANIZER_ID,
+  TEST_PARTICIPANT_ID,
+  TEST_EVENT_IDS,
+  TEST_TICKET_IDS,
 } from './helpers/test-setup';
 
 const JWT_SECRET = 'e2e-test-secret-key-for-ticket-types-32-chars';
@@ -68,9 +73,9 @@ describe('E2E: Ticket Type Management', () => {
   let otherOrganizerToken: string;
   let participantToken: string;
 
-  const organizerId = 'organizer-ticket-001';
-  const otherOrganizerId = 'organizer-ticket-002';
-  const participantId = 'participant-ticket-001';
+  const organizerId = TEST_ORGANIZER_ID;
+  const otherOrganizerId = TEST_OTHER_ORGANIZER_ID;
+  const participantId = TEST_PARTICIPANT_ID;
 
   beforeAll(async () => {
     eventRepository = new InMemoryEventRepository();
@@ -207,7 +212,7 @@ describe('E2E: Ticket Type Management', () => {
     let eventId: string;
 
     beforeEach(async () => {
-      eventId = 'evt-add-ticket';
+      eventId = TEST_EVENT_IDS.addTicket;
       await seedDraftEvent(eventId);
     });
 
@@ -341,10 +346,10 @@ describe('E2E: Ticket Type Management', () => {
 
   describe('PUT /api/events/:id/ticket-types/:typeId — Update Ticket Type', () => {
     let eventId: string;
-    const ticketTypeId = 'tkt-update-1';
+    const ticketTypeId = TEST_TICKET_IDS.tktUpdate1;
 
     beforeEach(async () => {
-      eventId = 'evt-update-ticket';
+      eventId = TEST_EVENT_IDS.updateTicket;
       await seedDraftEvent(eventId, {
         ticketTypes: [
           {
@@ -443,10 +448,10 @@ describe('E2E: Ticket Type Management', () => {
 
   describe('DELETE /api/events/:id/ticket-types/:typeId — Remove Ticket Type', () => {
     let eventId: string;
-    const ticketTypeId = 'tkt-remove-1';
+    const ticketTypeId = TEST_TICKET_IDS.tktRemove1;
 
     beforeEach(async () => {
-      eventId = 'evt-remove-ticket';
+      eventId = TEST_EVENT_IDS.removeTicket;
       await seedDraftEvent(eventId, {
         ticketTypes: [
           {
@@ -509,7 +514,7 @@ describe('E2E: Ticket Type Management', () => {
 
     it('should reject removal from published event with sales', async () => {
       await eventRepository.seedEvent({
-        id: 'evt-published-sales',
+        id: TEST_EVENT_IDS.publishedSales,
         title: 'Published with Sales',
         status: EventStatus.PUBLISHED,
         organizerId,
@@ -519,7 +524,7 @@ describe('E2E: Ticket Type Management', () => {
         location: { city: 'Tunis', country: 'Tunisia' },
         ticketTypes: [
           {
-            id: 'tkt-with-sales',
+            id: TEST_TICKET_IDS.tktWithSales,
             name: 'Sold Ticket',
             priceAmount: 50,
             priceCurrency: Currency.TND,
@@ -534,7 +539,7 @@ describe('E2E: Ticket Type Management', () => {
       });
 
       await request(app.getHttpServer())
-        .delete('/api/events/evt-published-sales/ticket-types/tkt-with-sales')
+        .delete(`/api/events/${TEST_EVENT_IDS.publishedSales}/ticket-types/${TEST_TICKET_IDS.tktWithSales}`)
         .set('Authorization', `Bearer ${organizerToken}`)
         .expect(HttpStatus.BAD_REQUEST);
     });

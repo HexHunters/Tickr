@@ -14,12 +14,63 @@ import {
 } from 'class-validator';
 
 /**
+ * DTO for pagination parameters
+ */
+export class PaginationDto {
+  @ApiPropertyOptional({
+    description: 'Page number (1-based)',
+    example: 1,
+    default: 1,
+    minimum: 1,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  page?: number = 1;
+
+  @ApiPropertyOptional({
+    description: 'Number of items per page',
+    example: 20,
+    default: 20,
+    minimum: 1,
+    maximum: 100,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  @Type(() => Number)
+  limit?: number = 20;
+
+  @ApiPropertyOptional({
+    description: 'Sort field',
+    example: 'startDate',
+    enum: ['createdAt', 'updatedAt', 'startDate', 'endDate', 'title', 'totalCapacity', 'soldTickets', 'publishedAt'],
+  })
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @ApiPropertyOptional({
+    description: 'Sort direction',
+    example: 'ASC',
+    enum: ['ASC', 'DESC'],
+    default: 'DESC',
+  })
+  @IsOptional()
+  @IsEnum(['ASC', 'DESC'])
+  sortOrder?: 'ASC' | 'DESC' = 'DESC';
+}
+
+/**
  * DTO for event filtering parameters
  *
  * Used in query endpoints for filtering published events.
  * All fields are optional - undefined fields are ignored.
+ * Extends PaginationDto to support combined filter + pagination in a single @Query().
  */
-export class EventFilterDto {
+export class EventFilterDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Filter by event category',
     enum: EventCategory,
@@ -102,56 +153,6 @@ export class OrganizerEventFilterDto extends EventFilterDto {
   @IsOptional()
   @IsEnum(EventStatus)
   status?: EventStatus;
-}
-
-/**
- * DTO for pagination parameters
- */
-export class PaginationDto {
-  @ApiPropertyOptional({
-    description: 'Page number (1-based)',
-    example: 1,
-    default: 1,
-    minimum: 1,
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Type(() => Number)
-  page?: number = 1;
-
-  @ApiPropertyOptional({
-    description: 'Number of items per page',
-    example: 20,
-    default: 20,
-    minimum: 1,
-    maximum: 100,
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  @Type(() => Number)
-  limit?: number = 20;
-
-  @ApiPropertyOptional({
-    description: 'Sort field',
-    example: 'startDate',
-    enum: ['createdAt', 'updatedAt', 'startDate', 'endDate', 'title', 'totalCapacity', 'soldTickets', 'publishedAt'],
-  })
-  @IsOptional()
-  @IsString()
-  sortBy?: string;
-
-  @ApiPropertyOptional({
-    description: 'Sort direction',
-    example: 'ASC',
-    enum: ['ASC', 'DESC'],
-    default: 'DESC',
-  })
-  @IsOptional()
-  @IsEnum(['ASC', 'DESC'])
-  sortOrder?: 'ASC' | 'DESC' = 'DESC';
 }
 
 /**

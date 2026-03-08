@@ -43,6 +43,8 @@ import {
   createMockUserValidationService,
   createMockS3Service,
   futureDate,
+  TEST_ORGANIZER_ID,
+  TEST_EVENT_IDS,
 } from './helpers/test-setup';
 
 const JWT_SECRET = 'e2e-test-secret-key-for-events-queries-32-chars';
@@ -61,7 +63,7 @@ describe('E2E: Event Queries', () => {
   let eventRepository: InMemoryEventRepository;
   let domainEventPublisher: MockDomainEventPublisher;
 
-  const organizerId = 'organizer-query-001';
+  const organizerId = TEST_ORGANIZER_ID;
 
   beforeAll(async () => {
     eventRepository = new InMemoryEventRepository();
@@ -146,7 +148,7 @@ describe('E2E: Event Queries', () => {
 
   const seedPublishedEvents = async () => {
     await eventRepository.seedEvent({
-      id: 'evt-concert-1',
+      id: TEST_EVENT_IDS.concert1,
       title: 'Amazing Rock Festival',
       status: EventStatus.PUBLISHED,
       category: EventCategory.CONCERT,
@@ -159,7 +161,7 @@ describe('E2E: Event Queries', () => {
     });
 
     await eventRepository.seedEvent({
-      id: 'evt-concert-2',
+      id: TEST_EVENT_IDS.concert2,
       title: 'Jazz Night',
       status: EventStatus.PUBLISHED,
       category: EventCategory.CONCERT,
@@ -172,7 +174,7 @@ describe('E2E: Event Queries', () => {
     });
 
     await eventRepository.seedEvent({
-      id: 'evt-conference-1',
+      id: TEST_EVENT_IDS.conference1,
       title: 'Tech Conference 2026',
       status: EventStatus.PUBLISHED,
       category: EventCategory.CONFERENCE,
@@ -185,7 +187,7 @@ describe('E2E: Event Queries', () => {
     });
 
     await eventRepository.seedEvent({
-      id: 'evt-sport-1',
+      id: TEST_EVENT_IDS.sport1,
       title: 'Marathon Tunis',
       status: EventStatus.PUBLISHED,
       category: EventCategory.SPORT,
@@ -199,7 +201,7 @@ describe('E2E: Event Queries', () => {
 
     // Draft event — should NOT appear in public queries
     await eventRepository.seedEvent({
-      id: 'evt-draft-1',
+      id: TEST_EVENT_IDS.draft1,
       title: 'Unpublished Draft',
       status: EventStatus.DRAFT,
       category: EventCategory.CONCERT,
@@ -212,7 +214,7 @@ describe('E2E: Event Queries', () => {
 
     // Cancelled event — should NOT appear in public queries
     await eventRepository.seedEvent({
-      id: 'evt-cancelled-1',
+      id: TEST_EVENT_IDS.cancelled1,
       title: 'Cancelled Concert',
       status: EventStatus.CANCELLED,
       category: EventCategory.CONCERT,
@@ -373,7 +375,7 @@ describe('E2E: Event Queries', () => {
     it('should support pagination for search results', async () => {
       const response = await request(app.getHttpServer())
         .get('/api/events/search')
-        .query({ q: 'a', page: 1, limit: 1 })
+        .query({ q: 'az', page: 1, limit: 1 })
         .expect(HttpStatus.OK);
 
       expect(response.body.data.length).toBeLessThanOrEqual(1);
@@ -482,7 +484,7 @@ describe('E2E: Event Queries', () => {
     it('should not include past events', async () => {
       // Seed a past event
       await eventRepository.seedEvent({
-        id: 'evt-past',
+        id: TEST_EVENT_IDS.pastEvent,
         title: 'Past Concert',
         status: EventStatus.PUBLISHED,
         category: EventCategory.CONCERT,
@@ -499,7 +501,7 @@ describe('E2E: Event Queries', () => {
         .expect(HttpStatus.OK);
 
       const ids = response.body.data.map((e: any) => e.id);
-      expect(ids).not.toContain('evt-past');
+      expect(ids).not.toContain(TEST_EVENT_IDS.pastEvent);
     });
 
     it('should not include draft events', async () => {
