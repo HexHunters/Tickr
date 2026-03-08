@@ -87,7 +87,9 @@ describe('TicketTypeEntity', () => {
       expect(result1.isSuccess).toBe(true);
       expect(result2.isSuccess).toBe(true);
       expect(result1.value.id).not.toBe(result2.value.id);
-      expect(result1.value.id).toContain('tt_');
+      expect(result1.value.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
     });
 
     it('should use provided ID if given', () => {

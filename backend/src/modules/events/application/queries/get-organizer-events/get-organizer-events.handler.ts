@@ -5,7 +5,7 @@ import { Result } from '@shared/domain/result';
 import type { EventEntity } from '../../../domain/entities/event.entity';
 import type { EventListDto, PaginatedEventListDto } from '../../dtos/event-list.dto';
 import type { TicketTypeSummaryDto } from '../../dtos/ticket-type.dto';
-import type { EventRepositoryPort, EventPaginationOptions } from '../../ports/event.repository.port';
+import type { EventRepositoryPort, EventPaginationOptions, EventSortField } from '../../ports/event.repository.port';
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
 
 import {
@@ -67,7 +67,7 @@ export class GetOrganizerEventsHandler {
     const options: EventPaginationOptions = {
       page: query.page,
       limit: query.limit,
-      sortBy: query.sortBy as any,
+      sortBy: query.sortBy as EventSortField,
       sortOrder: query.sortOrder,
     };
 
@@ -80,18 +80,28 @@ export class GetOrganizerEventsHandler {
     );
 
     // ============================================
-    // 4. Map to EventListDto
+    // 4. Filter by status if specified
     // ============================================
-    const eventDtos = result.data.map(event => this.mapToEventListDto(event));
+    let filteredData = result.data;
+    let filteredTotal = result.total;
+    if (query.status) {
+      filteredData = result.data.filter(event => event.status === query.status);
+      filteredTotal = filteredData.length;
+    }
 
     // ============================================
-    // 5. Build paginated response
+    // 5. Map to EventListDto
     // ============================================
-    const totalPages = Math.ceil(result.total / query.limit);
+    const eventDtos = filteredData.map(event => this.mapToEventListDto(event));
+
+    // ============================================
+    // 6. Build paginated response
+    // ============================================
+    const totalPages = Math.ceil(filteredTotal / query.limit);
 
     const paginatedResult: PaginatedEventListDto = {
       data: eventDtos,
-      total: result.total,
+      total: filteredTotal,
       page: query.page,
       limit: query.limit,
       totalPages,
@@ -99,7 +109,7 @@ export class GetOrganizerEventsHandler {
       hasPreviousPage: query.page > 1,
     };
 
-    this.logger.debug(`Found ${result.total} events for organizer: ${query.organizerId}`);
+    this.logger.debug(`Found ${filteredTotal} events for organizer: ${query.organizerId}`);
 
     return Result.ok(paginatedResult);
   }

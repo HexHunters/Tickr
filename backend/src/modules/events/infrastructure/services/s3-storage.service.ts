@@ -222,7 +222,8 @@ export class S3StorageService {
       this.logger.log(`Successfully deleted image: ${key}`);
     } catch (error) {
       // Ignore NotFound errors - the file might already be deleted
-      if ((error as any)?.name === 'NoSuchKey' || (error as any)?.Code === 'NoSuchKey') {
+      const s3Error = error as { name?: string; Code?: string };
+      if (s3Error?.name === 'NoSuchKey' || s3Error?.Code === 'NoSuchKey') {
         this.logger.debug(`Image already deleted or not found: ${key}`);
         return;
       }

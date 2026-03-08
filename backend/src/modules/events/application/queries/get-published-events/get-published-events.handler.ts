@@ -5,7 +5,7 @@ import { Result } from '@shared/domain/result';
 import type { EventEntity } from '../../../domain/entities/event.entity';
 import type { EventListDto, PaginatedEventListDto } from '../../dtos/event-list.dto';
 import type { TicketTypeSummaryDto } from '../../dtos/ticket-type.dto';
-import type { EventRepositoryPort, EventFilters, EventPaginationOptions } from '../../ports/event.repository.port';
+import type { EventRepositoryPort, EventFilters, EventPaginationOptions, EventSortField } from '../../ports/event.repository.port';
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
 
 import {
@@ -68,7 +68,7 @@ export class GetPublishedEventsHandler {
     const options: EventPaginationOptions = {
       page: query.page,
       limit: query.limit,
-      sortBy: query.sortBy as any,
+      sortBy: query.sortBy as EventSortField,
       sortOrder: query.sortOrder,
     };
 

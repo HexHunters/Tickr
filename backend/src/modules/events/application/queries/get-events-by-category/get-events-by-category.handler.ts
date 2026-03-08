@@ -6,7 +6,7 @@ import { EventCategory } from '../../../domain/value-objects/event-category.vo';
 import type { EventListDto, PaginatedEventListDto } from '../../dtos/event-list.dto';
 import type { TicketTypeSummaryDto } from '../../dtos/ticket-type.dto';
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
-import type { EventRepositoryPort, EventPaginationOptions } from '../../ports/event.repository.port';
+import type { EventRepositoryPort, EventPaginationOptions, EventSortField } from '../../ports/event.repository.port';
 
 import {
   GetEventsByCategoryQuery,
@@ -68,7 +68,7 @@ export class GetEventsByCategoryHandler {
     const options: EventPaginationOptions = {
       page: query.page,
       limit: query.limit,
-      sortBy: query.sortBy as any,
+      sortBy: query.sortBy as EventSortField,
       sortOrder: query.sortOrder,
     };
 

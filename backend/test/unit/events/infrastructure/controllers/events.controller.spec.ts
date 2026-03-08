@@ -25,7 +25,6 @@ import {
   AddTicketTypeDto,
   UpdateTicketTypeDto,
   EventFilterDto,
-  PaginationDto,
   CancelEventDto,
 } from '@modules/events/application';
 import { EVENT_REPOSITORY } from '@modules/events/application/ports/event.repository.port';
@@ -158,10 +157,9 @@ describe('EventsController', () => {
     it('should return paginated events', async () => {
       getPublishedEventsHandler.execute.mockResolvedValue(Result.ok(mockPaginatedResult));
 
-      const filters: EventFilterDto = { category: EventCategory.CONCERT };
-      const pagination: PaginationDto = { page: 1, limit: 20 };
+      const filters: EventFilterDto = { category: EventCategory.CONCERT, page: 1, limit: 20 };
 
-      const result = await controller.getPublishedEvents(filters, pagination);
+      const result = await controller.getPublishedEvents(filters);
 
       expect(result).toEqual(mockPaginatedResult);
       expect(getPublishedEventsHandler.execute).toHaveBeenCalled();
@@ -176,10 +174,11 @@ describe('EventsController', () => {
         country: 'Tunisia',
         minPrice: 10,
         maxPrice: 100,
+        page: 2,
+        limit: 10,
       };
-      const pagination: PaginationDto = { page: 2, limit: 10 };
 
-      await controller.getPublishedEvents(filters, pagination);
+      await controller.getPublishedEvents(filters);
 
       const executedQuery = getPublishedEventsHandler.execute.mock.calls[0][0];
       expect(executedQuery.page).toBe(2);

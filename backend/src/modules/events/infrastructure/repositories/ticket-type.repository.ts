@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 
 import { TicketTypeRepositoryPort } from '../../application/ports/event.repository.port';
 import { TicketTypeEntity } from '../../domain/entities/ticket-type.entity';
@@ -49,7 +49,7 @@ export class TicketTypeTypeOrmRepository implements TicketTypeRepositoryPort {
     eventId: string,
     activeOnly: boolean = false,
   ): Promise<TicketTypeEntity[]> {
-    const where: any = { eventId };
+    const where: FindOptionsWhere<TicketTypeOrmEntity> = { eventId };
 
     if (activeOnly) {
       where.isActive = true;
