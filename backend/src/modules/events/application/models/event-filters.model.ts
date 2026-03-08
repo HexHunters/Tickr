@@ -85,7 +85,8 @@ export type EventSortField =
   | 'title'
   | 'totalCapacity'
   | 'soldTickets'
-  | 'publishedAt';
+  | 'publishedAt'
+  | 'relevance';
 
 /**
  * Extended pagination options with event-specific sorting

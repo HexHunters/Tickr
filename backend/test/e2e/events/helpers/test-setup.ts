@@ -7,9 +7,8 @@
  * - Test data factories
  */
 
+import { EventEntity } from '@modules/events/domain/entities/event.entity';
 import { JwtService } from '@nestjs/jwt';
-
-import { EventEntity } from '../../../../src/modules/events/domain/entities/event.entity';
 
 // ============================================
 // Deterministic UUID Constants for Tests

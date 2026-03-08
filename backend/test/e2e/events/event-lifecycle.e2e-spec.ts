@@ -41,7 +41,6 @@ import { DomainEventPublisher } from '../../../src/shared/infrastructure/events/
 import {
   InMemoryEventRepository,
   MockDomainEventPublisher,
-  JwtAuthMiddleware,
   createMockUserValidationService,
   createMockS3Service,
   createTestEventDto,
