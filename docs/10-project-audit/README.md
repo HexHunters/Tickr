@@ -6,7 +6,8 @@ after merging `develop` (`21eb15d`). Every finding cites `file:line`; the highes
 independently re-verified before inclusion.
 
 **Read first:** [00 — Executive report](00-executive-report.md) — the one-page verdict, the ranked
-blockers, and the recommended sequence.
+blockers, and the recommended sequence. **Then:** [09 — Remediation plan](09-remediation-plan.md) for the
+fixes, and [10 — Visual direction](10-global-design-direction-visual.md) for the design with images.
 
 | # | File | Domain | Findings | Critical |
 |---|---|---|---|---|
@@ -19,6 +20,8 @@ blockers, and the recommended sequence.
 | 06 | [Product, legal & money operations](06-gaps-product-legal-money-ops.md) | Payout, refunds, cancellation, legal documents, support, moderation | 12 | 3 |
 | 07 | [Documentation drift](07-gaps-documentation.md) | Statements that no longer match the code; housekeeping | 24 + 6 | — |
 | 08 | [**Global design direction**](08-global-design-direction.md) | Script-complete typography, validated dark theme and accent slots, RTL, money/time formatting, market configuration, WCAG 2.2 | — | — |
+| 09 | [**Remediation plan**](09-remediation-plan.md) | Concrete fixes per blocker — file, change, proof test — in sprint order | — | — |
+| 10 | [**Global design direction — visual**](10-global-design-direction-visual.md) | The direction as images: palettes, dark theme, accent slots, type, RTL, market model, six screen mockups | — | — |
 
 ## Severity legend
 

@@ -14,8 +14,8 @@
 | 2 | [What changed since the last audit](#2-what-changed-since-the-last-audit) | — |
 | 3 | [The blockers, ranked](#3-the-blockers-ranked) | — |
 | 4 | [Gap analysis by domain](#4-gap-analysis-by-domain) | [01](01-gaps-security-auth.md) · [02](02-gaps-commerce-wiring.md) · [03](03-gaps-infrastructure-cicd.md) · [04](04-gaps-frontend-testing.md) · [05](05-gaps-global-readiness.md) · [06](06-gaps-product-legal-money-ops.md) · [07](07-gaps-documentation.md) |
-| 5 | [Global design direction — summary](#5-global-design-direction--summary) | [08](08-global-design-direction.md) |
-| 6 | [Recommended sequence](#6-recommended-sequence) | — |
+| 5 | [Global design direction — summary](#5-global-design-direction--summary) | [08](08-global-design-direction.md) · [10 visual](10-global-design-direction-visual.md) |
+| 6 | [Recommended sequence](#6-recommended-sequence) | [09 — Remediation plan](09-remediation-plan.md) |
 | 7 | [What is genuinely strong](#7-what-is-genuinely-strong) | — |
 | 8 | [Method and confidence](#8-method-and-confidence) | — |
 
@@ -161,4 +161,4 @@ The gap is not quality of thinking. It is that the last 10 % of wiring — the p
 
 ---
 
-**Index:** [README](README.md) · **Start here for engineering:** [02 — Commerce wiring](02-gaps-commerce-wiring.md) · **Start here for design:** [08 — Global Design Direction](08-global-design-direction.md)
+**Index:** [README](README.md) · **Start here for engineering:** [09 — Remediation plan](09-remediation-plan.md) · **Start here for design:** [10 — Visual direction](10-global-design-direction-visual.md)
