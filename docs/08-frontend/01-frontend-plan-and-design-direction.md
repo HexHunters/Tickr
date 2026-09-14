@@ -101,7 +101,7 @@ These are already fixed by the repository and backend and are **inputs**, not op
 ### 2.2 API & auth contract (from `docs/02-technique/02-api-contract.md`, corrected against `backend/src`)
 
 - Base URL: `https://api.tickr.tn/api` (JSON, HTTPS, UTF-8).
-- Auth: `Authorization: Bearer <JWT>` — **HS256**; access token **7 d** and refresh token **30 d** by default (`JWT_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN`, `jwt.service.ts:74–75` — the "24h" in the api-contract doc is stale). Refresh via `POST /auth/refresh-token`.
+- Auth: `Authorization: Bearer <JWT>` — **HS256**; access token **7 d** and refresh token **30 d** by default (`JWT_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN`, `jwt.service.ts:74–75`). Refresh via `POST /auth/refresh-token`.
 - `POST /auth/login` returns **`403`** when the email is unverified or the account is deactivated (`auth.controller.ts:189`) — the login form must render this as "verify your email / account disabled", never as a generic forbidden.
 - Roles (from `UserRole` enum): **`PARTICIPANT`**, **`ORGANIZER`**, **`ADMIN`**.
 - Pagination: `?page=&limit=` → `{ data, total, page, limit, totalPages, hasNextPage, hasPreviousPage }` (flat, **not** nested under `meta`).

@@ -78,11 +78,11 @@ Three registers hold the full lists: [Phase 1 §L](02-product-design-brief.md#l-
    resend the link.
 3. **Commission configuration is implemented** (§L 1): global default from environment, public
    effective-rate lookup, and Admin event override/clear. Frontend must not duplicate the rate.
-4. **Add a machine-readable `code` to the error envelope** (§L 2) — the UI cannot tell "sold out"
+4. **Populate the envelope's existing `code` with the domain error type** (it is present — `all-exceptions.filter.ts:55` — but for `HttpException`s it carries Nest's reason phrase, e.g. `"Bad Request"`) (§L 2) — the UI cannot tell "sold out"
    from "bad input" (both `400`) without parsing a message string.
 5. **Align status-code semantics** (§L 3) — return `409` for business conflicts and `429` for rate
-   limiting. Today they arrive as `400` and `403`; no code path emits `409` at all (the shared
-   `ConflictException` exists but is never thrown).
+   limiting. Today they arrive as `400` and `403`; sold-out never arrives as `409` — the only `409` in the codebase is an events state-transition conflict at `events.controller.ts:567` (the project's own shared
+   `ConflictException` class is never thrown; that `409` uses Nest's built-in).
 6. **Implement organizer settlement and backfill historical analytics** (§L 8). New event
    `REVENUE` metrics record the 50 DT ticket subtotal and ticket count, excluding Tickr's 3 DT fee.
    Older append-only metrics may still contain the 53 DT buyer total, and no payout ledger exists.
