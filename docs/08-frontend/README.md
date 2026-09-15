@@ -29,6 +29,12 @@ back into the tracking tables — [Phase 8 §4](09-wireframes.md#4-tracking) and
 
 ---
 
+## ⚠️ Colour palette superseded
+
+The cobalt/sun palette in Phase 1 §D.2 and Phase 7 was rejected and replaced by the pastel
+**"Chaux & Faïence"** direction — [`docs/10-project-audit/08-global-design-direction.md`](../10-project-audit/08-global-design-direction.md)
+([visual edition](../10-project-audit/10-global-design-direction-visual.md)). All non-colour decisions in these phases stand.
+
 ## Conventions
 
 - **Roles:** `PARTICIPANT`, `ORGANIZER`, `ADMIN` (`user-role.vo.ts`).

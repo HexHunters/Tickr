@@ -101,26 +101,23 @@ Severity counts are per file; an item recorded in two files (e.g. refund ownersh
 
 ## 5. Global design direction — summary
 
-The full direction is [08 — Global Design Direction](08-global-design-direction.md). Its stance is the roadmap's: **one global design system, activated market by market — markets configure, they never fork.**
+The full direction is [08 — Chaux & Faïence](08-global-design-direction.md); the images are in
+[10](10-global-design-direction-visual.md). The first palette (cobalt/sun) was rejected by the client;
+the replacement was chosen from four independent pastel concepts by a three-judge panel and then
+hardened — **124 text/UI pairs computed, zero failures**.
 
-What stays: the poster-first gallery, cobalt as the sole action colour, the warm neutrals, the five UX principles, structural trust. None of it was Tunisian.
-
-What becomes a market setting instead of a constant:
+**The idea:** an afternoon walk from Sidi Bou Saïd to the water — chalk canvas, one door-blue that is
+the only thing you can press, ten Nabeul glazes for categories, a clay accent for scarcity. The
+organizer's poster is the only saturated object on any screen; checkout is a bare wall.
 
 | Area | Decision |
 |---|---|
-| **Typography** | Script-complete stack: **Archivo + Inter** (Latin/Cyrillic/Greek), **Cairo + IBM Plex Sans Arabic** (Arabic), **Heebo** (Hebrew), `Noto Sans` as the universal fallback. Two families per *active* script, subset by `unicode-range`. Arabic metrics (17 px / 1.7 / zero tracking / no italics) applied by `:lang(ar)` |
-| **Colour** | Core unchanged. A **full dark theme** on the same warm-ink family — every token computed (`dk-text` 15.34 : 1, `dk-action` 6.26 : 1, `dk-border-strong` 4.92 : 1). One **accent slot** with four validated values — Sun (default), Coral, Mint, Violet — so a market or campaign can change energy without repainting the product. Colour never carries meaning alone, which answers every cross-cultural colour question |
-| **Direction** | Logical CSS properties only, `dir` on `<html>` from the locale, an allowlist of icons that mirror, `<bdi>` around every price, a four-way visual QA (ltr/rtl × light/dark) |
-| **Money & time** | `Intl`-formatted from locale + currency; Western digits for all money, codes and timers in every locale; the API supplies value and currency. Times in the **event's** timezone, labelled, with the viewer's offset when different |
-| **Language** | English as the catalogue source; French and Arabic as human translations in the *market's* register; ICU plurals; a +35 % text-expansion budget on every control |
-| **Payments** | Provider order from the market config, local rail first; redirect announced, return polled — invariants in every market |
-| **Accessibility** | **WCAG 2.2 AA** as the global floor; RTL screen-reader testing in the gate |
-| **Activation** | A typed `MarketConfig` per market (locales, currency, numbering system, timezone, provider order, accent, name shape, phone, legal routes, support, tax display, feature flags). Resolved from URL or domain — **never from IP alone** |
-
-Seven decisions are left **open** because they need backend or business work first — the event `timezone` that does not exist, the currencies each provider can actually settle, the missing user locale, the PDF's inability to render Arabic, name shape, tax display, trademark. Each is verified in code, not guessed.
-
----
+| **Colour** | Pastels are surfaces, chips and stubs; every pastel carries a computed deep ink; white text exists on three fills only. `ink-support` and `border-strong` retuned to pass on every glaze |
+| **Night** | Ink-tinted night-blue darks, chalk text, and the *lit-door* button (pale blue with night-ink text) — the only structure that passes both text and edge contrast |
+| **Categories** | Ten glazes, min ΔE 7.9, always with label + icon + kernel dot; selected/hover states by density toward the ink, never a new hue |
+| **Motifs** | Chalk mat, torn stub, faïence star, door arch, iron studs, sun-fade, ink stamp, tile frieze, kernel dot — all drawable, all used in the mockups |
+| **Type** | Fraunces + Manrope · El Messiri + Readex Pro · Frank Ruhl Libre + Assistant · Literata for Cyrillic/Greek display · Rubik → Noto fallback; "bitter numerals" for headline money |
+| **Global** | Logical-properties RTL (sun-fade from inline-start, stamp rotation flips), `Intl` money/time, WCAG 2.2 AA, typed `MarketConfig`; the accent-slot mechanism is retired — market energy comes from the glazes |
 
 ## 6. Recommended sequence
 

@@ -19,9 +19,9 @@ fixes, and [10 — Visual direction](10-global-design-direction-visual.md) for t
 | 05 | [Global / multi-market readiness](05-gaps-global-readiness.md) | Currency, locale, timezone, identity, payment rails, tax, discovery | 15 | 0 |
 | 06 | [Product, legal & money operations](06-gaps-product-legal-money-ops.md) | Payout, refunds, cancellation, legal documents, support, moderation | 12 | 3 |
 | 07 | [Documentation drift](07-gaps-documentation.md) | Statements that no longer match the code; housekeeping | 24 + 6 | — |
-| 08 | [**Global design direction**](08-global-design-direction.md) | Script-complete typography, validated dark theme and accent slots, RTL, money/time formatting, market configuration, WCAG 2.2 | — | — |
+| 08 | [**Global design direction — Chaux & Faïence**](08-global-design-direction.md) | The pastel direction: chalk / glaze / ink / one door-blue, ten Nabeul glazes with computed inks, lit-door night theme, Fraunces + Manrope, nine motifs, WCAG 2.2 — 124 pairs computed, 0 failures | — | — |
 | 09 | [**Remediation plan**](09-remediation-plan.md) | Concrete fixes per blocker — file, change, proof test — in sprint order | — | — |
-| 10 | [**Global design direction — visual**](10-global-design-direction-visual.md) | The direction as images: palettes, dark theme, accent slots, type, RTL, market model, six screen mockups | — | — |
+| 10 | [**Global design direction — visual**](10-global-design-direction-visual.md) | The direction as images: light/night palettes, the ten glazes, type, RTL, market model, six critic-reviewed screen mockups | — | — |
 
 ## Severity legend
 

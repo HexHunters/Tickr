@@ -1,113 +1,152 @@
-# Tickr — Global Design Direction (Visual Edition)
+# Tickr — Global Design Direction · *Chaux & Faïence* (Visual Edition)
 
-**What this is:** the [written direction](08-global-design-direction.md) made visible — the palette, the dark theme, the accent slots, the typography stack, the RTL rules and the market-activation model, each as a diagram, plus six screen mockups showing the system applied. Every colour in every image is a locked token; every contrast ratio printed on a swatch was computed.
-**How to read it:** the diagrams are exact (they are generated from the token table). The mockups are *illustrative mid-fidelity* — they show layout, hierarchy and tone, not final pixels; hi-fi lives in Figma per [Phase 9–10](../08-frontend/10-hifi-and-responsive.md).
-**A note on fonts:** SVG on GitHub renders with system fonts. Each specimen is labelled with the *intended* face (Archivo, Inter, Cairo, IBM Plex Sans Arabic, Heebo); the proportions are representative, the glyph shapes are not.
+**What this is:** the [written direction](08-global-design-direction.md) made visible. The palette,
+the night theme, the ten glazes, the typography stack, the RTL rules and the market model as diagrams
+**generated from the token file** (every ratio printed on a swatch was computed at generation time),
+plus six screen mockups drawn on the final tokens and each passed through a critic before acceptance.
+**How to read it:** diagrams are exact. Mockups are illustrative mid-fidelity — layout, hierarchy,
+tone and the signature motifs — not final pixels; hi-fi lives in Figma per
+[Phase 9–10](../08-frontend/10-hifi-and-responsive.md).
+**On fonts:** SVG on GitHub renders with system fonts. Specimens are labelled with the *intended*
+face (Fraunces, Manrope, El Messiri, Readex Pro); proportions are representative, glyph shapes are not.
 **Date:** 2026-09-15.
 
 ---
 
-## 1. Where the purchase chain stands — the reason the design must be trustworthy
+## 1. The idea in one image — an afternoon walk from Sidi Bou Saïd to the water
 
-Before the visuals, the context the design serves. The money path is real at both ends and stubbed in the middle; every red box is a ranked blocker with a proposed fix in the [remediation plan](09-remediation-plan.md).
+Limewashed walls that turn faintly blue in shadow at noon; the door blue powdered down to a tint by
+sea haze; Djerba clay, jasmine and sea glass; a festival poster three summers into sun-bleaching on
+stucco. In the product: a **chalk** canvas that is never pure white, **one door-blue** that is the only
+thing you can press, **ten glazes** from Nabeul ceramics that colour the categories, and a **clay**
+accent kept for scarcity. The organizer's poster is the only saturated object on any screen.
 
-![Purchase chain today — wired, partial and broken links](assets/purchase-chain.svg)
+![Core palette — light, with computed contrast ratios](assets/palette-light.svg)
 
-The design's trust apparatus — persistent breakdown, named provider, dual-form countdown, quotable order reference — is what makes those fixes *visible* to a buyer when they land. It is not decoration around a working system; it is the contract the system will be held to.
-
----
-
-## 2. The core palette — light
-
-Cobalt is the **only** action colour. Sun is the **only** accent, reserved for scarcity and brand moments. The neutrals are warm — gallery paper, not software grey — so event posters look like art hung on a wall.
-
-![Core palette, light theme, with computed contrast ratios](assets/palette-light.svg)
-
-Two rules that the numbers force, and that lint should enforce: `ink-400` is **never** text on a light surface (2.54 : 1), and `ink-500` is **never** text on `surface-2` (4.21 : 1 — use `ink-700`). `border` may edge a card; it may **never** be the only boundary of a control — that is `border-strong` (3.75 : 1).
+Read the swatches, not the adjectives: `ink-support` was darkened until it clears 4.5 : 1 on **every**
+glaze; `border-strong` was moved until it clears 3 : 1 on every glaze; white text exists on exactly
+three fills — the door blue, its pressed state, and the poster plate.
 
 ---
 
-## 3. The dark theme — validated, not inverted
+## 2. Night — the same wall, lamplit
 
-Dark mode is the default on a large share of phones in Tickr's future markets. The dark theme is the **same warm-ink family**, not a colour inversion — the brand does not shift when the theme does. Every ratio below was computed against the surface it sits on.
+Not an inversion. The darks are the night-blue of the Gulf of Tunis, text is chalk, glazes are
+brightened only as far as contrast needs. The one structural change: **the door at night is lit, not
+painted** — the button becomes the pale door-blue with night-ink text, because no mid-blue passes both
+white text and a 3 : 1 edge on the night surfaces (the judges' sweep proved it).
 
-![Dark theme tokens with computed contrast ratios](assets/palette-dark.svg)
-
-Two consequences of the numbers: **dark surfaces separate by hairline, never by value** (surface vs surface-2 is 1.2 : 1 — invisible), and **the primary button keeps its cobalt-600 fill in both themes**, so the one action colour is literally the same pixel everywhere. The ticket pass and the door scanner, "dark surfaces" in V1, become simply the dark theme applied locally.
-
----
-
-## 4. The accent slot — energy per market, without a fork
-
-A nightlife-heavy market, a sports partnership, a festival season — some contexts want a different energy than Sun. Rather than let markets repaint the product, the system defines **one slot** with four validated values. A market config picks one; components only ever reference `--color-accent-*`.
-
-![Accent slot: Sun (default), Coral, Mint, Violet — each with validated 500/600/700/100 values](assets/accent-slots.svg)
-
-The accent rules do not change with the value: never a primary button (that is cobalt), never an error (that is `danger`), never a large background fill. Coral neighbours `danger` visually, so a market choosing it must keep the icon + label pairing on every error — which the system already mandates.
+![Night theme tokens with computed contrast ratios](assets/palette-dark.svg)
 
 ---
 
-## 5. Typography — a script-complete stack
+## 3. The ten glazes — category colour that never carries the meaning alone
 
-Archivo + Inter cover Latin, Cyrillic and Greek. Neither covers Arabic. A global product needs a pairing **per script**, chosen so the page keeps its character when the script changes: **Cairo** (display) + **IBM Plex Sans Arabic** (UI/body) for Arabic, **Heebo** for Hebrew, `Noto Sans` as the universal fallback. Two families per *active* script, subset by `unicode-range`, so a French page in Tunisia never downloads Arabic glyphs.
+Each glaze carries its own computed ink. They colour chips, the chalk mat's skirting, the ticket stub,
+section sun-fades and the poster fallback. The label, the icon and the kernel dot are always present;
+the tint alone never identifies the category. Minimum pairwise separation is ΔE 7.9 (up from 6.1 in
+the raw proposal); the two closest pairs are flagged for a real-device check before Phase 7 freezes
+them.
 
-![Typography specimens: Latin/Cyrillic/Greek stack and Arabic/Hebrew stack side by side](assets/typography.svg)
-
-Arabic gets its own metrics — **17 px body, 1.7 line-height, zero tracking, no italics, no uppercase** — applied by `:lang(ar)` rather than by re-declaring tokens. Money is `tabular-nums` in every script, and uses **Western digits in every locale**, because a price, a countdown and a reference code must match what a bank statement, a card terminal and a door scanner show.
+![Ten category glazes, each with its ink and the computed ratio](assets/category-tints.svg)
 
 ---
 
-## 6. Direction — RTL as a first-class mode
+## 4. Typography — print that has lived outdoors
 
-RTL is not a flip applied late. Logical properties only (`ps-`, `ms-`, `start-`, `text-start`); `dir` set on `<html>` from the locale; an allowlist of the icons that mirror; `<bdi>` around every price so a Latin event title inside an Arabic sentence does not drag its punctuation. A four-way visual QA — ltr/rtl × light/dark — gates every component.
+A soft old-style serif with a "wonk" axis for display (**Fraunces**), a painted-signage sans for UI and
+all money (**Manrope**, true tabular figures); Kufi-derived **El Messiri** and open-countered
+**Readex Pro** for Arabic; **Frank Ruhl Libre + Assistant** for Hebrew; Literata as the display face
+where Fraunces lacks Cyrillic/Greek; Rubik → Noto as the last resort. Headline prices are set in
+Fraunces with the currency in small Manrope caps — the "bitter numerals" that give the money screens
+their voice.
+
+![Typography specimens — Latin/Cyrillic/Greek beside Arabic/Hebrew](assets/typography.svg)
+
+---
+
+## 5. Direction — RTL as a first-class mode
+
+Logical properties only; `dir` set from the locale; an allowlist of icons that mirror; `<bdi>` around
+every price. Two rules specific to this concept: the **sun-fade starts at inline-start** so it mirrors
+with the layout, and the **ink stamp's −3° flips sign** in RTL. Arches and studs are direction-neutral.
 
 ![LTR and RTL event page side by side, with the mirror / do-not-mirror rules](assets/rtl-mirroring.svg)
 
 ---
 
-## 7. Market activation — configure, never fork
+## 6. Market activation — configure, never fork
 
-Everything market-specific lives in **one typed configuration per market**: locales, currency, numbering system, timezone, hour cycle, payment-provider order (local rail first), accent slot, name shape, phone format, legal routes, support contact, tax display, feature flags. A new market is a file, translated strings and a provider order — never a new component tree. The market resolves from URL or domain, **never from IP alone**.
+One design system; a market is a typed config, translated strings and a provider order. Market energy
+comes from **which glazes its events carry**, not from a swappable accent — the earlier accent-slot
+mechanism is retired.
 
-![Global design system feeding per-market configurations for Tunisia, France and a template](assets/market-config.svg)
+![Global design system feeding per-market configurations](assets/market-config.svg)
 
 ---
 
-## 8. The system applied — screen mockups
+## 7. Where the purchase chain stands
 
-Six mid-fidelity mockups on the locked tokens. Phone frames are 390 × 844 (the design target; verified at 360). The organizer console is 1200 × 760.
+The context the design serves: real at both ends, stubbed in the middle. Every red box is a ranked
+blocker with a fix in the [remediation plan](09-remediation-plan.md).
 
-### 8.1 Discovery — the poster is the product
+![Purchase chain today — wired, partial and broken links](assets/purchase-chain.svg)
 
-Full-bleed poster cards with the date readable *before* the title, city and time chips that display their **applied value**, the entry price on every card from the list response, and scarcity stated in words and numbers. A sold-out card **stays in the grid** — hiding it hides the fact that the cheap tier existed and went.
+---
 
-| Light | Dark |
+## 8. The system applied — six mockups
+
+Drawn on the final tokens, 390 × 844 for phones (verified at 360), 1200 × 760 for the console. Each
+was reviewed by a critic for token violations, craft, contrast and "could this be any app?", and
+redrawn if rejected. Look for the motifs: the **chalk mat** with its glaze skirting, the **torn stub**,
+the **faïence star** texture, the **door arch** avatar, the **iron-stud** stepper, the **sun-fade**,
+the **ink stamp**, the **tile frieze**, the **kernel dot**.
+
+### 8.1 Discovery — posters hung on a whitewashed wall
+
+Every poster sits in a chalk mat with a single glaze rule along the bottom edge — never a coloured
+border all round — so any artwork looks hung rather than embedded. Date chip before title; the entry
+price on every card from the list response; scarcity as a clay stamp with its ink hairline; a sold-out
+card **stays in the grid**.
+
+| Light | Night |
 |---|---|
-| ![Discovery screen, light theme](assets/screen-discovery-light.svg) | ![Discovery screen, dark theme](assets/screen-discovery-dark.svg) |
+| ![Discovery screen, light](assets/screen-discovery-light.svg) | ![Discovery screen, night](assets/screen-discovery-dark.svg) |
 
-### 8.2 Event detail — facts before prose
+### 8.2 Event detail — facts before prose, glaze before chrome
 
-Portrait poster (organizers actually produce portrait art), then the four things a buyer decides on — *when, where, how much, still available* — above the fold. Each tier states its availability; the sold-out tier stays visible with a re-check, because a lapsed hold can return stock. The organizer is a **name only** — no profile link exists to give. The sticky bar is the product's most important control.
+The tile frieze carries the category as an eyebrow; the sun-fade bleeds the glaze into chalk from the
+inline-start; the four decision facts sit above the fold; each tier states its availability, and the
+sold-out tier stays visible with a re-check. The organizer is a name in a door-arch avatar — no
+profile link exists to give. The sticky bar holds the only blue on the screen.
 
-![Event detail screen, light theme](assets/screen-event-detail-light.svg)
+![Event detail screen, light](assets/screen-event-detail-light.svg)
 
-### 8.3 Checkout — stripped chrome, sober money
+### 8.3 Checkout — a bare wall
 
-No navigation, no exits: a wordmark, the countdown in **both forms** (« Il reste 12:34 » *and* « jusqu'à 21:45 » — only the absolute one survives a Konnect redirect), the complete arithmetic with the total as the heaviest number, three **named** providers as radio cards with the local rail first, and the redirect announced before it happens. The `paymentFees` line is drawn conditional; today it is zero.
+Chalk, ink, one door-blue button. The glazes leave; the section header's sun-fade turns to the neutral
+chalk-stone so the calm is *seen*. The countdown in both forms, iron studs for the steps instead of a
+progress bar, the total in bitter numerals as the heaviest thing on the screen, three named providers
+with the local rail first, the redirect announced before it happens.
 
-![Checkout screen, light theme](assets/screen-checkout-light.svg)
+![Checkout screen, light](assets/screen-checkout-light.svg)
 
-### 8.4 The ticket — a physical object, offline
+### 8.4 The ticket — a torn stub, fixed tokens, offline
 
-The dark theme applied locally: a pass with a perforation, the QR as the largest element on pure white with a quiet zone, rendered **client-side from the payload string** so it works in a venue basement with no signal, the holder name prominent because multi-ticket orders need per-pass identification, brightness boost and PDF as explicit backups.
+Rendered in fixed night tokens regardless of theme. Above the die-cut perforation: chalk, the title in
+Fraunces, the faïence star at 7 %. Below: the stub in the event's glaze, the QR on a chalk tile with a
+16 px quiet zone, rendered client-side so it works in a venue basement, the holder name prominent, the
+order reference in tabular figures.
 
-![Ticket pass screen, dark theme](assets/screen-ticket-pass-dark.svg)
+![Ticket pass, night tokens](assets/screen-ticket-pass-dark.svg)
 
-### 8.5 Organizer console — the same system, denser
+### 8.5 Organizer console — the same wall, denser
 
-The one place density increases: 40 px table rows, KPI tiles, a sales chart. **Gross sales only, labelled as such** — the payout model is an open commercial decision and the interface must not imply a net figure it cannot compute ([06 P-01](06-gaps-product-legal-money-ops.md)).
+The one place density increases. Glazes appear only as the kernel dot and a thin row edge; the chart
+is the door blue because it is the only fill that may be blue; **gross sales only, labelled** — the
+payout model is an open commercial decision.
 
-![Organizer dashboard, desktop, light theme](assets/screen-organizer-dashboard-light.svg)
+![Organizer dashboard, desktop, light](assets/screen-organizer-dashboard-light.svg)
 
 ---
 
@@ -115,21 +154,22 @@ The one place density increases: 40 px table rows, KPI tiles, a sales chart. **G
 
 | # | Decision | Shown in |
 |---|---|---|
-| 1 | Cobalt `#2E3DE8` is the sole action colour; Sun `#FFD23F` the accent, never a button | §2, §8.3 |
-| 2 | Warm neutrals; cards lift by value, not shadow | §2, §8.1 |
-| 3 | A full dark theme on the same ink family; primary button unchanged across themes; dark surfaces separate by hairline | §3, §8.4 |
-| 4 | One accent slot, four validated values; a market picks, components don't know | §4 |
-| 5 | Script-complete type stack; Arabic metrics by `:lang(ar)`; Western digits for money everywhere | §5 |
-| 6 | Logical properties only; `<bdi>` on prices; icon-mirror allowlist; four-way visual QA | §6 |
-| 7 | Markets configure via a typed `MarketConfig`; resolved from URL/domain | §7 |
-| 8 | Date chip before title; price on every card; sold-out stays visible | §8.1 |
-| 9 | Facts before prose; tier availability in words + numbers; organizer name only | §8.2 |
-| 10 | Stripped checkout; dual-form countdown; named providers, local first; total in the button | §8.3 |
-| 11 | QR rendered client-side, ≥ 240 px on white, offline; holder name prominent | §8.4 |
-| 12 | Organizer surfaces show gross sales only until payout is decided | §8.5 |
+| 1 | Chalk canvas, door-blue action, clay accent, ten glazes with computed inks | §1, §3 |
+| 2 | White text on three fills only; every pastel carries a deep ink | §1 |
+| 3 | Night theme on ink-tinted darks; the lit-door button | §2 |
+| 4 | Glaze = label + icon + kernel dot, never colour alone; states by density | §3, §8.1 |
+| 5 | Fraunces + Manrope, El Messiri + Readex Pro; bitter numerals for headline money | §4, §8.3 |
+| 6 | Sun-fade from inline-start; stamp rotation flips in RTL | §5 |
+| 7 | Market energy from glazes, not a swappable accent | §6 |
+| 8 | The chalk mat with a bottom skirting; sold-out stays visible | §8.1 |
+| 9 | Tile frieze as category eyebrow; door-arch avatar; organizer name only | §8.2 |
+| 10 | Checkout is chalk-only with a visible calm-down; studs, not progress bars | §8.3 |
+| 11 | Pass in fixed tokens; torn stub; QR on a chalk tile, offline | §8.4 |
+| 12 | Organizer surfaces show gross sales only | §8.5 |
 
-What the images **do not** decide: final type sizes per breakpoint, exact icon set, motion, and every state of every component — those are Phase 7–10 work in the [frontend deliverables](../08-frontend/README.md).
+What the images **do not** decide: final type sizes per breakpoint, motion timings, every state of
+every component — Phase 7–10 work in the [frontend deliverables](../08-frontend/README.md).
 
 ---
 
-**Written direction:** [08 — Global Design Direction](08-global-design-direction.md) · **Fixes:** [09 — Remediation plan](09-remediation-plan.md) · **Index:** [README](README.md)
+**Written direction:** [08](08-global-design-direction.md) · **Fixes:** [09](09-remediation-plan.md) · **Index:** [README](README.md)
