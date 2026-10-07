@@ -195,7 +195,7 @@ race with no way to tell which one won. One refresh, N replays, one write.
 `JWT_REFRESH_EXPIRES_IN` to `30d` (`jwt.service.ts:74-75`): the default is an env var an operator can
 tighten to minutes without a frontend release, and a `401` also follows a secret rotation. Never
 pre-emptively refresh on a timer derived from `7d`. ⚠ `docs/02-technique/02-api-contract.md` says
-24 h and is stale; `jwt.service.ts` is the authority.
+was corrected to 7 d in a previous pass; `jwt.service.ts` remains the authority.
 
 ### 2.3 Error normalisation
 

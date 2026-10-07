@@ -386,6 +386,15 @@ terms ("Il reste 4 billets"), never in the system's (`INSUFFICIENT_AVAILABILITY`
 
 ## D. Visual direction
 
+> ### 🎨 Palette superseded — 2026-09-15
+> The cobalt/sun/warm-neutral palette defined in §D.2 and the tokens in §K were **rejected by the
+> client** and replaced by the pastel direction **"Chaux & Faïence"** — see
+> [`docs/10-project-audit/08-global-design-direction.md`](../10-project-audit/08-global-design-direction.md)
+> and the [visual edition](../10-project-audit/10-global-design-direction-visual.md). Everything else in
+> this brief (positioning, personas, UX principles, purchase flow, error UX, accessibility obligations,
+> responsive strategy) stands. Where a token name below conflicts with the new set, the new set wins.
+
+
 ### D.1 The governing idea: **the poster is the product, the interface is the frame**
 
 Tickr's screens contain two kinds of material, and they must never compete:

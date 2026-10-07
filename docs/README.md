@@ -97,6 +97,16 @@ docs/
 │   │                                   # components, design system, wireframes,
 │   │                                   # hi-fi/responsive, frontend architecture
 │
+├── 09-product-and-growth/              # PRODUCT, BUSINESS & GROWTH
+│   └── 01-executive-product-growth-handoff.md
+│
+├── 10-project-audit/                   # FULL PROJECT AUDIT (2026-09-15)
+│   ├── README.md                       # Index — start with 00
+│   ├── 00-executive-report.md          # Verdict, ranked blockers, sequence
+│   ├── 01-…-07-gaps-*.md               # Gap analysis per domain (security, commerce,
+│   │                                   # infra/CI, frontend/tests, global, product/legal, docs)
+│   └── 08-global-design-direction.md   # Multi-market design system direction
+│
 └── collections/                        # API COLLECTIONS
     └── tickr-api.postman_collection.json
 ```

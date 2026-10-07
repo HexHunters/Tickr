@@ -12,6 +12,13 @@
 
 ---
 
+> ### 🎨 Colour tokens superseded — 2026-09-15
+> The colour values in this file implement the **rejected** cobalt/sun palette. The type scale,
+> spacing, radius, shadow, motion, focus-ring mechanics and density rules remain valid; the colour
+> `@theme` block must be regenerated from the **"Chaux & Faïence"** token set in
+> [`docs/10-project-audit/08-global-design-direction.md`](../10-project-audit/08-global-design-direction.md) §12.
+> Do not paste the colour block below into `globals.css`.
+
 ## 0. How to read this document
 
 This document is the **implementation contract** for `frontend/src/app/globals.css` and every component
