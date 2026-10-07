@@ -5,6 +5,7 @@ import type { OrderRepositoryPort } from '@modules/payments/application/ports/or
 import type { PaymentProviderFactoryPort, PaymentProviderPort } from '@modules/payments/application/ports/payment-provider.port';
 import type { PaymentRepositoryPort } from '@modules/payments/application/ports/payment.repository.port';
 import { OrderEntity } from '@modules/payments/domain/entities/order.entity';
+import { PaymentEntity } from '@modules/payments/domain/entities/payment.entity';
 import { OrderStatus } from '@modules/payments/domain/value-objects/order-status.vo';
 import { PaymentMethod } from '@modules/payments/domain/value-objects/payment-method.vo';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
@@ -102,6 +103,91 @@ describe('ProcessPaymentHandler', () => {
   });
 
   describe('execute', () => {
+    it.each([PaymentMethod.STRIPE, PaymentMethod.KONNECT, PaymentMethod.PAYMEE])(
+      'rejects disabled %s before reads, writes, provider calls or order mutation',
+      async (method) => {
+        const order = createMockOrder();
+        mockOrderRepo.findById.mockResolvedValue(order);
+        mockProviderFactory.getSupportedMethods.mockReturnValue([]);
+
+        const result = await handler.execute(new ProcessPaymentCommand(validOrderId, validUserId, method));
+
+        expect(result.isFailure).toBe(true);
+        expect(result.error.type).toBe('PAYMENT_METHOD_DISABLED');
+        expect(order.status).toBe(OrderStatus.PENDING);
+        expect(order.paymentMethod).toBeNull();
+        expect(order.gatewayPaymentRef).toBeNull();
+        expect(order.pullDomainEvents()).toEqual([]);
+        expect(mockOrderRepo.findById).not.toHaveBeenCalled();
+        expect(mockPaymentRepo.countByOrderId).not.toHaveBeenCalled();
+        expect(mockPaymentRepo.findByOrderId).not.toHaveBeenCalled();
+        expect(mockOrderRepo.save).not.toHaveBeenCalled();
+        expect(mockPaymentRepo.save).not.toHaveBeenCalled();
+        expect(mockProviderFactory.getProvider).not.toHaveBeenCalled();
+        expect(mockProvider.createPaymentIntent).not.toHaveBeenCalled();
+        expect(mockProvider.confirmPayment).not.toHaveBeenCalled();
+        expect(mockProvider.refund).not.toHaveBeenCalled();
+        expect(mockEventPublisher.publish).not.toHaveBeenCalled();
+        expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not replay a pending gateway URL or secret for an unsupported method', async () => {
+      const order = createMockOrder({ status: OrderStatus.PROCESSING });
+      const payment = PaymentEntity.create({
+        orderId: order.id, amount: order.total, provider: PaymentMethod.STRIPE,
+      });
+      payment.setGatewayPaymentRef('pi_existing');
+      payment.setPaymentUrl('https://pay.example.com/existing');
+      payment.setClientSecret('existing_secret');
+      mockOrderRepo.findById.mockResolvedValue(order);
+      mockPaymentRepo.findByOrderId.mockResolvedValue([payment]);
+      mockProviderFactory.getSupportedMethods.mockReturnValue([PaymentMethod.KONNECT]);
+
+      const result = await handler.execute(new ProcessPaymentCommand(
+        order.id, validUserId, PaymentMethod.STRIPE, 'retry-key',
+      ));
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error.type).toBe('PAYMENT_METHOD_DISABLED');
+      expect(mockOrderRepo.findById).not.toHaveBeenCalled();
+      expect(mockPaymentRepo.findByOrderId).not.toHaveBeenCalled();
+      expect(mockPaymentRepo.countByOrderId).not.toHaveBeenCalled();
+      expect(mockPaymentRepo.save).not.toHaveBeenCalled();
+      expect(mockOrderRepo.save).not.toHaveBeenCalled();
+      expect(mockProviderFactory.getProvider).not.toHaveBeenCalled();
+      expect(mockProvider.createPaymentIntent).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
+      expect(order.status).toBe(OrderStatus.PROCESSING);
+      expect(order.pullDomainEvents()).toEqual([]);
+      expect(payment.isPending()).toBe(true);
+      expect(payment.attemptNumber).toBe(1);
+      expect(payment.paymentUrl).toBe('https://pay.example.com/existing');
+    });
+
+    it('preserves pending intent replay when the method is enabled', async () => {
+      const order = createMockOrder({ status: OrderStatus.PROCESSING });
+      const payment = PaymentEntity.create({
+        orderId: order.id, amount: order.total, provider: PaymentMethod.STRIPE,
+      });
+      payment.setGatewayPaymentRef('pi_existing');
+      payment.setPaymentUrl('https://pay.example.com/existing');
+      payment.setClientSecret('existing_secret');
+      mockOrderRepo.findById.mockResolvedValue(order);
+      mockPaymentRepo.findByOrderId.mockResolvedValue([payment]);
+
+      const result = await handler.execute(new ProcessPaymentCommand(order.id, validUserId, PaymentMethod.STRIPE));
+
+      expect(result.isSuccess).toBe(true);
+      expect(result.value).toEqual({
+        orderId: order.id, gatewayRef: 'pi_existing',
+        paymentUrl: 'https://pay.example.com/existing', clientSecret: 'existing_secret',
+      });
+      expect(mockProvider.createPaymentIntent).not.toHaveBeenCalled();
+      expect(mockPaymentRepo.save).not.toHaveBeenCalled();
+      expect(mockOrderRepo.save).not.toHaveBeenCalled();
+    });
+
     it('should process payment successfully for PENDING order', async () => {
       const order = createMockOrder();
       mockOrderRepo.findById.mockResolvedValue(order);

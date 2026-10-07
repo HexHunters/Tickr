@@ -1,10 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import type {
   PaymentProviderPort,
   PaymentProviderFactoryPort,
 } from '../../application/ports/payment-provider.port';
 import { PaymentMethod } from '../../domain/value-objects/payment-method.vo';
+import {
+  arePaymentGatewaysEnabled,
+  assertPaymentGatewaysEnabled,
+} from '../config/payment-gateway.policy';
 
 import { KonnectAdapter } from './konnect.adapter';
 import { PaymeeAdapter } from './paymee.adapter';
@@ -25,6 +30,7 @@ export class PaymentProviderFactoryAdapter implements PaymentProviderFactoryPort
     private readonly stripeAdapter: StripeAdapter,
     private readonly konnectAdapter: KonnectAdapter,
     private readonly paymeeAdapter: PaymeeAdapter,
+    private readonly configService: ConfigService,
   ) {
     this.providers = new Map<PaymentMethod, PaymentProviderPort>([
       [PaymentMethod.STRIPE, this.stripeAdapter],
@@ -34,6 +40,7 @@ export class PaymentProviderFactoryAdapter implements PaymentProviderFactoryPort
   }
 
   getProvider(method: PaymentMethod): PaymentProviderPort {
+    assertPaymentGatewaysEnabled(this.configService);
     const provider = this.providers.get(method);
 
     if (!provider) {
@@ -45,6 +52,9 @@ export class PaymentProviderFactoryAdapter implements PaymentProviderFactoryPort
   }
 
   getSupportedMethods(): PaymentMethod[] {
+    if (!arePaymentGatewaysEnabled(this.configService)) {
+      return [];
+    }
     return Array.from(this.providers.keys());
   }
 }

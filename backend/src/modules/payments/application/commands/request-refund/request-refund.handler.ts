@@ -36,12 +36,28 @@ export class RequestRefundHandler {
   ): Promise<Result<RequestRefundResult, RequestRefundError>> {
     this.logger.debug(`Refund requested for order ${command.orderId}`);
 
+    const supportedMethods = this.providerFactory.getSupportedMethods();
+    if (supportedMethods.length === 0) {
+      return Result.fail({
+        type: 'PAYMENT_METHOD_DISABLED',
+        message: 'Ce moyen de paiement est désactivé.',
+      });
+    }
+
     // 1. Find order
     const order = await this.orderRepository.findById(command.orderId);
     if (!order) {
       return Result.fail({
         type: 'ORDER_NOT_FOUND',
         message: `Order ${command.orderId} not found`,
+      });
+    }
+
+    // Never let a disabled provider error fall through to markAsRefunded.
+    if (order.paymentMethod && !supportedMethods.includes(order.paymentMethod)) {
+      return Result.fail({
+        type: 'PAYMENT_METHOD_DISABLED',
+        message: 'Ce moyen de paiement est désactivé.',
       });
     }
 

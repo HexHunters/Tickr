@@ -10,9 +10,10 @@ import {
   HttpStatus,
   Logger,
   BadRequestException,
+  ForbiddenException,
   Inject,
 } from '@nestjs/common';
-import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiTags, ApiExcludeEndpoint, ApiResponse } from '@nestjs/swagger';
 
 import { ConfirmPaymentCommand } from '../../application/commands/confirm-payment/confirm-payment.command';
 import { ConfirmPaymentHandler } from '../../application/commands/confirm-payment/confirm-payment.handler';
@@ -25,6 +26,7 @@ import type { WebhookEventStorePort } from '../../application/ports/webhook-even
 import { PaymentMethod } from '../../domain/value-objects/payment-method.vo';
 
 @ApiTags('Payment Webhooks')
+@ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED — callbacks are not processed' })
 @Controller('payments/webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
@@ -45,7 +47,7 @@ export class WebhooksController {
     @Headers('stripe-signature') signature: string,
     @Req() req: { rawBody?: Buffer },
   ) {
-    const provider = this.providerFactory.getProvider(PaymentMethod.STRIPE);
+    const provider = this.getEnabledProvider(PaymentMethod.STRIPE);
     const rawBody = req.rawBody;
 
     if (!signature || !rawBody) {
@@ -102,6 +104,7 @@ export class WebhooksController {
   async handleKonnectWebhook(
     @Query('payment_ref') paymentRef: string,
   ) {
+    const provider = this.getEnabledProvider(PaymentMethod.KONNECT);
     if (!paymentRef) {
       throw new BadRequestException('Missing payment_ref');
     }
@@ -115,7 +118,6 @@ export class WebhooksController {
 
     this.logger.debug(`Konnect webhook received: ${paymentRef}`);
 
-    const provider = this.providerFactory.getProvider(PaymentMethod.KONNECT);
     const paymentResult = await provider.confirmPayment(paymentRef);
 
     // Find the order associated with this payment ref
@@ -148,11 +150,11 @@ export class WebhooksController {
       amount?: number;
     },
   ) {
+    const provider = this.getEnabledProvider(PaymentMethod.PAYMEE);
     if (!body.token || !body.check_sum) {
       throw new BadRequestException('Missing token or check_sum');
     }
 
-    const provider = this.providerFactory.getProvider(PaymentMethod.PAYMEE);
     const isValid = provider.verifyWebhook('', body);
 
     if (!isValid) {
@@ -186,6 +188,16 @@ export class WebhooksController {
   // ============================================
   // Private helpers
   // ============================================
+
+  private getEnabledProvider(method: PaymentMethod) {
+    if (!this.providerFactory.getSupportedMethods().includes(method)) {
+      throw new ForbiddenException({
+        code: 'PAYMENT_METHOD_DISABLED',
+        message: 'Les paiements en ligne sont désactivés.',
+      });
+    }
+    return this.providerFactory.getProvider(method);
+  }
 
   private async handlePaymentSuccess(
     gatewayRef: string,

@@ -67,7 +67,7 @@ describe('Infrastructure E2E Tests', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   describe('Health & Readiness', () => {

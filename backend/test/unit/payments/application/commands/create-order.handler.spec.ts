@@ -72,6 +72,7 @@ describe('CreateOrderHandler', () => {
 
     mockConfigService = {
       get: jest.fn().mockImplementation((key: string, defaultValue: any) => {
+        if (key === 'payments.gateways.enabled') return true;
         if (key === 'PLATFORM_COMMISSION_RATE') return 0.04;
         if (key === 'ORDER_EXPIRATION_MINUTES') return 15;
         return defaultValue;
@@ -106,6 +107,34 @@ describe('CreateOrderHandler', () => {
     );
   }
 
+  it.each([false, undefined, 'false', 'true'])(
+    'rejects creation without reservations or writes for gateways.enabled=%s',
+    async (enabled) => {
+      const config = new ConfigService({
+        payments: { gateways: { enabled }, offline: { enabled: true } },
+      });
+      const disabledHandler = new CreateOrderHandler(
+        mockOrderRepo, mockEventQuery, mockFraudDetection,
+        mockTicketReservation, mockEventPublisher, config,
+      );
+
+      const result = await disabledHandler.execute(createValidCommand());
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error.type).toBe('PAYMENT_METHOD_DISABLED');
+      expect(mockFraudDetection.checkRateLimit).not.toHaveBeenCalled();
+      expect(mockFraudDetection.checkTicketLimit).not.toHaveBeenCalled();
+      expect(mockEventQuery.getEventById).not.toHaveBeenCalled();
+      expect(mockEventQuery.getTicketType).not.toHaveBeenCalled();
+      expect(mockOrderRepo.save).not.toHaveBeenCalled();
+      expect(mockTicketReservation.reserveTickets).not.toHaveBeenCalled();
+      expect(mockTicketReservation.confirmTickets).not.toHaveBeenCalled();
+      expect(mockTicketReservation.cancelReservations).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publish).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
+    },
+  );
+
   it('should create order successfully', async () => {
     const result = await handler.execute(createValidCommand());
 
@@ -120,6 +149,7 @@ describe('CreateOrderHandler', () => {
 
   it('should prefer the registered payments commission rate', async () => {
     mockConfigService.get.mockImplementation((key: string, defaultValue: any) => {
+      if (key === 'payments.gateways.enabled') return true;
       if (key === 'payments.commission.rate') return 0.06;
       if (key === 'PLATFORM_COMMISSION_RATE') return 0.04;
       if (key === 'ORDER_EXPIRATION_MINUTES') return 15;

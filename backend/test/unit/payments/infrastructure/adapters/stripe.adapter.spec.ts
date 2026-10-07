@@ -3,6 +3,7 @@ import { OrderStatus } from '@modules/payments/domain/value-objects/order-status
 import { StripeAdapter } from '@modules/payments/infrastructure/adapters/stripe.adapter';
 import { ConfigService } from '@nestjs/config';
 import { Money } from '@shared/domain/value-objects/money.vo';
+import Stripe from 'stripe';
 
 
 // Mock Stripe SDK
@@ -34,6 +35,7 @@ describe('StripeAdapter', () => {
     mockConfigService = {
       get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
         const config: Record<string, any> = {
+          'payments.gateways.enabled': true,
           STRIPE_SECRET_KEY: 'sk_test_123',
           STRIPE_WEBHOOK_SECRET: 'whsec_test_456',
         };
@@ -71,6 +73,54 @@ describe('StripeAdapter', () => {
       updatedAt: new Date(),
     });
   }
+
+  describe('disabled gateways', () => {
+    it.each([false, undefined, 'false', 'true'])(
+      'boots without credentials or SDK and blocks every method for flag=%s',
+      async (enabled) => {
+        const disabledAdapter = new StripeAdapter(new ConfigService({
+          payments: { gateways: { enabled } },
+        }));
+
+        expect(Stripe).not.toHaveBeenCalled();
+        const disabledError = { response: expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' }) };
+        await expect(disabledAdapter.createPaymentIntent(createMockOrder())).rejects.toMatchObject(disabledError);
+        await expect(disabledAdapter.confirmPayment('pi_existing')).rejects.toMatchObject(disabledError);
+        await expect(disabledAdapter.refund('pi_existing', Money.create(50, 'EUR'))).rejects.toMatchObject(disabledError);
+        expect(disabledAdapter.verifyWebhook('valid_sig', 'body')).toBe(false);
+        expect(mockPaymentIntentsCreate).not.toHaveBeenCalled();
+        expect(mockPaymentIntentsRetrieve).not.toHaveBeenCalled();
+        expect(mockRefundsCreate).not.toHaveBeenCalled();
+        expect(mockWebhooksConstructEvent).not.toHaveBeenCalled();
+      },
+    );
+
+    it('skips SDK construction even when credentials are present', () => {
+      const disabledAdapter = new StripeAdapter(new ConfigService({
+        payments: { gateways: { enabled: false } },
+        STRIPE_SECRET_KEY: 'sk_test_123',
+        STRIPE_WEBHOOK_SECRET: 'whsec_test_456',
+      }));
+
+      expect(Stripe).not.toHaveBeenCalled();
+      expect(disabledAdapter.verifyWebhook('valid_sig', 'body')).toBe(false);
+      expect(mockWebhooksConstructEvent).not.toHaveBeenCalled();
+    });
+
+    it('blocks an initialized SDK when gateways are disabled after boot', async () => {
+      mockConfigService.get.mockReturnValue(false);
+      const disabledError = { response: expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' }) };
+
+      await expect(adapter.createPaymentIntent(createMockOrder())).rejects.toMatchObject(disabledError);
+      await expect(adapter.confirmPayment('pi_existing')).rejects.toMatchObject(disabledError);
+      await expect(adapter.refund('pi_existing', Money.create(50, 'EUR'))).rejects.toMatchObject(disabledError);
+      expect(adapter.verifyWebhook('valid_sig', 'body')).toBe(false);
+      expect(mockPaymentIntentsCreate).not.toHaveBeenCalled();
+      expect(mockPaymentIntentsRetrieve).not.toHaveBeenCalled();
+      expect(mockRefundsCreate).not.toHaveBeenCalled();
+      expect(mockWebhooksConstructEvent).not.toHaveBeenCalled();
+    });
+  });
 
   describe('createPaymentIntent', () => {
     it('should create PaymentIntent with correct amount in cents for EUR', async () => {

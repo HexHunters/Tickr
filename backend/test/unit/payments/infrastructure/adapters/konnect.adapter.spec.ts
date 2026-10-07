@@ -17,6 +17,7 @@ describe('KonnectAdapter', () => {
     mockConfigService = {
       get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
         const config: Record<string, any> = {
+          'payments.gateways.enabled': true,
           KONNECT_API_URL: 'https://api.preprod.konnect.network/api/v2',
           KONNECT_API_KEY: 'test_key',
           KONNECT_WALLET_ID: 'wallet_123',
@@ -59,6 +60,31 @@ describe('KonnectAdapter', () => {
       updatedAt: new Date(),
     });
   }
+
+  describe('disabled gateways', () => {
+    it.each([false, undefined, 'false', 'true'])(
+      'boots without credentials and blocks every method without fetch for flag=%s',
+      async (enabled) => {
+        const disabledAdapter = new KonnectAdapter(new ConfigService({
+          payments: { gateways: { enabled } },
+        }));
+        const disabledError = { response: expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' }) };
+
+        await expect(disabledAdapter.createPaymentIntent(createMockOrder())).rejects.toMatchObject(disabledError);
+        await expect(disabledAdapter.confirmPayment('kn_existing')).rejects.toMatchObject(disabledError);
+        await expect(disabledAdapter.refund('kn_existing', Money.create(100, 'TND'))).rejects.toMatchObject(disabledError);
+        expect(disabledAdapter.verifyWebhook('secret_123', {})).toBe(false);
+        expect(mockFetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects a valid webhook secret when disabled after credentialed boot', () => {
+      mockConfigService.get.mockReturnValue(false);
+
+      expect(adapter.verifyWebhook('secret_123', {})).toBe(false);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
 
   describe('createPaymentIntent', () => {
     it('should create payment and return redirect URL', async () => {

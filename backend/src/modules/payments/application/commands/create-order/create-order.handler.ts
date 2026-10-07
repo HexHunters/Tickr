@@ -49,6 +49,15 @@ export class CreateOrderHandler {
   ): Promise<Result<CreateOrderResult, CreateOrderError>> {
     this.logger.debug(`Creating order for user ${command.userId}, event ${command.eventId}`);
 
+    // Current order creation supports gateways only. The offline policy flag must
+    // not expose reservations before the atomic offline flow is implemented.
+    if (this.configService.get<boolean>('payments.gateways.enabled', false) !== true) {
+      return Result.fail({
+        type: 'PAYMENT_METHOD_DISABLED',
+        message: 'Aucun moyen de paiement n’est disponible pour le moment.',
+      });
+    }
+
     // 1. Fraud check: rate limit
     const withinRateLimit = await this.fraudDetection.checkRateLimit(command.userId);
     if (!withinRateLimit) {

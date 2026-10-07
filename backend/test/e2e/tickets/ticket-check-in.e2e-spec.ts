@@ -24,6 +24,7 @@ import { GetUserTicketsHandler } from '@modules/tickets/application/queries/get-
 import { TicketStatus } from '@modules/tickets/domain/value-objects/ticket-status.vo';
 import { TicketsController } from '@modules/tickets/infrastructure/controllers/tickets.controller';
 import { TicketS3StorageService } from '@modules/tickets/infrastructure/services/ticket-s3-storage.service';
+import { JwtStrategy } from '@modules/users/infrastructure/strategies/jwt.strategy';
 import { HttpStatus, ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -73,11 +74,12 @@ describe('Ticket Check-In E2E', () => {
 
     const module = await Test.createTestingModule({
       imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
+        ConfigModule.forRoot({ isGlobal: true, load: [() => ({ JWT_SECRET: 'test-secret' })] }),
         JwtModule.register({ secret: 'test-secret', signOptions: { expiresIn: '1h' } }),
       ],
       controllers: [TicketsController],
       providers: [
+        JwtStrategy,
         { provide: TICKET_REPOSITORY, useValue: ticketRepository },
         { provide: CHECK_IN_REPOSITORY, useValue: checkInRepository },
         { provide: EVENT_CHECK_IN_ACCESS_PORT, useValue: eventCheckInAccess },
@@ -107,18 +109,6 @@ describe('Ticket Check-In E2E', () => {
 
     app = module.createNestApplication();
 
-    const jwtSvc = module.get<JwtService>(JwtService);
-    app.use((req: any, _res: any, next: any) => {
-      const authHeader = req.headers?.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        try {
-          const payload = jwtSvc.verify(authHeader.substring(7));
-          req.user = { userId: payload.sub, email: payload.email, role: payload.role };
-        } catch { /* leave req.user undefined */ }
-      }
-      next();
-    });
-
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     app.setGlobalPrefix('api');
     await app.init();
@@ -137,9 +127,7 @@ describe('Ticket Check-In E2E', () => {
   });
 
   afterAll(async () => {
-    if (app) {
-      await app.close();
-    }
+    await app?.close();
   });
 
   beforeEach(() => {

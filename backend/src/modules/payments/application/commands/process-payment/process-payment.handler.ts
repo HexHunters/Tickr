@@ -35,6 +35,14 @@ export class ProcessPaymentHandler {
   ): Promise<Result<ProcessPaymentResult, ProcessPaymentError>> {
     this.logger.debug(`Processing payment for order ${command.orderId}`);
 
+    // Gate before reads, intent persistence and replay of an existing gateway URL.
+    if (!this.providerFactory.getSupportedMethods().includes(command.paymentMethod)) {
+      return Result.fail({
+        type: 'PAYMENT_METHOD_DISABLED',
+        message: 'Ce moyen de paiement est désactivé.',
+      });
+    }
+
     // 1. Find order
     const order = await this.orderRepository.findById(command.orderId);
     if (!order) {

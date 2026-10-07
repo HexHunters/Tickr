@@ -530,9 +530,10 @@ export function generateTestToken(
   payload: { userId: string; email: string; role: string },
 ): string {
   return jwtService.sign({
-    sub: payload.userId,
+    userId: payload.userId,
     email: payload.email,
     role: payload.role,
+    type: 'access',
   });
 }
 

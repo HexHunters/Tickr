@@ -25,7 +25,14 @@ import { OrderItemEntity } from '@modules/payments/domain/entities/order-item.en
 import { OrderEntity } from '@modules/payments/domain/entities/order.entity';
 import { OrderStatus } from '@modules/payments/domain/value-objects/order-status.vo';
 import { PaymentMethod } from '@modules/payments/domain/value-objects/payment-method.vo';
+import { KonnectAdapter } from '@modules/payments/infrastructure/adapters/konnect.adapter';
+import { PaymeeAdapter } from '@modules/payments/infrastructure/adapters/paymee.adapter';
+import { PaymentProviderFactoryAdapter } from '@modules/payments/infrastructure/adapters/payment-provider-factory.adapter';
+import { StripeAdapter } from '@modules/payments/infrastructure/adapters/stripe.adapter';
+import { PublicConfigController } from '@modules/payments/infrastructure/controllers/public-config.controller';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Money } from '@shared/domain/value-objects/money.vo';
 
 // ============================================
 // In-Memory Repositories
@@ -190,6 +197,7 @@ describe('Payments Module - Integration Tests', () => {
     mockConfigService = {
       get: jest.fn().mockImplementation((key: string, def?: any) => {
         const map: Record<string, any> = {
+          'payments.gateways.enabled': true,
           PLATFORM_COMMISSION_RATE: 0.04,
           ORDER_EXPIRATION_MINUTES: 15,
           'payments.order.maxItems': 10,
@@ -198,6 +206,72 @@ describe('Payments Module - Integration Tests', () => {
         return map[key] ?? def;
       }),
     };
+  });
+
+  describe.each([false, true])('disabled gateway profile with offline policy=%s', (offlineEnabled) => {
+    it('composes real adapters, factory and handlers without credentials or side effects', async () => {
+      const config = new ConfigService({
+        payments: { gateways: { enabled: false }, offline: { enabled: offlineEnabled } },
+      });
+      const stripe = new StripeAdapter(config);
+      const konnect = new KonnectAdapter(config);
+      const paymee = new PaymeeAdapter(config);
+      const factory = new PaymentProviderFactoryAdapter(stripe, konnect, paymee, config);
+      const getProvider = jest.spyOn(factory, 'getProvider');
+      const intentSpies = [stripe, konnect, paymee].map((provider) => jest.spyOn(provider, 'createPaymentIntent'));
+      const refundSpies = [stripe, konnect, paymee].map((provider) => jest.spyOn(provider, 'refund'));
+      const publicConfig = new PublicConfigController(config, mockEventQuery, factory);
+      expect((await publicConfig.getPublicConfig({})).availablePaymentMethods).toEqual([]);
+
+      const order = OrderEntity.create({
+        userId: TEST_USER_ID,
+        eventId: TEST_EVENT_ID,
+        items: [{ ticketTypeId: TEST_TICKET_TYPE_ID, ticketTypeName: 'Standard', price: Money.create(50, 'TND'), quantity: 1 }],
+        currency: 'TND', commissionRate: 0.04, expirationMinutes: 15,
+      }).value;
+      expect(order.markAsProcessing(PaymentMethod.KONNECT, 'gateway-ref-123').isSuccess).toBe(true);
+      expect(order.markAsPaid('txn-123').isSuccess).toBe(true);
+      order.pullDomainEvents();
+      await orderRepository.save(order);
+      const saveOrder = jest.spyOn(orderRepository, 'save');
+
+      const createHandler = new CreateOrderHandler(
+        orderRepository, mockEventQuery, mockFraudDetection,
+        mockTicketReservation, mockEventPublisher, config,
+      );
+      const createResult = await createHandler.execute(new CreateOrderCommand(
+        TEST_USER_ID, TEST_EVENT_ID,
+        [{ ticketTypeId: TEST_TICKET_TYPE_ID, quantity: 1, holders: [{ name: 'A', email: 'a@b.com' }] }],
+        { holderFirstName: 'A', holderLastName: 'User', holderEmail: 'a@b.com' },
+      ));
+      const processHandler = new ProcessPaymentHandler(orderRepository, mockPaymentRepository, factory, mockEventPublisher);
+      const processResult = await processHandler.execute(new ProcessPaymentCommand(order.id, TEST_USER_ID, PaymentMethod.KONNECT));
+      const refundHandler = new RequestRefundHandler(
+        orderRepository, mockRefundRepository, factory, mockTicketReservation, mockEventPublisher,
+      );
+      const refundResult = await refundHandler.execute(new RequestRefundCommand(order.id, TEST_USER_ID, 'Event cancelled'));
+
+      for (const result of [createResult, processResult, refundResult]) {
+        expect(result.isFailure).toBe(true);
+        expect(result.error.type).toBe('PAYMENT_METHOD_DISABLED');
+      }
+      expect(orderRepository.getAll()).toEqual([order]);
+      expect((await orderRepository.findById(order.id))?.status).toBe(OrderStatus.PAID);
+      expect(order.refundedAt).toBeNull();
+      expect(order.pullDomainEvents()).toEqual([]);
+      expect(saveOrder).not.toHaveBeenCalled();
+      expect(mockPaymentRepository.save).not.toHaveBeenCalled();
+      expect(mockRefundRepository.save).not.toHaveBeenCalled();
+      expect(mockTicketReservation.reserveTickets).not.toHaveBeenCalled();
+      expect(mockTicketReservation.confirmTickets).not.toHaveBeenCalled();
+      expect(mockTicketReservation.cancelReservations).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publish).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
+      expect(getProvider).not.toHaveBeenCalled();
+      for (const spy of [...intentSpies, ...refundSpies]) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+    });
   });
 
   describe('Order Lifecycle: Create → Pay → Confirm', () => {

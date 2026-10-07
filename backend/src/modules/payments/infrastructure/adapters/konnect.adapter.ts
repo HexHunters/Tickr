@@ -11,6 +11,10 @@ import type {
   RefundResult,
 } from '../../application/ports/payment-provider.port';
 import { OrderEntity } from '../../domain/entities/order.entity';
+import {
+  arePaymentGatewaysEnabled,
+  assertPaymentGatewaysEnabled,
+} from '../config/payment-gateway.policy';
 
 interface OrderHolderMetadata {
   holderFirstName?: string;
@@ -53,6 +57,7 @@ export class KonnectAdapter implements PaymentProviderPort {
   }
 
   async createPaymentIntent(order: OrderEntity): Promise<PaymentIntent> {
+    assertPaymentGatewaysEnabled(this.configService);
     this.logger.debug(`Creating Konnect payment for order ${order.id}`);
 
     // Konnect expects millimes (TND × 1000)
@@ -111,6 +116,7 @@ export class KonnectAdapter implements PaymentProviderPort {
   }
 
   async confirmPayment(paymentRef: string): Promise<PaymentResult> {
+    assertPaymentGatewaysEnabled(this.configService);
     this.logger.debug(`Checking Konnect payment status: ${paymentRef}`);
 
     const response = await fetch(`${this.apiUrl}/payments/${paymentRef}`, {
@@ -139,6 +145,7 @@ export class KonnectAdapter implements PaymentProviderPort {
   }
 
   async refund(_paymentRef: string, amount: Money): Promise<RefundResult> {
+    assertPaymentGatewaysEnabled(this.configService);
     // Konnect does not support automated refunds via API
     // Refunds must be processed manually through the Konnect dashboard
     this.logger.warn('Konnect refund requires manual processing via dashboard');
@@ -150,6 +157,9 @@ export class KonnectAdapter implements PaymentProviderPort {
   }
 
   verifyWebhook(signature: string, _body: unknown): boolean {
+    if (!arePaymentGatewaysEnabled(this.configService)) {
+      return false;
+    }
     // Konnect uses a simple token-based verification
     // Use timing-safe comparison to prevent timing attacks
     if (!signature || !this.webhookSecret) {

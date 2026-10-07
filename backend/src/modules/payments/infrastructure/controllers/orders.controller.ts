@@ -57,6 +57,7 @@ export class OrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new order' })
+  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED — no available payment method' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error or business rule violation' })
   @ApiResponse({ status: 429, description: 'Rate limited' })
@@ -87,6 +88,8 @@ export class OrdersController {
         case 'EVENT_NOT_FOUND':
         case 'TICKET_TYPE_NOT_FOUND':
           throw new NotFoundException(error.message);
+        case 'PAYMENT_METHOD_DISABLED':
+          throw new ForbiddenException({ code: error.type, message: error.message });
         case 'RATE_LIMITED':
           throw new ForbiddenException(error.message);
         default:
@@ -156,6 +159,7 @@ export class OrdersController {
   @Post(':id/pay')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Process payment for an order' })
+  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED — payment method disabled' })
   @ApiResponse({ status: 200, description: 'Payment initiated, returns redirect URL or client secret' })
   @ApiResponse({ status: 400, description: 'Invalid order state or gateway error' })
   @ApiResponse({ status: 404, description: 'Order not found' })
@@ -183,6 +187,8 @@ export class OrdersController {
         case 'MAX_ATTEMPTS_EXCEEDED':
         case 'GATEWAY_ERROR':
           throw new BadRequestException(error.message);
+        case 'PAYMENT_METHOD_DISABLED':
+          throw new ForbiddenException({ code: error.type, message: error.message });
         default:
           throw new BadRequestException(error.message);
       }
@@ -194,6 +200,7 @@ export class OrdersController {
   @Post(':id/refund')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request a refund for an order' })
+  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED — payment method disabled' })
   @ApiResponse({ status: 200, description: 'Refund requested' })
   @ApiResponse({ status: 400, description: 'Refund not allowed or gateway error' })
   @ApiResponse({ status: 404, description: 'Order not found' })
@@ -219,6 +226,8 @@ export class OrdersController {
         case 'REFUND_NOT_ALLOWED':
         case 'GATEWAY_ERROR':
           throw new BadRequestException(error.message);
+        case 'PAYMENT_METHOD_DISABLED':
+          throw new ForbiddenException({ code: error.type, message: error.message });
         default:
           throw new BadRequestException(error.message);
       }

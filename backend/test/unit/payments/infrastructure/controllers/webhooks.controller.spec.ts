@@ -63,7 +63,9 @@ describe('WebhooksController', () => {
             return mockPaymeeProvider;
         }
       }),
-      getSupportedMethods: jest.fn(),
+      getSupportedMethods: jest.fn().mockReturnValue([
+        PaymentMethod.STRIPE, PaymentMethod.KONNECT, PaymentMethod.PAYMEE,
+      ]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -77,6 +79,66 @@ describe('WebhooksController', () => {
     }).compile();
 
     controller = module.get<WebhooksController>(WebhooksController);
+  });
+
+  describe.each([false, true])('disabled callbacks with other gateways enabled=%s', (othersEnabled) => {
+    it.each([
+      PaymentMethod.STRIPE, PaymentMethod.KONNECT, PaymentMethod.PAYMEE,
+    ])('blocks %s before verification, deduplication, network or handlers', async (method) => {
+      mockProviderFactory.getSupportedMethods.mockReturnValue(
+        othersEnabled ? Object.values(PaymentMethod).filter((value) => value !== method) : [],
+      );
+      mockStripeProvider.verifyWebhook.mockReturnValue(true);
+      mockPaymeeProvider.verifyWebhook.mockReturnValue(true);
+
+      const disabledError = {
+        status: 403,
+        response: expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' }),
+      };
+      for (const success of [true, false]) {
+        if (method === PaymentMethod.STRIPE) {
+          await expect(controller.handleStripeWebhook('valid_sig', {
+            rawBody: Buffer.from(JSON.stringify({
+              id: 'evt_existing',
+              type: success ? 'payment_intent.succeeded' : 'payment_intent.payment_failed',
+              data: { object: { id: 'pi_existing', metadata: { orderId: 'order-123' } } },
+            })),
+          })).rejects.toMatchObject(disabledError);
+        } else if (method === PaymentMethod.KONNECT) {
+          mockKonnectProvider.confirmPayment.mockResolvedValue({
+            success, transactionId: 'kn_existing', amount: 104000, currency: 'TND',
+          });
+          await expect(controller.handleKonnectWebhook('kn_existing')).rejects.toMatchObject(disabledError);
+        } else {
+          await expect(controller.handlePaymeeWebhook({
+            token: 'pm_existing', check_sum: 'valid_checksum', payment_status: success,
+          })).rejects.toMatchObject(disabledError);
+        }
+      }
+
+      // Disabled errors take precedence over missing signature/payload validation too.
+      if (method === PaymentMethod.STRIPE) {
+        await expect(controller.handleStripeWebhook('', {})).rejects.toMatchObject(disabledError);
+      } else if (method === PaymentMethod.KONNECT) {
+        await expect(controller.handleKonnectWebhook('')).rejects.toMatchObject(disabledError);
+      } else {
+        await expect(controller.handlePaymeeWebhook({
+          token: '', check_sum: '', payment_status: false,
+        })).rejects.toMatchObject(disabledError);
+      }
+
+      expect(mockProviderFactory.getProvider).not.toHaveBeenCalled();
+      expect(mockWebhookEventStore.tryMarkAsProcessed).not.toHaveBeenCalled();
+      expect(mockWebhookEventStore.isProcessed).not.toHaveBeenCalled();
+      expect(mockConfirmPaymentHandler.execute).not.toHaveBeenCalled();
+      expect(mockFailPaymentHandler.execute).not.toHaveBeenCalled();
+      for (const provider of [mockStripeProvider, mockKonnectProvider, mockPaymeeProvider]) {
+        expect(provider.verifyWebhook).not.toHaveBeenCalled();
+        expect(provider.confirmPayment).not.toHaveBeenCalled();
+        expect(provider.createPaymentIntent).not.toHaveBeenCalled();
+        expect(provider.refund).not.toHaveBeenCalled();
+      }
+    });
   });
 
   describe('handleStripeWebhook', () => {

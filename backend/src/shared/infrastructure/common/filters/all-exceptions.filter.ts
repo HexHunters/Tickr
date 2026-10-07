@@ -37,7 +37,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
         typeof exceptionResponse === 'string'
           ? exceptionResponse
           : (exceptionResponse as { message?: string }).message || message;
-      code = (exceptionResponse as { error?: string }).error || code;
+      if (typeof exceptionResponse !== 'string') {
+        const httpError = exceptionResponse as { code?: unknown; error?: unknown };
+        if (typeof httpError.code === 'string') {
+          code = httpError.code;
+        } else if (typeof httpError.error === 'string') {
+          code = httpError.error;
+        }
+      }
     } else if (exception instanceof ApplicationException) {
       status = this.mapApplicationExceptionToStatus(exception);
       message = exception.message;

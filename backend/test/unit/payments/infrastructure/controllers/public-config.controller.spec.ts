@@ -1,4 +1,6 @@
 import type { PaymentEventQueryPort } from '@modules/payments/application/ports/event-query.port';
+import type { PaymentProviderFactoryPort } from '@modules/payments/application/ports/payment-provider.port';
+import { PaymentMethod } from '@modules/payments/domain/value-objects/payment-method.vo';
 import { PublicConfigController } from '@modules/payments/infrastructure/controllers/public-config.controller';
 import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -6,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 describe('PublicConfigController', () => {
   const eventId = '550e8400-e29b-41d4-a716-446655440001';
   let eventQuery: jest.Mocked<PaymentEventQueryPort>;
+  let providerFactory: jest.Mocked<PaymentProviderFactoryPort>;
   let controller: PublicConfigController;
 
   beforeEach(() => {
@@ -20,17 +23,50 @@ describe('PublicConfigController', () => {
       getEventById: jest.fn(),
       getTicketType: jest.fn(),
     };
-    controller = new PublicConfigController(configService, eventQuery);
+    providerFactory = {
+      getProvider: jest.fn(),
+      getSupportedMethods: jest.fn().mockReturnValue([
+        PaymentMethod.STRIPE, PaymentMethod.KONNECT, PaymentMethod.PAYMEE,
+      ]),
+    };
+    controller = new PublicConfigController(configService, eventQuery, providerFactory);
   });
 
   it('should return the global commission without an event', async () => {
     await expect(controller.getPublicConfig({})).resolves.toEqual({
+      availablePaymentMethods: [PaymentMethod.STRIPE, PaymentMethod.KONNECT, PaymentMethod.PAYMEE],
       globalCommissionRate: 0.06,
       commissionRateOverride: null,
       effectiveCommissionRate: 0.06,
       currency: 'TND',
       reservationTtlMinutes: 15,
     });
+  });
+
+  it.each<{ methods: PaymentMethod[] }>([
+    { methods: [] },
+    { methods: [PaymentMethod.KONNECT] },
+  ])('returns factory methods $methods without inventing offline availability', async ({ methods }) => {
+    providerFactory.getSupportedMethods.mockReturnValue(methods);
+    const config = new ConfigService({
+      payments: {
+        gateways: { enabled: true },
+        offline: { enabled: true },
+        commission: { rate: 0.06 },
+        order: { expirationMinutes: 15 },
+      },
+    });
+    controller = new PublicConfigController(config, eventQuery, providerFactory);
+
+    const result = await controller.getPublicConfig({});
+
+    expect(result.availablePaymentMethods).toEqual(methods);
+    expect(result.availablePaymentMethods).not.toContain('OFFLINE');
+    expect(result.effectiveCommissionRate).toBe(0.06);
+    expect(result.currency).toBe('TND');
+    expect(result.reservationTtlMinutes).toBe(15);
+    expect(providerFactory.getSupportedMethods).toHaveBeenCalledTimes(1);
+    expect(providerFactory.getProvider).not.toHaveBeenCalled();
   });
 
   it('should return the event commission override as the effective rate', async () => {

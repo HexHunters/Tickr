@@ -80,7 +80,7 @@ describe('RequestRefundHandler', () => {
 
     mockProviderFactory = {
       getProvider: jest.fn().mockReturnValue(mockProvider),
-      getSupportedMethods: jest.fn(),
+      getSupportedMethods: jest.fn().mockReturnValue([PaymentMethod.STRIPE]),
     };
 
     mockTicketReservation = {
@@ -104,6 +104,39 @@ describe('RequestRefundHandler', () => {
   });
 
   describe('execute', () => {
+    it.each<{ supportedMethods: PaymentMethod[] }>([
+      { supportedMethods: [] },
+      { supportedMethods: [PaymentMethod.KONNECT, PaymentMethod.PAYMEE] },
+    ])('keeps a paid order unchanged when its provider is disabled ($supportedMethods)', async ({ supportedMethods }) => {
+      const order = createMockOrder();
+      mockOrderRepo.findById.mockResolvedValue(order);
+      mockProviderFactory.getSupportedMethods.mockReturnValue(supportedMethods);
+
+      const result = await handler.execute(new RequestRefundCommand(
+        validOrderId, validUserId, 'Event cancelled',
+      ));
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error.type).toBe('PAYMENT_METHOD_DISABLED');
+      expect(order.status).toBe(OrderStatus.PAID);
+      expect(order.refundedAt).toBeNull();
+      expect(order.refundReason).toBeNull();
+      expect(order.gatewayPaymentRef).toBe('pi_123');
+      expect(order.pullDomainEvents()).toEqual([]);
+      expect(mockOrderRepo.findById).toHaveBeenCalledTimes(supportedMethods.length === 0 ? 0 : 1);
+      expect(mockOrderRepo.save).not.toHaveBeenCalled();
+      expect(mockRefundRepo.save).not.toHaveBeenCalled();
+      expect(mockProviderFactory.getProvider).not.toHaveBeenCalled();
+      expect(mockProvider.refund).not.toHaveBeenCalled();
+      expect(mockProvider.createPaymentIntent).not.toHaveBeenCalled();
+      expect(mockProvider.confirmPayment).not.toHaveBeenCalled();
+      expect(mockTicketReservation.cancelReservations).not.toHaveBeenCalled();
+      expect(mockTicketReservation.reserveTickets).not.toHaveBeenCalled();
+      expect(mockTicketReservation.confirmTickets).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publish).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
+    });
+
     it('should process refund successfully', async () => {
       const order = createMockOrder(OrderStatus.PAID);
       mockOrderRepo.findById.mockResolvedValue(order);

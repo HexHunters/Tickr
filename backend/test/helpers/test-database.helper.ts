@@ -1,124 +1,69 @@
-/**
- * Test Database Helper
- * 
- * Utilities for managing test database lifecycle:
- * - Setup: Create and migrate test database
- * - Cleanup: Clear data between tests
- * - Teardown: Drop test database after tests
- */
-
 import { DataSource } from 'typeorm';
 
-import { AppDataSource } from '../../src/shared/infrastructure/database/data-source';
+import { getTestDatabaseOptions } from './test-database.config';
 
+/** Suite-local connection; never reuse application credentials or connections. */
 export class TestDatabaseHelper {
-  private static dataSource: DataSource;
+  private static dataSource: DataSource | undefined;
 
-  /**
-   * Initialize database connection and run migrations
-   */
   static async setup(): Promise<void> {
+    const options = getTestDatabaseOptions();
+    if (this.dataSource?.isInitialized) return;
+    const source = new DataSource(options);
+    this.dataSource = source;
     try {
-      this.dataSource = AppDataSource;
-      
-      if (!this.dataSource.isInitialized) {
-        await this.dataSource.initialize();
-      }
-
-      // Run migrations
-      await this.dataSource.runMigrations();
-      
-      console.log('✅ Test database initialized and migrations run');
+      await source.initialize();
+      await this.assertTarget(source);
+      await source.runMigrations();
     } catch (error) {
-      console.error('❌ Failed to setup test database:', error);
+      // Preserve the setup failure even when connection teardown also fails.
+      if (source.isInitialized) await source.destroy().catch(() => undefined);
+      this.dataSource = undefined;
       throw error;
     }
   }
 
-  /**
-   * Clear all data from tables (but keep schema)
-   * Use this between tests to ensure clean state
-   */
+  private static async assertTarget(source: DataSource): Promise<void> {
+    const expected = getTestDatabaseOptions();
+    const rows: { database: string }[] = await source.query('SELECT current_database() AS database');
+    if (source.options.type !== 'postgres' || rows[0]?.database !== expected.database
+      || source.options.database !== expected.database) {
+      throw new Error('Refusing test cleanup: connected database differs from the approved target');
+    }
+  }
+
   static async cleanup(): Promise<void> {
-    if (!this.dataSource?.isInitialized) {
-      return;
-    }
-
-    try {
-      const entities = this.dataSource.entityMetadatas;
-
-      // Disable foreign key checks
-      await this.dataSource.query('SET CONSTRAINTS ALL DEFERRED');
-
-      // Truncate all tables
-      for (const entity of entities) {
-        const tableName = entity.tableName;
-        await this.dataSource.query(`TRUNCATE TABLE "${tableName}" CASCADE`);
-      }
-
-      // Re-enable foreign key checks
-      await this.dataSource.query('SET CONSTRAINTS ALL IMMEDIATE');
-      
-      console.log('🧹 Test database cleaned');
-    } catch (error) {
-      console.error('❌ Failed to cleanup test database:', error);
-      throw error;
-    }
+    const source = this.dataSource;
+    if (!source?.isInitialized) return;
+    await this.assertTarget(source);
+    const quote = (identifier: string): string => `"${identifier.replace(/"/g, '""')}"`;
+    const tables = [...new Set(source.entityMetadatas.map((entity) =>
+      `${quote(entity.schema || 'public')}.${quote(entity.tableName)}`,
+    ))];
+    // One schema-qualified statement; no CASCADE into unknown tables.
+    // Migration history is not an entity and remains intact.
+    if (tables.length) await source.query(`TRUNCATE TABLE ${tables.join(', ')} RESTART IDENTITY`);
   }
 
-  /**
-   * Close database connection
-   */
   static async teardown(): Promise<void> {
-    if (this.dataSource?.isInitialized) {
-      await this.dataSource.destroy();
-      console.log('✅ Test database connection closed');
-    }
+    const source = this.dataSource;
+    this.dataSource = undefined;
+    if (source?.isInitialized) await source.destroy();
   }
 
-  /**
-   * Get the active data source
-   */
   static getDataSource(): DataSource {
+    if (!this.dataSource?.isInitialized) throw new Error('Test database has not been initialized');
     return this.dataSource;
   }
 
-  /**
-   * Drop and recreate database (full reset)
-   * WARNING: This drops all data!
-   */
   static async reset(): Promise<void> {
-    if (!this.dataSource?.isInitialized) {
-      await this.setup();
-    }
-
-    try {
-      // Drop all tables
-      await this.dataSource.dropDatabase();
-      
-      // Recreate schema
-      await this.dataSource.runMigrations();
-      
-      console.log('🔄 Test database reset complete');
-    } catch (error) {
-      console.error('❌ Failed to reset test database:', error);
-      throw error;
-    }
+    if (!this.dataSource?.isInitialized) await this.setup();
+    const source = this.getDataSource();
+    await this.assertTarget(source);
+    await source.dropDatabase();
+    await source.runMigrations();
   }
 }
 
-/**
- * Global setup for Jest
- * Called once before all tests
- */
-export async function globalSetup() {
-  await TestDatabaseHelper.setup();
-}
-
-/**
- * Global teardown for Jest
- * Called once after all tests
- */
-export async function globalTeardown() {
-  await TestDatabaseHelper.teardown();
-}
+// Call lifecycle methods inside each suite, not Jest globalSetup/globalTeardown:
+// connections cannot be shared between Jest's setup process and test workers.

@@ -79,6 +79,32 @@ describe('AllExceptionsFilter', () => {
   });
 
   describe('HttpException handling', () => {
+    it('preserves an explicit machine code ahead of the HTTP error label', () => {
+      filter.catch(
+        new HttpException({
+          code: 'PAYMENT_METHOD_DISABLED',
+          error: 'Forbidden',
+          message: 'Les paiements en ligne sont désactivés.',
+        }, HttpStatus.FORBIDDEN),
+        mockExecutionContext as ExecutionContext,
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(403);
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
+        code: 'PAYMENT_METHOD_DISABLED',
+        message: 'Les paiements en ligne sont désactivés.',
+      }));
+    });
+
+    it('ignores non-string codes and retains the existing error-label fallback', () => {
+      filter.catch(
+        new HttpException({ code: { invalid: true }, error: 'Forbidden' }, 403),
+        mockExecutionContext as ExecutionContext,
+      );
+
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ code: 'Forbidden' }));
+    });
+
     it('should handle HttpException with string message', () => {
       const exception = new HttpException('Not found', HttpStatus.NOT_FOUND);
 
