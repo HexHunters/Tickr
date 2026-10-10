@@ -102,16 +102,18 @@ describe('GetTicketByIdHandler', () => {
       expect(result.error.type).toBe('TICKET_NOT_FOUND');
     });
 
-    it('should deny access when user is not owner and event not found', async () => {
+    it('should deny access when user is not the ticket owner', async () => {
       const ticket = createTicket();
       mockTicketRepository.findById.mockResolvedValue(ticket);
-      mockEventQuery.getEventById.mockResolvedValue(null);
 
       const query = new GetTicketByIdQuery(ticketId, otherUserId);
       const result = await handler.execute(query);
 
       expect(result.isFailure).toBe(true);
       expect(result.error.type).toBe('ACCESS_DENIED');
+      expect(result.error.message).toBe('You do not have permission to view this ticket');
+      // Should not call eventQuery since we deny non-owners immediately
+      expect(mockEventQuery.getEventById).not.toHaveBeenCalled();
     });
   });
 });

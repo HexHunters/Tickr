@@ -63,27 +63,33 @@ export class NotificationEventHandlers {
   }
 
   /**
-   * When a new user registers, send welcome email
+   * When a new user registers, send email verification
    */
   @OnEvent('user.registered')
   async onUserRegistered(payload: {
     userId: string;
     email: string;
     firstName: string;
+    verificationToken: string;
+    verificationUrl: string;
   }): Promise<void> {
     this.logger.debug(
-      `User registered: ${payload.userId}, sending welcome`,
+      `User registered: ${payload.userId}, sending email verification`,
     );
 
     const command = new SendNotificationCommand(
       payload.userId,
-      NotificationType.WELCOME,
+      NotificationType.EMAIL_VERIFICATION,
       NotificationChannel.EMAIL,
       { email: payload.email },
       null,
       null,
-      'welcome',
-      { firstName: payload.firstName },
+      'email-verification',
+      {
+        firstName: payload.firstName,
+        verificationUrl: payload.verificationUrl,
+        verificationToken: payload.verificationToken,
+      },
       null,
       null,
       { source: 'user.registered' },
@@ -92,7 +98,7 @@ export class NotificationEventHandlers {
     const result = await this.sendHandler.execute(command);
     if (result.isFailure) {
       this.logger.warn(
-        `Failed to send welcome email: ${result.error.message}`,
+        `Failed to send email verification: ${result.error.message}`,
       );
     }
   }

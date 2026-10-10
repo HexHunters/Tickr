@@ -122,6 +122,51 @@ describe('CancelTicketsHandler', () => {
     });
   });
 
+  describe('Ownership verification', () => {
+    it('should cancel ticket when userId matches owner', async () => {
+      const ticket = createTicket(TicketStatus.RESERVED);
+      mockTicketRepository.findById.mockResolvedValue(ticket);
+
+      const command = new CancelTicketsCommand(
+        [ticketId],
+        'Changed plans',
+        '550e8400-e29b-41d4-a716-446655440003', // matches ticket.userId
+      );
+      const result = await handler.execute(command);
+
+      expect(result.isSuccess).toBe(true);
+      expect(ticket.status).toBe(TicketStatus.CANCELLED);
+    });
+
+    it('should fail with NOT_TICKET_OWNER when userId does not match', async () => {
+      const ticket = createTicket(TicketStatus.RESERVED);
+      mockTicketRepository.findById.mockResolvedValue(ticket);
+
+      const command = new CancelTicketsCommand(
+        [ticketId],
+        'Trying to cancel someone else ticket',
+        'different-user-id',
+      );
+      const result = await handler.execute(command);
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error.type).toBe('NOT_TICKET_OWNER');
+      expect(result.error.message).toBe('You do not own all the tickets being cancelled');
+    });
+
+    it('should skip ownership check when userId is not provided (internal call)', async () => {
+      const ticket = createTicket(TicketStatus.RESERVED);
+      mockTicketRepository.findById.mockResolvedValue(ticket);
+
+      // No userId — internal call (e.g., from payment failure handler)
+      const command = new CancelTicketsCommand([ticketId], 'Payment failed');
+      const result = await handler.execute(command);
+
+      expect(result.isSuccess).toBe(true);
+      expect(ticket.status).toBe(TicketStatus.CANCELLED);
+    });
+  });
+
   describe('Failures', () => {
     it('should fail when tickets not found', async () => {
       mockTicketRepository.findById.mockResolvedValue(null);
