@@ -13,6 +13,7 @@ import { TransferTicketHandler } from '@modules/tickets/application/commands/tra
 import { CHECK_IN_REPOSITORY } from '@modules/tickets/application/ports/check-in.repository.port';
 import { EVENT_CHECK_IN_ACCESS_PORT } from '@modules/tickets/application/ports/event-check-in-access.port';
 import { EVENT_QUERY_PORT } from '@modules/tickets/application/ports/event-query.port';
+import { ORDER_QUERY_PORT } from '@modules/tickets/application/ports/order-query.port';
 import { TICKET_CHECK_IN_PERSISTENCE_PORT } from '@modules/tickets/application/ports/ticket-check-in-persistence.port';
 import { TICKET_REPOSITORY } from '@modules/tickets/application/ports/ticket.repository.port';
 import { USER_QUERY_PORT } from '@modules/tickets/application/ports/user-query.port';
@@ -40,6 +41,7 @@ import {
   InMemoryTicketCheckInPersistence,
   MockEventCheckInAccessAdapter,
   MockEventQueryAdapter,
+  MockOrderQueryAdapter,
   MockUserQueryAdapter,
   MockDomainEventPublisher,
   MockTicketS3StorageService,
@@ -76,6 +78,7 @@ describe('Ticket Reservation E2E', () => {
         { provide: TICKET_REPOSITORY, useValue: ticketRepository },
         { provide: CHECK_IN_REPOSITORY, useValue: checkInRepository },
         { provide: EVENT_QUERY_PORT, useValue: eventQueryAdapter },
+        { provide: ORDER_QUERY_PORT, useValue: new MockOrderQueryAdapter() },
         { provide: USER_QUERY_PORT, useValue: userQueryAdapter },
         { provide: DOMAIN_EVENT_PUBLISHER, useValue: eventPublisher },
         { provide: TicketS3StorageService, useValue: new MockTicketS3StorageService() },
