@@ -113,7 +113,7 @@ export class NotificationsController {
   @ApiResponse({ status: 200, type: PaginatedNotificationsDto, description: 'Paginated notification list' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyNotifications(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ): Promise<PaginatedNotificationsDto> {
@@ -137,7 +137,7 @@ export class NotificationsController {
   @ApiResponse({ status: 404, description: 'Notification not found' })
   async getNotificationById(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser('userId') userId: string,
   ): Promise<NotificationDto> {
     const query = new GetNotificationByIdQuery(id, userId);
     const result = await this.getByIdHandler.execute(query);
@@ -160,7 +160,7 @@ export class NotificationsController {
   @ApiResponse({ status: 200, type: NotificationPreferenceDto, description: 'User preferences' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyPreferences(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('userId') userId: string,
   ): Promise<NotificationPreferenceDto> {
     const query = new GetUserPreferencesQuery(userId);
     const result = await this.getUserPreferencesHandler.execute(query);
@@ -177,7 +177,7 @@ export class NotificationsController {
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateMyPreferences(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Body() dto: UpdatePreferencesRequestDto,
   ): Promise<NotificationPreferenceDto> {
     const command = new UpdatePreferencesCommand(
