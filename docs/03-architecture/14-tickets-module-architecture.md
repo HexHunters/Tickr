@@ -71,6 +71,7 @@ src/modules/tickets/
 │   │   ├── ticket.repository.port.ts
 │   │   ├── check-in.repository.port.ts
 │   │   ├── event-query.port.ts
+│   │   ├── order-query.port.ts      # Cross-module: Payments → Tickets
 │   │   └── user-query.port.ts
 │   ├── models/                      # Cross-module DTOs
 │   │   ├── event-query.model.ts
@@ -94,6 +95,7 @@ src/modules/tickets/
     │       └── check-in.repository.ts
     ├── adapters/
     │   ├── event-query.adapter.ts   # Cross-module: Events → Tickets
+    │   ├── order-query.adapter.ts   # Cross-module: Payments → Tickets
     │   └── user-query.adapter.ts    # Cross-module: Users → Tickets
     ├── services/
     │   ├── qr-code.service.ts
@@ -117,7 +119,7 @@ src/modules/tickets/
 | Layer              | Components                                                             | Status  |
 | ------------------ | ---------------------------------------------------------------------- | ------- |
 | **Domain**         | 2 Entities, 3 VOs, 7 Events, 11 Exceptions                             | ✅ 100% |
-| **Application**    | 6 Commands, 5 Queries, 4 Event Handlers, 15 DTOs, 4 Ports              | ✅ 100% |
+| **Application**    | 6 Commands, 5 Queries, 4 Event Handlers, 15 DTOs, 5 Ports              | ✅ 100% |
 | **Infrastructure** | Controller, Repositories, Mappers, 4 Services, Guards, Adapters        | ✅ 100% |
 | **Testing**        | 19 unit suites (217 tests), 1 integration (14 tests), 3 E2E (28 tests) | ✅ 100% |
 
@@ -147,9 +149,14 @@ export interface EventQueryPort {
 export interface UserQueryPort {
   getUserByEmail(email: string): Promise<UserInfo | null>;
 }
+
+// OrderQueryPort — verifies order status for ticket confirmation
+export interface OrderQueryPort {
+  findById(orderId: string): Promise<OrderInfo | null>;
+}
 ```
 
-Infrastructure adapters implement these ports by querying the Events/Users repositories.
+Infrastructure adapters implement these ports by querying the Events/Users/Payments repositories.
 
 ### 2. Separate Audit Entity for Check-Ins
 
@@ -257,9 +264,9 @@ This ensures domain event handling stays testable without infrastructure depende
 
 ### State Transition Rules
 
-| From      | To         | Method                     | Condition               |
-| --------- | ---------- | -------------------------- | ----------------------- |
-| RESERVED  | CONFIRMED  | `confirm(orderId)`         | Must have valid orderId |
+| From      | To         | Method                         | Condition                                      |
+| --------- | ---------- | ------------------------------ | ---------------------------------------------- |
+| RESERVED  | CONFIRMED  | `confirm(orderId, userId?)`    | Valid orderId; if userId provided, verifies ticket ownership and order PAID status |
 | RESERVED  | CANCELLED  | `cancel()`                 | Always allowed          |
 | RESERVED  | EXPIRED    | `expire()`                 | `reservedUntil < now`   |
 | CONFIRMED | CANCELLED  | `cancel()`                 | Not yet checked in      |
@@ -346,33 +353,45 @@ interface CheckInResultProps {
 | ------------------ | ---------------------------------------- |
 | `getUserByEmail()` | Resolve transfer target by email address |
 
+### Payments Module (via OrderQueryPort)
+
+| Method       | Purpose                                                    |
+| ------------ | ---------------------------------------------------------- |
+| `findById()` | Verify order exists, belongs to user, and is PAID status   |
+
+The `ConfirmTicketsHandler` uses `OrderQueryPort` to validate that:
+1. The order exists
+2. The order belongs to the requesting user (ownership check)
+3. The order status is `PAID`
+
+This cross-module verification prevents ticket confirmation for unpaid or unauthorized orders.
+
 ### Dependency Flow
 
 ```
-┌──────────────────┐     ┌──────────────────┐
-│   Events Module  │     │   Users Module   │
-│                  │     │                  │
-│  EventRepository ◄─────┤                  │
-│  TicketType info │     │  UserRepository  ◄──┐
-└──────────────────┘     └──────────────────┘  │
-        ▲                         ▲            │
-        │ EventQueryAdapter       │ UserQuery  │
-        │                         │ Adapter    │
-┌───────┴─────────────────────────┴────────────┤
-│                                              │
-│              Tickets Module                  │
-│                                              │
-│  Domain:  TicketEntity, CheckInEntity        │
-│  App:     6 Commands, 5 Queries              │
-│  Infra:   Controller, Repos, Services        │
-│                                              │
-└──────────────────────────────────────────────┘
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│   Events Module  │     │   Users Module   │     │ Payments Module  │
+│                  │     │                  │     │                  │
+│  EventRepository ◄─────┤                  │     │  OrderRepository ◄──┐
+│  TicketType info │     │  UserRepository  ◄──┐  │  (PAID status)   │  │
+└──────────────────┘     └──────────────────┘  │  └──────────────────┘  │
+        ▲                         ▲            │          ▲            │
+        │ EventQueryAdapter       │ UserQuery  │          │ OrderQuery │
+        │                         │ Adapter    │          │ Adapter    │
+┌───────┴─────────────────────────┴────────────┴──────────┴────────────┤
+│                                                                      │
+│                         Tickets Module                               │
+│                                                                      │
+│  Domain:  TicketEntity, CheckInEntity                                │
+│  App:     6 Commands, 5 Queries, 5 Ports                             │
+│  Infra:   Controller, Repos, Services, 3 Cross-Module Adapters       │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
         │
-        ▼ (future)
+        ▼ (Payments also consumes ticket confirmation via webhook)
 ┌──────────────────┐
 │ Payments Module  │
-│ (consumes ticket │
-│  confirmation)   │
+│ (bidirectional)  │
 └──────────────────┘
 ```
 
@@ -383,7 +402,7 @@ interface CheckInResultProps {
 | Method | Path                                | Auth   | Role                       | Description                                                        |
 | ------ | ----------------------------------- | ------ | -------------------------- | ------------------------------------------------------------------ |
 | `POST` | `/api/tickets/reserve`              | Bearer | Any                        | Reserve tickets (15 min hold)                                      |
-| `POST` | `/api/tickets/confirm`              | Bearer | Internal                   | Confirm after payment                                              |
+| `POST` | `/api/tickets/confirm`              | Bearer | Any (authenticated)        | Confirm after payment; verifies ticket ownership and order PAID status. Returns 403 for NOT_TICKET_OWNER, 404 for INVALID_ORDER |
 | `POST` | `/api/tickets/cancel`               | Bearer | Any                        | Cancel tickets                                                     |
 | `GET`  | `/api/tickets`                      | Bearer | Any                        | User's own tickets (paginated)                                     |
 | `GET`  | `/api/tickets/:id`                  | Bearer | Owner/Organizer            | Ticket details                                                     |
@@ -448,7 +467,7 @@ Manages PDF storage in S3:
 - [x] 4 application event handlers + 4 infrastructure event handlers
 - [x] 15 DTOs with full class-validator + Swagger decorators
 - [x] TypeORM entities, mappers, and repositories
-- [x] Anti-corruption adapters (EventQuery, UserQuery)
+- [x] Anti-corruption adapters (EventQuery, UserQuery, OrderQuery)
 - [x] QR code, PDF, S3, and expiration services
 - [x] REST controller with complete Swagger documentation
 - [x] IsTicketOwnerGuard
