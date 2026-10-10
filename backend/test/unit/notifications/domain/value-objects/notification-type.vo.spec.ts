@@ -18,6 +18,7 @@ describe('NotificationType', () => {
     it('should have all expected types', () => {
       expect(NotificationType.ORDER_CONFIRMATION).toBe('ORDER_CONFIRMATION');
       expect(NotificationType.PASSWORD_RESET).toBe('PASSWORD_RESET');
+      expect(NotificationType.EMAIL_VERIFICATION).toBe('EMAIL_VERIFICATION');
       expect(NotificationType.EVENT_REMINDER).toBe('EVENT_REMINDER');
       expect(NotificationType.MARKETING_PROMO).toBe('MARKETING_PROMO');
       expect(NotificationType.ACCOUNT_UPDATE).toBe('ACCOUNT_UPDATE');
@@ -36,6 +37,7 @@ describe('NotificationType', () => {
     const transactionalTypes = [
       NotificationType.ORDER_CONFIRMATION,
       NotificationType.PASSWORD_RESET,
+      NotificationType.EMAIL_VERIFICATION,
       NotificationType.ACCOUNT_UPDATE,
       NotificationType.SECURITY_ALERT,
       NotificationType.TICKET_CONFIRMED,

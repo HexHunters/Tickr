@@ -9,4 +9,9 @@ export interface OrderRepositoryPort {
   findByEventId(eventId: string, page: number, limit: number): Promise<{ data: OrderEntity[]; total: number }>;
   findExpired(): Promise<OrderEntity[]>;
   countByUserIdSince(userId: string, since: Date): Promise<number>;
+  /**
+   * Find order by gateway payment reference (for webhook order lookup)
+   * Used by Konnect/Paymee webhooks which receive a payment_ref instead of orderId
+   */
+  findByGatewayPaymentRef(ref: string): Promise<OrderEntity | null>;
 }

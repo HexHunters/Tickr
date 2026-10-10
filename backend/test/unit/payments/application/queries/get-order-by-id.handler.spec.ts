@@ -62,6 +62,7 @@ describe('GetOrderByIdHandler', () => {
       findByEventId: jest.fn(),
       findExpired: jest.fn(),
       countByUserIdSince: jest.fn(),
+      findByGatewayPaymentRef: jest.fn(),
     };
 
     handler = new GetOrderByIdHandler(mockOrderRepo);

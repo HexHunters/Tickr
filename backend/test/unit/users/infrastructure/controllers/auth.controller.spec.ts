@@ -10,6 +10,8 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Mock crypto.randomUUID
@@ -24,6 +26,8 @@ describe('AuthController', () => {
   let mockPasswordService: any;
   let mockUserRepository: any;
   let mockVerificationTokenRepository: any;
+  let mockEventEmitter: any;
+  let mockConfigService: any;
 
   const mockUser = {
     id: mockUUID,
@@ -69,9 +73,17 @@ describe('AuthController', () => {
     mockVerificationTokenRepository = {
       findValidToken: jest.fn(),
       markAsUsed: jest.fn(),
-      createEmailVerificationToken: jest.fn(),
+      createEmailVerificationToken: jest.fn().mockResolvedValue('mock-verification-token'),
       createPasswordResetToken: jest.fn(),
       invalidateUserTokens: jest.fn(),
+    };
+
+    mockEventEmitter = {
+      emit: jest.fn(),
+    };
+
+    mockConfigService = {
+      get: jest.fn().mockReturnValue('http://localhost:3001'),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -81,6 +93,8 @@ describe('AuthController', () => {
         { provide: PasswordService, useValue: mockPasswordService },
         { provide: USER_REPOSITORY, useValue: mockUserRepository },
         { provide: VerificationTokenRepository, useValue: mockVerificationTokenRepository },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
@@ -115,6 +129,14 @@ describe('AuthController', () => {
       expect(mockUserRepository.existsByEmail).toHaveBeenCalledWith('new@example.com');
       expect(mockPasswordService.createHashedPassword).toHaveBeenCalledWith('SecurePass123!');
       expect(mockUserRepository.save).toHaveBeenCalled();
+      expect(mockVerificationTokenRepository.createEmailVerificationToken).toHaveBeenCalledWith(mockUUID);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('user.registered', {
+        userId: mockUUID,
+        email: 'new@example.com',
+        firstName: 'Jane',
+        verificationToken: 'mock-verification-token',
+        verificationUrl: 'http://localhost:3001/verify-email?token=mock-verification-token',
+      });
     });
 
     it('should throw BadRequestException when email already exists', async () => {
@@ -203,6 +225,58 @@ describe('AuthController', () => {
     it('should throw BadRequestException for invalid token', async () => {
       await expect(controller.verifyEmail({ token: 'invalid-token' }))
         .rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('resendVerification', () => {
+    it('should return success message regardless of email existence', async () => {
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+
+      const result = await controller.resendVerification({ email: 'any@example.com' });
+
+      expect(result).toEqual({
+        message: 'If an account with that email exists and is unverified, a verification link has been sent.',
+      });
+    });
+
+    it('should send verification email for unverified user', async () => {
+      const unverifiedUser = { ...mockUser, emailVerified: false };
+      mockUserRepository.findByEmail.mockResolvedValue(unverifiedUser);
+
+      const result = await controller.resendVerification({ email: 'test@example.com' });
+
+      expect(result.message).toContain('verification link has been sent');
+      expect(mockVerificationTokenRepository.createEmailVerificationToken).toHaveBeenCalledWith(mockUUID);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('user.registered', expect.objectContaining({
+        userId: mockUUID,
+        email: 'test@example.com',
+        verificationToken: 'mock-verification-token',
+      }));
+    });
+
+    it('should not send email for already verified user', async () => {
+      const verifiedUser = { ...mockUser, emailVerified: true };
+      mockUserRepository.findByEmail.mockResolvedValue(verifiedUser);
+
+      await controller.resendVerification({ email: 'test@example.com' });
+
+      expect(mockVerificationTokenRepository.createEmailVerificationToken).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('should not reveal if email exists or verification status', async () => {
+      // Security feature - response should be the same for all cases
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+      const result1 = await controller.resendVerification({ email: 'notexists@example.com' });
+
+      mockUserRepository.findByEmail.mockResolvedValue({ ...mockUser, emailVerified: true });
+      const result2 = await controller.resendVerification({ email: 'verified@example.com' });
+
+      mockUserRepository.findByEmail.mockResolvedValue({ ...mockUser, emailVerified: false });
+      const result3 = await controller.resendVerification({ email: 'unverified@example.com' });
+
+      expect(result1.message).toBe(result2.message);
+      expect(result2.message).toBe(result3.message);
     });
   });
 

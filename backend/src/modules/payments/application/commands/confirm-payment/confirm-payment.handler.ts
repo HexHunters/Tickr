@@ -58,8 +58,13 @@ export class ConfirmPaymentHandler {
 
     // 4. Confirm ticket reservations
     try {
-      const ticketIds = order.items.map((item) => item.id);
-      await this.ticketReservation.confirmTickets(ticketIds, order.id);
+      // Use real ticket IDs stored in metadata during order creation
+      const ticketIds = (order.metadata?.ticketIds as string[]) ?? [];
+      if (ticketIds.length > 0) {
+        await this.ticketReservation.confirmTickets(ticketIds, order.id);
+      } else {
+        this.logger.warn(`Order ${order.id} has no ticketIds in metadata`);
+      }
     } catch (error) {
       this.logger.error(`Failed to confirm tickets: ${error}`);
       // Payment is confirmed — tickets will be confirmed via retry/event handler

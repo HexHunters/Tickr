@@ -23,6 +23,8 @@ import {
   PAYMENT_METHOD_DISABLED,
   PAYMENTS_DISABLED_MESSAGE,
 } from '../../application/constants/payment-method-disabled.constants';
+import { ORDER_REPOSITORY } from '../../application/ports/order.repository.port';
+import type { OrderRepositoryPort } from '../../application/ports/order.repository.port';
 import { PAYMENT_PROVIDER_FACTORY } from '../../application/ports/payment-provider.port';
 import type { PaymentProviderFactoryPort } from '../../application/ports/payment-provider.port';
 import { WEBHOOK_EVENT_STORE } from '../../application/ports/webhook-event-store.port';
@@ -41,6 +43,8 @@ export class WebhooksController {
     private readonly providerFactory: PaymentProviderFactoryPort,
     @Inject(WEBHOOK_EVENT_STORE)
     private readonly webhookEventStore: WebhookEventStorePort,
+    @Inject(ORDER_REPOSITORY)
+    private readonly orderRepository: OrderRepositoryPort,
   ) {}
 
   @Post('stripe')
@@ -121,19 +125,24 @@ export class WebhooksController {
 
     this.logger.debug(`Konnect webhook received: ${paymentRef}`);
 
+    // Resolve order by gateway payment ref
+    const order = await this.orderRepository.findByGatewayPaymentRef(paymentRef);
+    if (!order) {
+      this.logger.warn(`Konnect webhook: no order found for payment_ref=${paymentRef}`);
+      return { received: true };
+    }
+
     const paymentResult = await provider.confirmPayment(paymentRef);
 
-    // Find the order associated with this payment ref
-    // Konnect webhook sends payment_ref which we stored as gatewayPaymentRef
     if (paymentResult.success) {
       await this.handlePaymentSuccess(
-        paymentRef, // orderId lookup happens in handler via gatewayRef
+        order.id,
         paymentRef,
         paymentResult.transactionId,
         { gateway: 'konnect', amount: paymentResult.amount },
       );
     } else {
-      await this.handlePaymentFailure(paymentRef, 'KONNECT_FAILED', 'Payment not completed');
+      await this.handlePaymentFailure(order.id, 'KONNECT_FAILED', 'Payment not completed');
     }
 
     return { received: true };
@@ -174,15 +183,22 @@ export class WebhooksController {
 
     this.logger.debug(`Paymee webhook: token=${body.token}, status=${body.payment_status}`);
 
+    // Resolve order by gateway payment ref (token)
+    const order = await this.orderRepository.findByGatewayPaymentRef(body.token);
+    if (!order) {
+      this.logger.warn(`Paymee webhook: no order found for token=${body.token}`);
+      return { received: true };
+    }
+
     if (body.payment_status) {
       await this.handlePaymentSuccess(
-        body.token, // gatewayRef — handler resolves order from this
+        order.id,
         body.token,
         body.transaction_id?.toString() || body.token,
         { gateway: 'paymee', amount: body.amount },
       );
     } else {
-      await this.handlePaymentFailure(body.token, 'PAYMEE_FAILED', 'Payment failed');
+      await this.handlePaymentFailure(order.id, 'PAYMEE_FAILED', 'Payment failed');
     }
 
     return { received: true };

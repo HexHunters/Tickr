@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe, HttpStatus } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { CqrsModule } from '@nestjs/cqrs';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -246,6 +247,7 @@ describe('Users Module Integration Tests', () => {
           signOptions: { expiresIn: '15m' },
         }),
         CqrsModule,
+        EventEmitterModule.forRoot(),
       ],
       controllers: [AuthController, UsersController],
       providers: [

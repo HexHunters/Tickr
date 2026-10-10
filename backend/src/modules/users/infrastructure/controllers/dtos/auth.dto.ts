@@ -113,6 +113,18 @@ export class RequestPasswordResetDto {
 }
 
 /**
+ * DTO for resending email verification
+ */
+export class ResendVerificationDto {
+  @ApiProperty({
+    description: 'Email address to resend verification to',
+    example: 'user@example.com',
+  })
+  @IsEmail({}, { message: 'Invalid email format' })
+  readonly email!: string;
+}
+
+/**
  * DTO for resetting password
  */
 export class ResetPasswordDto {

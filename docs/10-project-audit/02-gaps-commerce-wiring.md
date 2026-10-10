@@ -37,7 +37,7 @@
 | # | Finding | Severity | Status | Evidence | Recommendation |
 |---|---|---|---|---|---|
 | C-01 | **Reservation adapter is a stub; orders never hold inventory** | 🔴 Critical | Verified | `ticket-reservation.adapter.ts:21-56`; `payments.module.ts:119-122` | Implement the adapter over the Tickets handlers; export them from `TicketsModule` |
-| C-02 | **Stripe webhook always returns 400** — `rawBody` never enabled | 🔴 Critical | Verified | `webhooks.controller.ts:46-52`; `main.ts:10` | `NestFactory.create(AppModule, { rawBody: true })` |
+| C-02 | **Stripe webhook always returns 400** — `rawBody` never enabled | ✅ Fixed | Verified | `main.ts:11` | ✅ **FIXED:** `NestFactory.create(AppModule, { rawBody: true })` now enabled |
 | C-03 | **Konnect/Paymee webhooks cannot resolve the order** — gateway ref passed as `orderId`, no lookup by ref exists | 🔴 Critical | Verified | `webhooks.controller.ts:124-126,173-175`; `confirm-payment.handler.ts:34`; `order.repository.port.ts` (no ref lookup) | Add `findByGatewayPaymentRef`; resolve before `ConfirmPaymentCommand` |
 | C-04 | **Order-item ids used as ticket ids; reservation ids discarded** — confirm, fail, expire and refund all pass the wrong ids | 🔴 Critical | Verified | `confirm-payment.handler.ts:61`; `fail-payment.handler.ts:67`; `expire-orders.handler.ts:44`; `request-refund.handler.ts:99`; `create-order.handler.ts:142-148` | Pass `orderId` into reservation; use `ticketRepository.findByOrderId` |
 | C-05 | ~~**Refund has no ownership check**~~ | ✅ **Resolved** | Verified | `request-refund.handler.ts` now checks `order.userId === command.userId` | ~~`order.userId === userId \|\| isAdmin`~~ Done |

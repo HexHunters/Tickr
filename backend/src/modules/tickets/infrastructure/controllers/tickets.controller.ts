@@ -408,12 +408,13 @@ export class TicketsController {
   @ApiResponse({ status: 200, description: 'Tickets cancelled' })
   @ApiResponse({ status: 400, description: 'Cancellation failed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Not the ticket owner' })
   @ApiResponse({ status: 404, description: 'Tickets not found' })
   async cancelTickets(
     @Body() dto: CancelTicketsDto,
-    @CurrentUser() _user: RequestUser,
+    @CurrentUser() user: RequestUser,
   ): Promise<{ message: string }> {
-    const command = new CancelTicketsCommand(dto.ticketIds, dto.reason);
+    const command = new CancelTicketsCommand(dto.ticketIds, dto.reason, user.userId);
 
     const result = await this.cancelTicketsHandler.execute(command);
 
@@ -422,6 +423,8 @@ export class TicketsController {
       switch (error.type) {
         case 'TICKETS_NOT_FOUND':
           throw new NotFoundException(error.message);
+        case 'NOT_TICKET_OWNER':
+          throw new ForbiddenException(error.message);
         case 'CANCELLATION_FAILED':
         case 'PERSISTENCE_ERROR':
           throw new BadRequestException(error.message);

@@ -9,6 +9,7 @@ import { BaseCommand } from '@shared/application/interfaces/command.interface';
  */
 export type CancelTicketsErrorCommand =
   | { type: 'TICKETS_NOT_FOUND'; message: string }
+  | { type: 'NOT_TICKET_OWNER'; message: string }
   | { type: 'CANCELLATION_FAILED'; message: string }
   | { type: 'PERSISTENCE_ERROR'; message: string };
 
@@ -24,6 +25,8 @@ export class CancelTicketsCommand extends BaseCommand {
     public readonly ticketIds: string[],
     /** Reason for cancellation */
     public readonly reason: string,
+    /** User ID requesting cancellation (for ownership verification via HTTP) */
+    public readonly userId?: string,
   ) {
     super();
     Object.freeze(this);

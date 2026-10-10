@@ -217,6 +217,10 @@ const orderQueryProvider: Provider = {
     // Export repository tokens for potential use by other modules (e.g., Payments)
     TICKET_REPOSITORY,
     CHECK_IN_REPOSITORY,
+    // Export command handlers for cross-module ticket operations (Payments → Tickets)
+    ReserveTicketsHandler,
+    ConfirmTicketsHandler,
+    CancelTicketsHandler,
   ],
 })
 export class TicketsModule {}

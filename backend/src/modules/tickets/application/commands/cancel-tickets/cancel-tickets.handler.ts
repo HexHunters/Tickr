@@ -65,7 +65,20 @@ export class CancelTicketsHandler {
     }
 
     // ============================================
-    // 2. Cancel each ticket
+    // 2. Verify ownership (when userId provided — HTTP flow)
+    // ============================================
+    if (command.userId) {
+      const notOwned = tickets.filter((t) => t!.userId !== command.userId);
+      if (notOwned.length > 0) {
+        return Result.fail({
+          type: 'NOT_TICKET_OWNER',
+          message: 'You do not own all the tickets being cancelled',
+        });
+      }
+    }
+
+    // ============================================
+    // 3. Cancel each ticket
     // ============================================
     const errors: string[] = [];
     const cancelled = [];
@@ -87,13 +100,13 @@ export class CancelTicketsHandler {
     }
 
     // ============================================
-    // 3. Save cancelled tickets
+    // 4. Save cancelled tickets
     // ============================================
     try {
       await this.ticketRepository.saveAll(cancelled);
 
       // ============================================
-      // 4. Restore availability per ticket type
+      // 5. Restore availability per ticket type
       // ============================================
       const countByType = new Map<string, number>();
       for (const ticket of cancelled) {
@@ -109,7 +122,7 @@ export class CancelTicketsHandler {
       }
 
       // ============================================
-      // 5. Publish domain events
+      // 6. Publish domain events
       // ============================================
       for (const ticket of cancelled) {
         await this.eventPublisher.publishFromAggregate(ticket);
