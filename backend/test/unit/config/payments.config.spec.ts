@@ -17,14 +17,14 @@ describe('Payment launch configuration', () => {
     else process.env.OFFLINE_PAYMENT_ENABLED = originalOffline;
   });
 
-  it('defaults to disabled gateways and an offline policy flag only', () => {
+  it('defaults to disabled gateways and offline (fail closed)', () => {
     delete process.env.PAYMENT_GATEWAYS_ENABLED;
     delete process.env.OFFLINE_PAYMENT_ENABLED;
     expect(paymentsConfig()).toMatchObject({
-      gateways: { enabled: false }, offline: { enabled: true },
+      gateways: { enabled: false }, offline: { enabled: false },
     });
     expect(schema.validate({}).value).toEqual({
-      PAYMENT_GATEWAYS_ENABLED: 'false', OFFLINE_PAYMENT_ENABLED: 'true',
+      PAYMENT_GATEWAYS_ENABLED: 'false', OFFLINE_PAYMENT_ENABLED: 'false',
     });
   });
 
@@ -100,7 +100,7 @@ describe('Payment launch configuration', () => {
       const config = await loadConfig();
 
       expect(config.get('payments.gateways.enabled')).toBe(false);
-      expect(config.get('payments.offline.enabled')).toBe(true);
+      expect(config.get('payments.offline.enabled')).toBe(false);
     });
 
     it('enables gateways for an exact "true"', async () => {

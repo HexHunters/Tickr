@@ -9,6 +9,8 @@ import { BaseCommand } from '@shared/application/interfaces/command.interface';
  */
 export type ConfirmTicketsErrorCommand =
   | { type: 'TICKETS_NOT_FOUND'; message: string }
+  | { type: 'NOT_TICKET_OWNER'; message: string }
+  | { type: 'INVALID_ORDER'; message: string }
   | { type: 'CONFIRMATION_FAILED'; message: string }
   | { type: 'PERSISTENCE_ERROR'; message: string };
 
@@ -23,7 +25,7 @@ export interface ConfirmTicketsResultCommand {
  * Command to confirm tickets after successful payment
  *
  * Transitions tickets from RESERVED to CONFIRMED.
- * Called internally after payment processing.
+ * Called internally after payment processing or via HTTP endpoint.
  */
 export class ConfirmTicketsCommand extends BaseCommand {
   constructor(
@@ -31,6 +33,8 @@ export class ConfirmTicketsCommand extends BaseCommand {
     public readonly ticketIds: string[],
     /** The payment order ID linking tickets to payment */
     public readonly orderId: string,
+    /** User ID requesting confirmation (for ownership verification) */
+    public readonly userId?: string,
   ) {
     super();
     Object.freeze(this);

@@ -89,6 +89,7 @@ describe('ProcessPaymentHandler', () => {
       confirmPayment: jest.fn(),
       refund: jest.fn(),
       verifyWebhook: jest.fn(),
+      isConfigured: jest.fn().mockReturnValue(true),
     };
 
     mockProviderFactory = {

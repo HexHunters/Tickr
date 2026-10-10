@@ -129,6 +129,10 @@ export class StripeAdapter implements PaymentProviderPort {
     }
   }
 
+  isConfigured(): boolean {
+    return this.stripe !== null;
+  }
+
   private getClient(): Stripe {
     assertPaymentGatewaysEnabled(this.configService);
     if (!this.stripe) {

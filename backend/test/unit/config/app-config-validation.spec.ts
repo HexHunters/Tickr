@@ -43,7 +43,7 @@ describe('AppModule environment validation', () => {
     expect(error).toBeUndefined();
     expect(value).toMatchObject({
       PAYMENT_GATEWAYS_ENABLED: 'false',
-      OFFLINE_PAYMENT_ENABLED: 'true',
+      OFFLINE_PAYMENT_ENABLED: 'false',
     });
   });
 

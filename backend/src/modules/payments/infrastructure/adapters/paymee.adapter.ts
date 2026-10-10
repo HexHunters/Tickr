@@ -195,4 +195,8 @@ export class PaymeeAdapter implements PaymentProviderPort {
       return false;
     }
   }
+
+  isConfigured(): boolean {
+    return Boolean(this.apiKey);
+  }
 }

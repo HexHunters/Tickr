@@ -94,10 +94,13 @@ describe('Payments OpenAPI document', () => {
     },
   );
 
-  it('documents the per-user rate limit as the other 403 on POST /api/orders', () => {
-    expect(document.paths['/api/orders']?.post?.responses['403']).toMatchObject({
+  it('documents the per-user rate limit as 429 on POST /api/orders', () => {
+    expect(document.paths['/api/orders']?.post?.responses['429']).toMatchObject({
       description: expect.stringMatching(/rate limit/i),
     });
+    // 403 should only mention PAYMENT_METHOD_DISABLED, not rate limit
+    const response403 = document.paths['/api/orders']?.post?.responses['403'] as { description?: string } | undefined;
+    expect(response403?.description).not.toMatch(/rate limit/i);
   });
 
   it('keeps the gateway webhook endpoints out of the document', () => {

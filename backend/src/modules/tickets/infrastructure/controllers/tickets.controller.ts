@@ -181,8 +181,9 @@ export class TicketsController {
   @ApiResponse({ status: 404, description: 'Tickets not found' })
   async confirmTickets(
     @Body() dto: ConfirmTicketsDto,
+    @CurrentUser() user: RequestUser,
   ): Promise<ConfirmTicketsResponseDto> {
-    const command = new ConfirmTicketsCommand(dto.ticketIds, dto.orderId);
+    const command = new ConfirmTicketsCommand(dto.ticketIds, dto.orderId, user.userId);
 
     const result = await this.confirmTicketsHandler.execute(command);
 
@@ -190,7 +191,10 @@ export class TicketsController {
       const error = result.error!;
       switch (error.type) {
         case 'TICKETS_NOT_FOUND':
+        case 'INVALID_ORDER':
           throw new NotFoundException(error.message);
+        case 'NOT_TICKET_OWNER':
+          throw new ForbiddenException(error.message);
         case 'CONFIRMATION_FAILED':
         case 'PERSISTENCE_ERROR':
           throw new BadRequestException(error.message);

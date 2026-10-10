@@ -35,9 +35,9 @@ describe('PaymentProviderFactoryAdapter', () => {
   let mockPaymeeAdapter: jest.Mocked<PaymeeAdapter>;
 
   beforeEach(() => {
-    mockStripeAdapter = {} as any;
-    mockKonnectAdapter = {} as any;
-    mockPaymeeAdapter = {} as any;
+    mockStripeAdapter = { isConfigured: jest.fn().mockReturnValue(true) } as any;
+    mockKonnectAdapter = { isConfigured: jest.fn().mockReturnValue(true) } as any;
+    mockPaymeeAdapter = { isConfigured: jest.fn().mockReturnValue(true) } as any;
 
     factory = new PaymentProviderFactoryAdapter(
       mockStripeAdapter,

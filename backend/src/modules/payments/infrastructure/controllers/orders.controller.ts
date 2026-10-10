@@ -7,10 +7,12 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  HttpException,
   UseGuards,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  InternalServerErrorException,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import {
@@ -57,7 +59,7 @@ export class OrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new order' })
-  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED (no available payment method) or per-user order rate limit' })
+  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED (no available payment method)' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error or business rule violation' })
   @ApiResponse({ status: 429, description: 'Rate limited' })
@@ -91,7 +93,9 @@ export class OrdersController {
         case 'PAYMENT_METHOD_DISABLED':
           throw new ForbiddenException({ code: error.type, message: error.message });
         case 'RATE_LIMITED':
-          throw new ForbiddenException(error.message);
+          throw new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
+        case 'PERSISTENCE_ERROR':
+          throw new InternalServerErrorException(error.message);
         default:
           throw new BadRequestException(error.message);
       }
@@ -189,8 +193,13 @@ export class OrdersController {
           throw new BadRequestException(error.message);
         case 'PAYMENT_METHOD_DISABLED':
           throw new ForbiddenException({ code: error.type, message: error.message });
-        default:
-          throw new BadRequestException(error.message);
+        case 'PERSISTENCE_ERROR':
+          throw new InternalServerErrorException(error.message);
+        default: {
+          // Exhaustive check — this should never be reached
+          const _exhaustive: never = error;
+          throw new BadRequestException('Unknown error');
+        }
       }
     }
 
@@ -228,8 +237,13 @@ export class OrdersController {
           throw new BadRequestException(error.message);
         case 'PAYMENT_METHOD_DISABLED':
           throw new ForbiddenException({ code: error.type, message: error.message });
-        default:
-          throw new BadRequestException(error.message);
+        case 'PERSISTENCE_ERROR':
+          throw new InternalServerErrorException(error.message);
+        default: {
+          // Exhaustive check — this should never be reached
+          const _exhaustive: never = error;
+          throw new BadRequestException('Unknown error');
+        }
       }
     }
 

@@ -3,7 +3,7 @@ import * as Joi from 'joi';
 
 export const paymentFeatureFlagsSchema = {
   PAYMENT_GATEWAYS_ENABLED: Joi.string().valid('true', 'false').default('false'),
-  OFFLINE_PAYMENT_ENABLED: Joi.string().valid('true', 'false').default('true'),
+  OFFLINE_PAYMENT_ENABLED: Joi.string().valid('true', 'false').default('false'),
 };
 
 export default registerAs('payments', () => ({
@@ -12,7 +12,8 @@ export default registerAs('payments', () => ({
   },
   offline: {
     // Policy flag only: no OFFLINE provider is exposed until the flow is complete.
-    enabled: (process.env.OFFLINE_PAYMENT_ENABLED ?? 'true') === 'true',
+    // Default to false (fail closed) until the offline flow is implemented.
+    enabled: (process.env.OFFLINE_PAYMENT_ENABLED ?? 'false') === 'true',
   },
   commission: {
     /** Platform commission rate (0.06 = 6%) */

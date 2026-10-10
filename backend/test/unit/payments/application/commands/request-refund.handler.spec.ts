@@ -89,6 +89,7 @@ describe('RequestRefundHandler', () => {
         amount: 102,
       }),
       verifyWebhook: jest.fn(),
+      isConfigured: jest.fn().mockReturnValue(true),
     };
 
     mockProviderFactory = {
@@ -300,7 +301,7 @@ describe('RequestRefundHandler', () => {
       expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
     });
 
-    it('should handle gateway refund failure gracefully', async () => {
+    it('should return GATEWAY_ERROR when gateway throws', async () => {
       const order = createMockOrder(OrderStatus.PAID);
       mockOrderRepo.findById.mockResolvedValue(order);
       mockProvider.refund.mockRejectedValue(new Error('Gateway error'));
@@ -313,11 +314,13 @@ describe('RequestRefundHandler', () => {
 
       const result = await handler.execute(command);
 
-      // Should still succeed — refund marked pending for manual processing
-      expect(result.isSuccess).toBe(true);
+      // Should fail with GATEWAY_ERROR — order stays PAID, no refund processed
+      expect(result.isFailure).toBe(true);
+      expect(result.error?.type).toBe('GATEWAY_ERROR');
+      expect(mockOrderRepo.save).not.toHaveBeenCalled();
     });
 
-    it('never records a refund as COMPLETED when the gateway declines it', async () => {
+    it('returns GATEWAY_ERROR and does not save when gateway declines', async () => {
       const order = createMockOrder(OrderStatus.PAID, {
         paymentMethod: PaymentMethod.KONNECT,
         gatewayPaymentRef: 'konnect_pay_123',
@@ -327,15 +330,16 @@ describe('RequestRefundHandler', () => {
       // What KonnectAdapter.refund returns: Konnect refunds are manual.
       mockProvider.refund.mockResolvedValue({ success: false, amount: 102 });
 
-      await handler.execute(new RequestRefundCommand(
+      const result = await handler.execute(new RequestRefundCommand(
         validOrderId, validUserId, 'Event cancelled',
       ));
 
-      // Only the refund record is pinned: whether a declined refund is saved at
-      // all, and what happens to the order and the result, is still open.
+      // Should fail with GATEWAY_ERROR — order stays PAID, nothing saved
+      expect(result.isFailure).toBe(true);
+      expect(result.error?.type).toBe('GATEWAY_ERROR');
       expect(mockProvider.refund).toHaveBeenCalledTimes(1);
-      const savedStatuses = mockRefundRepo.save.mock.calls.map(([refund]) => refund.status);
-      expect(savedStatuses).not.toContain(RefundStatus.COMPLETED);
+      expect(mockRefundRepo.save).not.toHaveBeenCalled();
+      expect(mockOrderRepo.save).not.toHaveBeenCalled();
     });
 
     it('should handle ticket cancellation failure gracefully', async () => {

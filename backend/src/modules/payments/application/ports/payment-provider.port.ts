@@ -24,6 +24,11 @@ export interface PaymentProviderPort {
   confirmPayment(referenceId: string): Promise<PaymentResult>;
   refund(paymentRef: string, amount: Money): Promise<RefundResult>;
   verifyWebhook(signature: string, body: unknown): boolean;
+  /**
+   * Check if the provider has valid credentials configured.
+   * Used to filter available payment methods in public config.
+   */
+  isConfigured(): boolean;
 }
 
 /**

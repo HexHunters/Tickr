@@ -97,17 +97,16 @@ describe('OrdersController', () => {
       );
     });
 
-    it('should throw ForbiddenException for RATE_LIMITED without the PAYMENT_METHOD_DISABLED code', async () => {
+    it('should throw HttpException with 429 status for RATE_LIMITED', async () => {
       mockCreateOrderHandler.execute.mockResolvedValue(
         Result.fail({ type: 'RATE_LIMITED', message: 'Too many orders' }),
       );
 
       const error = await httpErrorOf(controller.createOrder(mockUser, dto));
 
-      // Both are 403 on this route, so clients tell a rate limit apart by its code.
-      expect(error).toBeInstanceOf(ForbiddenException);
-      expect(error.getResponse()).toMatchObject({ message: 'Too many orders' });
-      expect(error.getResponse()).not.toHaveProperty('code', 'PAYMENT_METHOD_DISABLED');
+      // RATE_LIMITED now returns 429 Too Many Requests
+      expect(error.getStatus()).toBe(429);
+      expect(error.message).toBe('Too many orders');
     });
 
     it('should throw ForbiddenException with the PAYMENT_METHOD_DISABLED code for PAYMENT_METHOD_DISABLED', async () => {

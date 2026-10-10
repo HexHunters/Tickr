@@ -175,4 +175,8 @@ export class KonnectAdapter implements PaymentProviderPort {
       return false;
     }
   }
+
+  isConfigured(): boolean {
+    return Boolean(this.apiKey && this.receiverWalletId);
+  }
 }

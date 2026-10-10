@@ -37,6 +37,7 @@ describe('WebhooksController', () => {
       confirmPayment: jest.fn(),
       createPaymentIntent: jest.fn(),
       refund: jest.fn(),
+      isConfigured: jest.fn().mockReturnValue(true),
     };
 
     mockKonnectProvider = {
@@ -44,6 +45,7 @@ describe('WebhooksController', () => {
       confirmPayment: jest.fn(),
       createPaymentIntent: jest.fn(),
       refund: jest.fn(),
+      isConfigured: jest.fn().mockReturnValue(true),
     };
 
     mockPaymeeProvider = {
@@ -51,6 +53,7 @@ describe('WebhooksController', () => {
       confirmPayment: jest.fn(),
       createPaymentIntent: jest.fn(),
       refund: jest.fn(),
+      isConfigured: jest.fn().mockReturnValue(true),
     };
 
     mockProviderFactory = {

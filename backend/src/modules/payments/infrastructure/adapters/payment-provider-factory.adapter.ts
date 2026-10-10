@@ -55,6 +55,9 @@ export class PaymentProviderFactoryAdapter implements PaymentProviderFactoryPort
     if (!arePaymentGatewaysEnabled(this.configService)) {
       return [];
     }
-    return Array.from(this.providers.keys());
+    // Filter to only return methods with valid credentials configured
+    return Array.from(this.providers.entries())
+      .filter(([, provider]) => provider.isConfigured())
+      .map(([method]) => method);
   }
 }

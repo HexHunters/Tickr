@@ -152,6 +152,7 @@ function createMockPaymentProvider(): jest.Mocked<PaymentProviderPort> {
       amount: 100000,
     }),
     verifyWebhook: jest.fn().mockReturnValue(true),
+    isConfigured: jest.fn().mockReturnValue(true),
   };
 }
 

@@ -42,7 +42,9 @@ export class CreateOrderHandler {
     this.commissionRate =
       this.configService.get<number>('payments.commission.rate') ??
       this.configService.get<number>('PLATFORM_COMMISSION_RATE', 0.06);
-    this.expirationMinutes = this.configService.get<number>('ORDER_EXPIRATION_MINUTES', 15);
+    // Use the validated config (already parsed as number in payments.config.ts)
+    this.expirationMinutes =
+      this.configService.get<number>('payments.order.expirationMinutes') ?? 15;
   }
 
   async execute(
