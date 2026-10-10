@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe, HttpStatus } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { CqrsModule } from '@nestjs/cqrs';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -272,6 +273,7 @@ describe('E2E: Registration Flow', () => {
           signOptions: { expiresIn: '15m' },
         }),
         CqrsModule,
+        EventEmitterModule.forRoot(),
         ThrottlerModule.forRoot([{ name: 'short', ttl: 1000, limit: 100 }]),
       ],
       controllers: [AuthController, UsersController],
