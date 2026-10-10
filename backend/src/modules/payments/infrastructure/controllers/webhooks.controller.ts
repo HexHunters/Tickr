@@ -13,12 +13,16 @@ import {
   ForbiddenException,
   Inject,
 } from '@nestjs/common';
-import { ApiTags, ApiExcludeEndpoint, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
 
 import { ConfirmPaymentCommand } from '../../application/commands/confirm-payment/confirm-payment.command';
 import { ConfirmPaymentHandler } from '../../application/commands/confirm-payment/confirm-payment.handler';
 import { FailPaymentCommand } from '../../application/commands/fail-payment/fail-payment.command';
 import { FailPaymentHandler } from '../../application/commands/fail-payment/fail-payment.handler';
+import {
+  PAYMENT_METHOD_DISABLED,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '../../application/constants/payment-method-disabled.constants';
 import { PAYMENT_PROVIDER_FACTORY } from '../../application/ports/payment-provider.port';
 import type { PaymentProviderFactoryPort } from '../../application/ports/payment-provider.port';
 import { WEBHOOK_EVENT_STORE } from '../../application/ports/webhook-event-store.port';
@@ -26,7 +30,6 @@ import type { WebhookEventStorePort } from '../../application/ports/webhook-even
 import { PaymentMethod } from '../../domain/value-objects/payment-method.vo';
 
 @ApiTags('Payment Webhooks')
-@ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED — callbacks are not processed' })
 @Controller('payments/webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
@@ -192,8 +195,8 @@ export class WebhooksController {
   private getEnabledProvider(method: PaymentMethod) {
     if (!this.providerFactory.getSupportedMethods().includes(method)) {
       throw new ForbiddenException({
-        code: 'PAYMENT_METHOD_DISABLED',
-        message: 'Les paiements en ligne sont désactivés.',
+        code: PAYMENT_METHOD_DISABLED,
+        message: PAYMENTS_DISABLED_MESSAGE,
       });
     }
     return this.providerFactory.getProvider(method);

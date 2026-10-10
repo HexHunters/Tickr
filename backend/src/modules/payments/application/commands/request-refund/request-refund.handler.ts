@@ -4,6 +4,10 @@ import { Money } from '@shared/domain/value-objects/money.vo';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import { RefundEntity } from '../../../domain/entities/refund.entity';
+import {
+  PAYMENT_METHOD_DISABLED_MESSAGE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '../../constants/payment-method-disabled.constants';
 import { ORDER_REPOSITORY } from '../../ports/order.repository.port';
 import type { OrderRepositoryPort } from '../../ports/order.repository.port';
 import { PAYMENT_PROVIDER_FACTORY } from '../../ports/payment-provider.port';
@@ -40,7 +44,7 @@ export class RequestRefundHandler {
     if (supportedMethods.length === 0) {
       return Result.fail({
         type: 'PAYMENT_METHOD_DISABLED',
-        message: 'Ce moyen de paiement est désactivé.',
+        message: PAYMENTS_DISABLED_MESSAGE,
       });
     }
 
@@ -57,7 +61,7 @@ export class RequestRefundHandler {
     if (order.paymentMethod && !supportedMethods.includes(order.paymentMethod)) {
       return Result.fail({
         type: 'PAYMENT_METHOD_DISABLED',
-        message: 'Ce moyen de paiement est désactivé.',
+        message: PAYMENT_METHOD_DISABLED_MESSAGE,
       });
     }
 

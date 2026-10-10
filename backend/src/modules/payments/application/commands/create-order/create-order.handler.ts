@@ -5,6 +5,7 @@ import { Money } from '@shared/domain/value-objects/money.vo';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import { OrderEntity } from '../../../domain/entities/order.entity';
+import { PAYMENTS_DISABLED_MESSAGE } from '../../constants/payment-method-disabled.constants';
 import { PAYMENT_EVENT_QUERY_PORT } from '../../ports/event-query.port';
 import type { PaymentEventQueryPort } from '../../ports/event-query.port';
 import { FRAUD_DETECTION_PORT } from '../../ports/fraud-detection.port';
@@ -54,7 +55,7 @@ export class CreateOrderHandler {
     if (this.configService.get<boolean>('payments.gateways.enabled', false) !== true) {
       return Result.fail({
         type: 'PAYMENT_METHOD_DISABLED',
-        message: 'Aucun moyen de paiement n’est disponible pour le moment.',
+        message: PAYMENTS_DISABLED_MESSAGE,
       });
     }
 

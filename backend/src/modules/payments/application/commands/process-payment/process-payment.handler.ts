@@ -3,6 +3,10 @@ import { Result } from '@shared/domain/result';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import { PaymentEntity } from '../../../domain/entities/payment.entity';
+import {
+  PAYMENT_METHOD_DISABLED_MESSAGE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '../../constants/payment-method-disabled.constants';
 import { ORDER_REPOSITORY } from '../../ports/order.repository.port';
 import type { OrderRepositoryPort } from '../../ports/order.repository.port';
 import { PAYMENT_PROVIDER_FACTORY } from '../../ports/payment-provider.port';
@@ -36,10 +40,11 @@ export class ProcessPaymentHandler {
     this.logger.debug(`Processing payment for order ${command.orderId}`);
 
     // Gate before reads, intent persistence and replay of an existing gateway URL.
-    if (!this.providerFactory.getSupportedMethods().includes(command.paymentMethod)) {
+    const supportedMethods = this.providerFactory.getSupportedMethods();
+    if (!supportedMethods.includes(command.paymentMethod)) {
       return Result.fail({
         type: 'PAYMENT_METHOD_DISABLED',
-        message: 'Ce moyen de paiement est désactivé.',
+        message: supportedMethods.length === 0 ? PAYMENTS_DISABLED_MESSAGE : PAYMENT_METHOD_DISABLED_MESSAGE,
       });
     }
 

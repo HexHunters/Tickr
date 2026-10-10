@@ -57,7 +57,7 @@ export class OrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new order' })
-  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED — no available payment method' })
+  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED (no available payment method) or per-user order rate limit' })
   @ApiResponse({ status: 201, description: 'Order created successfully' })
   @ApiResponse({ status: 400, description: 'Validation error or business rule violation' })
   @ApiResponse({ status: 429, description: 'Rate limited' })
