@@ -41,7 +41,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const httpError = exceptionResponse as { code?: unknown; error?: unknown };
         if (typeof httpError.code === 'string' && httpError.code !== '') {
           code = httpError.code;
-        } else if (typeof httpError.error === 'string') {
+        } else if (typeof httpError.error === 'string' && httpError.error !== '') {
           code = httpError.error;
         }
       }
