@@ -148,24 +148,41 @@ export class CreateOrderHandler {
 
     const order = orderResult.value;
 
-    // 5. Reserve tickets via Tickets module
+    // 5. Reserve tickets via Tickets module and collect ticket IDs
+    const allTicketIds: string[] = [];
     try {
       for (const item of allHolders) {
-        await this.ticketReservation.reserveTickets(
+        const reservationResult = await this.ticketReservation.reserveTickets(
           command.eventId,
           item.ticketTypeId,
           command.userId,
           item.holders.length,
           item.holders,
         );
+        allTicketIds.push(...reservationResult.ticketIds);
       }
     } catch (error) {
       this.logger.error(`Failed to reserve tickets: ${error}`);
+      // Compensation: cancel any tickets that were already reserved
+      if (allTicketIds.length > 0) {
+        try {
+          await this.ticketReservation.cancelReservations(allTicketIds);
+          this.logger.debug(`Compensated: cancelled ${allTicketIds.length} reserved tickets`);
+        } catch (cancelError) {
+          this.logger.error(`Failed to cancel reserved tickets during compensation: ${cancelError}`);
+        }
+      }
       return Result.fail({
         type: 'INSUFFICIENT_AVAILABILITY',
         message: 'Failed to reserve tickets. Please try again.',
       });
     }
+
+    // 5b. Store ticket IDs in order metadata for later use by confirm/cancel/expire handlers
+    order.setMetadata({
+      ...order.metadata,
+      ticketIds: allTicketIds,
+    });
 
     // 6. Persist order
     try {

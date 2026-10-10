@@ -3,10 +3,13 @@
 import { ConfirmPaymentHandler } from '@modules/payments/application/commands/confirm-payment/confirm-payment.handler';
 import { FailPaymentHandler } from '@modules/payments/application/commands/fail-payment/fail-payment.handler';
 import { PAYMENTS_DISABLED_MESSAGE } from '@modules/payments/application/constants/payment-method-disabled.constants';
+import { ORDER_REPOSITORY } from '@modules/payments/application/ports/order.repository.port';
+import type { OrderRepositoryPort } from '@modules/payments/application/ports/order.repository.port';
 import { PAYMENT_PROVIDER_FACTORY } from '@modules/payments/application/ports/payment-provider.port';
 import type { PaymentProviderFactoryPort, PaymentProviderPort } from '@modules/payments/application/ports/payment-provider.port';
 import { WEBHOOK_EVENT_STORE } from '@modules/payments/application/ports/webhook-event-store.port';
 import type { WebhookEventStorePort } from '@modules/payments/application/ports/webhook-event-store.port';
+import { OrderEntity } from '@modules/payments/domain/entities/order.entity';
 import { PaymentMethod } from '@modules/payments/domain/value-objects/payment-method.vo';
 import { WebhooksController } from '@modules/payments/infrastructure/controllers/webhooks.controller';
 import { BadRequestException, Logger } from '@nestjs/common';
@@ -19,6 +22,7 @@ describe('WebhooksController', () => {
   let mockFailPaymentHandler: jest.Mocked<FailPaymentHandler>;
   let mockProviderFactory: jest.Mocked<PaymentProviderFactoryPort>;
   let mockWebhookEventStore: jest.Mocked<WebhookEventStorePort>;
+  let mockOrderRepository: jest.Mocked<OrderRepositoryPort>;
   let mockStripeProvider: jest.Mocked<PaymentProviderPort>;
   let mockKonnectProvider: jest.Mocked<PaymentProviderPort>;
   let mockPaymeeProvider: jest.Mocked<PaymentProviderPort>;
@@ -26,6 +30,15 @@ describe('WebhooksController', () => {
   beforeEach(async () => {
     mockConfirmPaymentHandler = { execute: jest.fn() } as any;
     mockFailPaymentHandler = { execute: jest.fn() } as any;
+    mockOrderRepository = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      findByUserId: jest.fn(),
+      findByEventId: jest.fn(),
+      findExpired: jest.fn(),
+      countByUserIdSince: jest.fn(),
+      findByGatewayPaymentRef: jest.fn(),
+    };
 
     mockWebhookEventStore = {
       tryMarkAsProcessed: jest.fn().mockResolvedValue(true),
@@ -72,6 +85,10 @@ describe('WebhooksController', () => {
       ]),
     };
 
+    // Default: findByGatewayPaymentRef returns a mock order with id 'order-123'
+    const mockOrder = { id: 'order-123', gatewayPaymentRef: 'mock_ref' } as OrderEntity;
+    mockOrderRepository.findByGatewayPaymentRef.mockResolvedValue(mockOrder);
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [WebhooksController],
       providers: [
@@ -79,6 +96,7 @@ describe('WebhooksController', () => {
         { provide: FailPaymentHandler, useValue: mockFailPaymentHandler },
         { provide: PAYMENT_PROVIDER_FACTORY, useValue: mockProviderFactory },
         { provide: WEBHOOK_EVENT_STORE, useValue: mockWebhookEventStore },
+        { provide: ORDER_REPOSITORY, useValue: mockOrderRepository },
       ],
     }).compile();
 

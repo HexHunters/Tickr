@@ -132,8 +132,11 @@ export class RequestRefundHandler {
 
     // 7. Cancel tickets
     try {
-      const ticketIds = order.items.map((item) => item.id);
-      await this.ticketReservation.cancelReservations(ticketIds);
+      // Use real ticket IDs stored in metadata during order creation
+      const ticketIds = (order.metadata?.ticketIds as string[]) ?? [];
+      if (ticketIds.length > 0) {
+        await this.ticketReservation.cancelReservations(ticketIds);
+      }
     } catch (error) {
       this.logger.error(`Failed to cancel tickets on refund: ${error}`);
     }

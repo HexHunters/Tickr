@@ -77,6 +77,10 @@ class InMemoryOrderRepository implements OrderRepositoryPort {
     return 0;
   }
 
+  async findByGatewayPaymentRef(ref: string): Promise<OrderEntity | null> {
+    return this.orders.find((o) => o.gatewayPaymentRef === ref) || null;
+  }
+
   getAll(): OrderEntity[] {
     return this.orders;
   }
@@ -458,7 +462,7 @@ describe('Payments Module - Integration Tests', () => {
         refundedAt: null,
         refundReason: null,
         expiresAt: new Date(Date.now() - 60000), // Expired 1 min ago
-        metadata: null,
+        metadata: { ticketIds: ['ticket-1', 'ticket-2'] },
         createdAt: new Date(Date.now() - 900000),
         updatedAt: new Date(Date.now() - 900000),
       });

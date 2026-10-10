@@ -4,6 +4,7 @@ import { FailPaymentHandler } from '@modules/payments/application/commands/fail-
 import { ProcessPaymentHandler } from '@modules/payments/application/commands/process-payment/process-payment.handler';
 import { RequestRefundHandler } from '@modules/payments/application/commands/request-refund/request-refund.handler';
 import { PAYMENT_EVENT_QUERY_PORT } from '@modules/payments/application/ports/event-query.port';
+import { ORDER_REPOSITORY } from '@modules/payments/application/ports/order.repository.port';
 import { PAYMENT_PROVIDER_FACTORY } from '@modules/payments/application/ports/payment-provider.port';
 import { WEBHOOK_EVENT_STORE } from '@modules/payments/application/ports/webhook-event-store.port';
 import { GetOrderByIdHandler } from '@modules/payments/application/queries/get-order-by-id/get-order-by-id.handler';
@@ -47,6 +48,10 @@ describe('Payments OpenAPI document', () => {
         {
           provide: PAYMENT_EVENT_QUERY_PORT,
           useValue: { getEventById: jest.fn(), getTicketType: jest.fn() },
+        },
+        {
+          provide: ORDER_REPOSITORY,
+          useValue: { findByGatewayPaymentRef: jest.fn() },
         },
       ],
     }).compile();

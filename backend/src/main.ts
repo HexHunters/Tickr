@@ -7,7 +7,8 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  // Enable rawBody for Stripe webhook signature verification
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port', 3000);

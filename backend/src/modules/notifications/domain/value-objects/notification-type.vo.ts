@@ -4,6 +4,7 @@
  * Categorizes the purpose of each notification:
  * - ORDER_CONFIRMATION: Sent after successful ticket purchase
  * - PASSWORD_RESET: Password reset link
+ * - EMAIL_VERIFICATION: Email verification link for new registrations
  * - EVENT_REMINDER: 24h before event reminder
  * - MARKETING_PROMO: Promotional offers (opt-in required)
  * - ACCOUNT_UPDATE: Account changes (email, profile)
@@ -15,6 +16,7 @@
 export enum NotificationType {
   ORDER_CONFIRMATION = 'ORDER_CONFIRMATION',
   PASSWORD_RESET = 'PASSWORD_RESET',
+  EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
   EVENT_REMINDER = 'EVENT_REMINDER',
   MARKETING_PROMO = 'MARKETING_PROMO',
   ACCOUNT_UPDATE = 'ACCOUNT_UPDATE',
@@ -30,6 +32,7 @@ export enum NotificationType {
 const TRANSACTIONAL_TYPES: ReadonlySet<NotificationType> = new Set([
   NotificationType.ORDER_CONFIRMATION,
   NotificationType.PASSWORD_RESET,
+  NotificationType.EMAIL_VERIFICATION,
   NotificationType.ACCOUNT_UPDATE,
   NotificationType.SECURITY_ALERT,
   NotificationType.TICKET_CONFIRMED,

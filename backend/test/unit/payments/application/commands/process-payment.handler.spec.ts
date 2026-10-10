@@ -71,6 +71,7 @@ describe('ProcessPaymentHandler', () => {
       findByEventId: jest.fn(),
       findExpired: jest.fn(),
       countByUserIdSince: jest.fn(),
+      findByGatewayPaymentRef: jest.fn(),
     };
 
     mockPaymentRepo = {

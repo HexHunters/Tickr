@@ -10,7 +10,10 @@ import {
   BadRequestException,
   ForbiddenException,
   Inject,
+  Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiTags,
@@ -35,6 +38,7 @@ import {
   LoginDto,
   VerifyEmailDto,
   RequestPasswordResetDto,
+  ResendVerificationDto,
   ResetPasswordDto,
   RefreshTokenDto,
 } from './dtos/auth.dto';
@@ -93,12 +97,16 @@ interface SuccessResponse {
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly jwtService: JwtTokenService,
     private readonly passwordService: PasswordService,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepositoryPort,
     private readonly verificationTokenRepository: VerificationTokenRepository,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -155,9 +163,25 @@ export class AuthController {
     // Save user
     await this.userRepository.save(user);
 
-    // TODO: Generate email verification token and send email
-    // const verificationToken = this.tokenService.generateToken(32);
-    // await this.eventPublisher.publish(new UserRegisteredEvent(userId, verificationToken));
+    // Generate email verification token and emit event
+    const verificationToken =
+      await this.verificationTokenRepository.createEmailVerificationToken(userId);
+
+    const frontendUrl = this.configService.get<string>(
+      'app.frontendUrl',
+      'http://localhost:3001',
+    );
+    const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+    this.eventEmitter.emit('user.registered', {
+      userId,
+      email: dto.email.toLowerCase(),
+      firstName: dto.firstName,
+      verificationToken,
+      verificationUrl,
+    });
+
+    this.logger.log(`User registered: ${userId}, verification email queued`);
 
     return {
       userId,
@@ -254,6 +278,61 @@ export class AuthController {
 
     return {
       message: 'Email verified successfully. You can now log in.',
+    };
+  }
+
+  /**
+   * Resend email verification
+   *
+   * @route POST /api/auth/resend-verification
+   */
+  @Public()
+  @Post('resend-verification')
+  @Throttle({
+    short: { ttl: 3600000, limit: 3 },
+    medium: { ttl: 3600000, limit: 3 },
+    long: { ttl: 3600000, limit: 3 },
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend email verification link' })
+  @ApiResponse({
+    status: 200,
+    description: 'If email exists and is unverified, verification link will be sent',
+  })
+  @ApiResponse({ status: 429, description: 'Too many resend requests' })
+  async resendVerification(
+    @Body() dto: ResendVerificationDto,
+  ): Promise<SuccessResponse> {
+    // Find user by email (don't reveal if user exists or verification status)
+    const user = await this.userRepository.findByEmail(dto.email.toLowerCase());
+
+    if (user && !user.emailVerified) {
+      // Generate new verification token
+      const verificationToken =
+        await this.verificationTokenRepository.createEmailVerificationToken(user.id);
+
+      const frontendUrl = this.configService.get<string>(
+        'app.frontendUrl',
+        'http://localhost:3001',
+      );
+      const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+      // Emit event to send verification email
+      this.eventEmitter.emit('user.registered', {
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        verificationToken,
+        verificationUrl,
+      });
+
+      this.logger.log(`Verification email resent for user: ${user.id}`);
+    }
+
+    // Always return success to prevent email enumeration
+    return {
+      message:
+        'If an account with that email exists and is unverified, a verification link has been sent.',
     };
   }
 

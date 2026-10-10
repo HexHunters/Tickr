@@ -41,19 +41,15 @@ export class GetTicketByIdHandler {
       });
     }
 
-    // Access control: owner or event organizer
+    // Access control: only ticket owner can view
+    // TODO: Add organizer access via EventInfo.organizerId when cross-module
+    // user validation is implemented (requires adding organizerId to EventInfo)
     const isOwner = ticket.userId === query.requestingUserId;
     if (!isOwner) {
-      const event = await this.eventQuery.getEventById(ticket.eventId);
-      // If event not found or requesting user is not the organizer, deny
-      if (!event) {
-        return Result.fail({
-          type: 'ACCESS_DENIED',
-          message: 'You do not have permission to view this ticket',
-        });
-      }
-      // Note: organizer check requires cross-module user validation,
-      // handled at controller level via guards for now
+      return Result.fail({
+        type: 'ACCESS_DENIED',
+        message: 'You do not have permission to view this ticket',
+      });
     }
 
     const dto: TicketDetailDto = {

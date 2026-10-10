@@ -584,6 +584,16 @@ export class OrderEntity extends BaseEntity<OrderEntity> {
     this.touch();
   }
 
+  /**
+   * Set or update order metadata
+   *
+   * Used to store additional data like ticket IDs from reservation.
+   */
+  setMetadata(metadata: Record<string, unknown>): void {
+    this._metadata = metadata;
+    this.touch();
+  }
+
   // ============================================
   // BaseEntity Abstract Methods
   // ============================================
