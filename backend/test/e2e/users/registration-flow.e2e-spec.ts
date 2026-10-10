@@ -5,7 +5,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard, ThrottlerStorage, ThrottlerStorageService } from '@nestjs/throttler';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
@@ -242,6 +242,7 @@ class MockVerificationTokenRepository {
  */
 describe('E2E: Registration Flow', () => {
   let app: INestApplication<App>;
+  let throttleStorage: ThrottlerStorageService;
   let userRepository: InMemoryUserRepository;
   let verificationTokenRepository: MockVerificationTokenRepository;
   let jwtService: JwtTokenService;
@@ -301,6 +302,7 @@ describe('E2E: Registration Flow', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    throttleStorage = moduleFixture.get<ThrottlerStorageService>(ThrottlerStorage);
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.setGlobalPrefix('api');
     await app.init();
@@ -310,11 +312,14 @@ describe('E2E: Registration Flow', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {
     userRepository.clear();
+    verificationTokenRepository.clear();
+    throttleStorage.onApplicationShutdown();
+    throttleStorage.storage.clear();
   });
 
   describe('Complete Registration → Email Verification → Login → Access Protected Route', () => {
@@ -416,17 +421,13 @@ describe('E2E: Registration Flow', () => {
       expect([HttpStatus.CONFLICT, HttpStatus.BAD_REQUEST]).toContain(response.status);
     });
 
-    it('should enforce password policy during registration', async () => {
-      // Test various weak passwords
-      const weakPasswords = [
+    it.each([
         'short',           // Too short
         'nouppercase123!', // No uppercase
         'NOLOWERCASE123!', // No lowercase
         'NoNumbers!',      // No numbers
         'NoSpecial123',    // No special characters
-      ];
-
-      for (const weakPassword of weakPasswords) {
+    ])('should reject weak password %s during registration', async (weakPassword) => {
         const response = await request(app.getHttpServer())
           .post('/api/auth/register')
           .send({
@@ -437,7 +438,6 @@ describe('E2E: Registration Flow', () => {
           });
 
         expect(response.status).toBe(HttpStatus.BAD_REQUEST);
-      }
     });
   });
 

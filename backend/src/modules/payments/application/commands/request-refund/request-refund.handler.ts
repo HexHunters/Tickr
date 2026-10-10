@@ -4,6 +4,10 @@ import { Money } from '@shared/domain/value-objects/money.vo';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import { RefundEntity } from '../../../domain/entities/refund.entity';
+import {
+  PAYMENT_METHOD_DISABLED_MESSAGE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '../../constants/payment-method-disabled.constants';
 import { ORDER_REPOSITORY } from '../../ports/order.repository.port';
 import type { OrderRepositoryPort } from '../../ports/order.repository.port';
 import { PAYMENT_PROVIDER_FACTORY } from '../../ports/payment-provider.port';
@@ -36,12 +40,36 @@ export class RequestRefundHandler {
   ): Promise<Result<RequestRefundResult, RequestRefundError>> {
     this.logger.debug(`Refund requested for order ${command.orderId}`);
 
+    const supportedMethods = this.providerFactory.getSupportedMethods();
+    if (supportedMethods.length === 0) {
+      return Result.fail({
+        type: 'PAYMENT_METHOD_DISABLED',
+        message: PAYMENTS_DISABLED_MESSAGE,
+      });
+    }
+
     // 1. Find order
     const order = await this.orderRepository.findById(command.orderId);
     if (!order) {
       return Result.fail({
         type: 'ORDER_NOT_FOUND',
         message: `Order ${command.orderId} not found`,
+      });
+    }
+
+    // 2. Ownership check — return ORDER_NOT_FOUND to avoid leaking order existence
+    if (order.userId !== command.userId) {
+      return Result.fail({
+        type: 'ORDER_NOT_FOUND',
+        message: `Order ${command.orderId} not found`,
+      });
+    }
+
+    // Never let a disabled provider error fall through to markAsRefunded.
+    if (order.paymentMethod && !supportedMethods.includes(order.paymentMethod)) {
+      return Result.fail({
+        type: 'PAYMENT_METHOD_DISABLED',
+        message: PAYMENT_METHOD_DISABLED_MESSAGE,
       });
     }
 
@@ -66,7 +94,7 @@ export class RequestRefundHandler {
       reason: command.reason,
     });
 
-    // 5. Attempt refund with gateway
+    // 5. Attempt refund with gateway — only proceed if successful
     if (order.paymentMethod) {
       try {
         const provider = this.providerFactory.getProvider(order.paymentMethod);
@@ -78,14 +106,22 @@ export class RequestRefundHandler {
         } else {
           refund.markAsFailed();
           this.logger.warn(`Gateway refund failed for order ${order.id}`);
+          return Result.fail({
+            type: 'GATEWAY_ERROR',
+            message: 'Refund was declined by the payment gateway',
+          });
         }
       } catch (error) {
-        // Konnect throws for manual refunds — mark as pending for manual processing
+        // Konnect throws for manual refunds — do not mark order as refunded
         this.logger.warn(`Refund requires manual processing: ${error}`);
+        return Result.fail({
+          type: 'GATEWAY_ERROR',
+          message: 'Refund requires manual processing via payment gateway dashboard',
+        });
       }
     }
 
-    // 6. Mark order as refunded
+    // 6. Mark order as refunded (only reached if gateway succeeded or no payment method)
     const refundedResult = order.markAsRefunded(command.reason);
     if (refundedResult.isFailure) {
       return Result.fail({

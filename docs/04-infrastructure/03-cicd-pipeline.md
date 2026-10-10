@@ -174,6 +174,33 @@ jobs:
           files: ./backend/coverage/lcov.info
           flags: backend
 
+  test-e2e-http:
+    name: Backend E2E HTTP Tests
+    runs-on: ubuntu-latest
+    needs: [lint]
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: test-jwt-secret-for-ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run E2E HTTP tests
+        working-directory: ./backend
+        run: npm run test:e2e:http
+
   test-frontend:
     name: Frontend Tests
     runs-on: ubuntu-latest

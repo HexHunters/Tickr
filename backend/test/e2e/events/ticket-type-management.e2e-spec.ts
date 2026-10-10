@@ -40,6 +40,7 @@ import { DOMAIN_EVENT_PUBLISHER } from '../../../src/shared/application/interfac
 import { JwtAuthGuard } from '../../../src/shared/infrastructure/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../src/shared/infrastructure/common/guards/roles.guard';
 
+import { createCheckInStaffFixture } from './helpers/check-in-staff-providers';
 import {
   InMemoryEventRepository,
   MockDomainEventPublisher,
@@ -68,6 +69,7 @@ const JWT_SECRET = 'e2e-test-secret-key-for-ticket-types-32-chars';
 describe('E2E: Ticket Type Management', () => {
   let app: INestApplication<App>;
   let eventRepository: InMemoryEventRepository;
+  let staffFixture: ReturnType<typeof createCheckInStaffFixture>;
   let domainEventPublisher: MockDomainEventPublisher;
   let mockUserValidation: ReturnType<typeof createMockUserValidationService>;
   let jwtService: JwtService;
@@ -81,6 +83,7 @@ describe('E2E: Ticket Type Management', () => {
 
   beforeAll(async () => {
     eventRepository = new InMemoryEventRepository();
+    staffFixture = createCheckInStaffFixture(eventRepository);
     domainEventPublisher = new MockDomainEventPublisher();
     mockUserValidation = createMockUserValidationService();
 
@@ -99,6 +102,7 @@ describe('E2E: Ticket Type Management', () => {
       ],
       controllers: [EventsController],
       providers: [
+        ...staffFixture.providers,
         EventMapper,
         TicketTypeMapper,
         { provide: EVENT_REPOSITORY, useValue: eventRepository },
@@ -176,11 +180,12 @@ describe('E2E: Ticket Type Management', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {
     eventRepository.clear();
+    staffFixture.reset();
     domainEventPublisher.clear();
     jest.clearAllMocks();
 

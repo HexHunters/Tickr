@@ -30,7 +30,7 @@ Five facts, each verified in source, define the current state:
 1. **A purchase does not complete.** `POST /orders` reserves tickets through a `[STUB]` adapter that returns mock ids; no webhook can confirm an order (Stripe never receives a raw body; Konnect and Paymee hand the handler a gateway reference it cannot look up); and even once wired, the handlers pass order-*item* ids where ticket ids belong. ([02](02-gaps-commerce-wiring.md))
 2. **A production database cannot take an order.** No migration creates the `payments` or `analytics` tables, the root TypeORM config registers only the events/tickets entities with no `autoLoadEntities`, nothing runs migrations on deploy, and the migration CLI cannot run inside the production image. Development is masked by `synchronize: true`. ([03](03-gaps-infrastructure-cicd.md))
 3. **Both deployment workflows are dead at their first job** — they call `ci.yml` as a reusable workflow that has no `workflow_call` trigger. ([03](03-gaps-infrastructure-cicd.md))
-4. **Four Critical authorization holes**: any signed-in user can confirm any reserved ticket, cancel any ticket, read any ticket with its QR code and holder contacts, and refund any order. ([01](01-gaps-security-auth.md))
+4. **Two Critical authorization holes remain** (down from four): any signed-in user can cancel any ticket, read any ticket with its QR code and holder contacts. ✅ **FIXED:** Refund now has ownership check; ticket confirmation now verifies ticket ownership and order PAID status via cross-module `OrderQueryPort`. ([01](01-gaps-security-auth.md))
 5. **No account can log in.** Registration never mints the verification token, the login policy requires it, and no resend endpoint exists. ([01](01-gaps-security-auth.md))
 
 And one number: with `ORDER_EXPIRATION_MINUTES` set as documented, **the "15-minute hold" lasts about 35 hours** — the value arrives as a string and is concatenated onto the minutes. ([02 C-07](02-gaps-commerce-wiring.md))
@@ -66,12 +66,12 @@ Ranked by *what it costs to ship without it*, not by how hard it is to fix. The 
 | 1 | Replace the reservation stub; carry real ticket ids through confirm/fail/expire/refund | [02](02-gaps-commerce-wiring.md) C-01, C-04 | 2–3 d | Without it nothing else in the money path can even be tested |
 | 2 | Enable `rawBody`; add a gateway-reference lookup for Konnect/Paymee | [02](02-gaps-commerce-wiring.md) C-02, C-03 | ½ d | No order can ever confirm |
 | 3 | Generate the missing `payments`/`analytics` migrations; `autoLoadEntities`; run migrations on deploy | [03](03-gaps-infrastructure-cicd.md) I-03, I-04, I-05 | 1–2 d | A fresh production database cannot store an order |
-| 4 | Close the four IDORs | [01](01-gaps-security-auth.md) S-01…S-04 | 1 d | Cannot put a beta user in front of it |
+| 4 | Close the ~~four~~ two remaining IDORs (cancel, read ticket) | [01](01-gaps-security-auth.md) S-01…S-04 | ½ d | ✅ Refund ownership (S-03) and ticket confirmation (S-01) are now fixed |
 | 5 | Mint and send the verification token; add resend | [01](01-gaps-security-auth.md) S-09 | 1 d | Nobody can log in |
 | 6 | Read `ORDER_EXPIRATION_MINUTES` from the parsed config | [02](02-gaps-commerce-wiring.md) C-07 | 10 min | The countdown the whole frontend is built around is wrong |
 | 7 | `workflow_call:` in `ci.yml`; commit the changelog config | [03](03-gaps-infrastructure-cicd.md) I-02 | ½ d | Nothing can deploy |
 | 8 | Health-check path, nginx proxy, frontend API URL build-arg | [03](03-gaps-infrastructure-cicd.md) I-06…I-08 | 1 d | A deploy would fail its own checks |
-| 9 | Refund: ownership, gate `REFUNDED` on gateway success, Konnect manual path | [02](02-gaps-commerce-wiring.md) C-05, C-06 | 1 d | Money leaves the wrong pocket |
+| 9 | ~~Refund: ownership, gate `REFUNDED` on gateway success~~, Konnect manual path | [02](02-gaps-commerce-wiring.md) C-05, C-06 | ½ d | ✅ C-05 (ownership) and C-06 (gateway gating) are now fixed; only Konnect manual-refund path remains |
 | 10 | Analytics and notifications scoping (`@CurrentUser('id')` → `'userId'`) | [01](01-gaps-security-auth.md) S-05…S-07 | 1 d | Data leaks across organizers and users |
 | 11 | Konnect webhook authentication | [01](01-gaps-security-auth.md) S-08 | ½ d | Before any Konnect money moves |
 | 12 | Refresh-token rotation and revocation | [01](01-gaps-security-auth.md) S-10, S-11 | 2 d | Before scale |

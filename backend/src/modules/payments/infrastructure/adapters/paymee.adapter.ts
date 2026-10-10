@@ -11,6 +11,10 @@ import type {
   RefundResult,
 } from '../../application/ports/payment-provider.port';
 import { OrderEntity } from '../../domain/entities/order.entity';
+import {
+  arePaymentGatewaysEnabled,
+  assertPaymentGatewaysEnabled,
+} from '../config/payment-gateway.policy';
 
 interface OrderHolderMetadata {
   holderFirstName?: string;
@@ -47,6 +51,7 @@ export class PaymeeAdapter implements PaymentProviderPort {
   }
 
   async createPaymentIntent(order: OrderEntity): Promise<PaymentIntent> {
+    assertPaymentGatewaysEnabled(this.configService);
     this.logger.debug(`Creating Paymee payment for order ${order.id}`);
 
     // Paymee expects TND in decimal format
@@ -99,6 +104,7 @@ export class PaymeeAdapter implements PaymentProviderPort {
   }
 
   async confirmPayment(token: string): Promise<PaymentResult> {
+    assertPaymentGatewaysEnabled(this.configService);
     this.logger.debug(`Checking Paymee payment status: ${token}`);
 
     const response = await fetch(`${this.apiUrl}/payments/${token}/check`, {
@@ -125,6 +131,7 @@ export class PaymeeAdapter implements PaymentProviderPort {
   }
 
   async refund(token: string, amount: Money): Promise<RefundResult> {
+    assertPaymentGatewaysEnabled(this.configService);
     this.logger.debug(`Refunding Paymee payment: ${token}`);
 
     const response = await fetch(`${this.apiUrl}/payments/${token}/refund`, {
@@ -158,6 +165,9 @@ export class PaymeeAdapter implements PaymentProviderPort {
   }
 
   verifyWebhook(_signature: string, body: unknown): boolean {
+    if (!arePaymentGatewaysEnabled(this.configService)) {
+      return false;
+    }
     // Paymee uses check_sum = md5(token + payment_status(1|0) + API_TOKEN)
     try {
       const payload = body as {
@@ -184,5 +194,9 @@ export class PaymeeAdapter implements PaymentProviderPort {
       this.logger.warn('Invalid Paymee webhook checksum');
       return false;
     }
+  }
+
+  isConfigured(): boolean {
+    return Boolean(this.apiKey);
   }
 }

@@ -40,6 +40,7 @@ import { DOMAIN_EVENT_PUBLISHER } from '../../../src/shared/application/interfac
 import { JwtAuthGuard } from '../../../src/shared/infrastructure/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../src/shared/infrastructure/common/guards/roles.guard';
 
+import { createCheckInStaffFixture } from './helpers/check-in-staff-providers';
 import {
   InMemoryEventRepository,
   MockDomainEventPublisher,
@@ -75,6 +76,7 @@ const JWT_SECRET = 'e2e-test-secret-key-for-events-module-32-chars';
 describe('E2E: Event Lifecycle', () => {
   let app: INestApplication<App>;
   let eventRepository: InMemoryEventRepository;
+  let staffFixture: ReturnType<typeof createCheckInStaffFixture>;
   let domainEventPublisher: MockDomainEventPublisher;
   let mockUserValidation: ReturnType<typeof createMockUserValidationService>;
   let jwtService: JwtService;
@@ -90,6 +92,7 @@ describe('E2E: Event Lifecycle', () => {
 
   beforeAll(async () => {
     eventRepository = new InMemoryEventRepository();
+    staffFixture = createCheckInStaffFixture(eventRepository);
     domainEventPublisher = new MockDomainEventPublisher();
     mockUserValidation = createMockUserValidationService();
 
@@ -108,6 +111,7 @@ describe('E2E: Event Lifecycle', () => {
       ],
       controllers: [EventsController],
       providers: [
+        ...staffFixture.providers,
         // Mappers
         EventMapper,
         TicketTypeMapper,
@@ -213,11 +217,12 @@ describe('E2E: Event Lifecycle', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {
     eventRepository.clear();
+    staffFixture.reset();
     domainEventPublisher.clear();
     jest.clearAllMocks();
 
@@ -234,6 +239,59 @@ describe('E2E: Event Lifecycle', () => {
   // ============================================
   // Event Creation
   // ============================================
+
+  it('should use live staff assignments and account state in the shared fixture', async () => {
+    const event = await eventRepository.seedEvent({
+      id: TEST_EVENT_IDS.published,
+      status: EventStatus.PUBLISHED,
+    });
+    const staffUrl = `/api/events/${event.id}/check-in-staff`;
+    const accessUrl = '/api/events/check-in-access/me';
+    const assigned = await request(app.getHttpServer())
+      .post(staffUrl)
+      .set('Authorization', `Bearer ${organizerToken}`)
+      .send({ email: 'participant@test.com' })
+      .expect(HttpStatus.CREATED);
+    expect(assigned.body).toMatchObject({
+      eventId: event.id, userId: participantId, revokedAt: null,
+    });
+
+    const staff = await request(app.getHttpServer())
+      .get(staffUrl)
+      .set('Authorization', `Bearer ${organizerToken}`)
+      .expect(HttpStatus.OK);
+    expect(staff.body.total).toBe(1);
+    expect(staff.body.data).toEqual([assigned.body]);
+
+    const access = await request(app.getHttpServer())
+      .get(accessUrl)
+      .set('Authorization', `Bearer ${participantToken}`)
+      .expect(HttpStatus.OK);
+    expect(access.body.total).toBe(1);
+    expect(access.body.data[0]).toMatchObject({
+      eventId: event.id, assignmentId: assigned.body.id, authorizationSource: 'ASSIGNMENT',
+    });
+
+    const account = staffFixture.users.get(participantId);
+    if (!account) throw new Error('Missing participant fixture');
+    staffFixture.users.set(participantId, { ...account, isActive: false });
+    await request(app.getHttpServer())
+      .get(accessUrl)
+      .set('Authorization', `Bearer ${participantToken}`)
+      .expect(HttpStatus.FORBIDDEN);
+    staffFixture.users.set(participantId, account);
+
+    await request(app.getHttpServer())
+      .delete(`${staffUrl}/${assigned.body.id}`)
+      .set('Authorization', `Bearer ${organizerToken}`)
+      .expect(HttpStatus.NO_CONTENT);
+    const revoked = await request(app.getHttpServer())
+      .get(accessUrl)
+      .set('Authorization', `Bearer ${participantToken}`)
+      .expect(HttpStatus.OK);
+    expect(revoked.body).toMatchObject({ data: [], total: 0 });
+    expect((await staffFixture.repository.findById(assigned.body.id))?.isActive).toBe(false);
+  });
 
   describe('POST /api/events — Create Event', () => {
     it('should create an event successfully with valid data', async () => {

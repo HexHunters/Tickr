@@ -1,4 +1,14 @@
-import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  PAYMENT_METHOD_DISABLED,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '@modules/payments/application/constants/payment-method-disabled.constants';
+import {
+  BadRequestException,
+  ExecutionContext,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import { ApplicationException } from '@shared/application/exceptions/application.exception';
 import { DomainException } from '@shared/domain/domain-exception.base';
@@ -79,6 +89,60 @@ describe('AllExceptionsFilter', () => {
   });
 
   describe('HttpException handling', () => {
+    it('preserves an explicit machine code ahead of the HTTP error label', () => {
+      filter.catch(
+        new HttpException({
+          code: PAYMENT_METHOD_DISABLED,
+          error: 'Forbidden',
+          message: PAYMENTS_DISABLED_MESSAGE,
+        }, HttpStatus.FORBIDDEN),
+        mockExecutionContext as ExecutionContext,
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(403);
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({
+        code: 'PAYMENT_METHOD_DISABLED',
+        message: PAYMENTS_DISABLED_MESSAGE,
+      }));
+    });
+
+    it('keeps the machine code of the payment gate exception, which has no error label', () => {
+      // The body that the payment gateway gates throw: a code and a message, no `error` field.
+      const exception = new ForbiddenException({
+        code: PAYMENT_METHOD_DISABLED,
+        message: PAYMENTS_DISABLED_MESSAGE,
+      });
+
+      filter.catch(exception, mockExecutionContext as ExecutionContext);
+
+      expect(mockStatus).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.FORBIDDEN,
+          code: 'PAYMENT_METHOD_DISABLED',
+          message: PAYMENTS_DISABLED_MESSAGE,
+        }),
+      );
+    });
+
+    it('ignores non-string codes and retains the existing error-label fallback', () => {
+      filter.catch(
+        new HttpException({ code: { invalid: true }, error: 'Forbidden' }, 403),
+        mockExecutionContext as ExecutionContext,
+      );
+
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ code: 'Forbidden' }));
+    });
+
+    it('treats an empty machine code as absent and falls back to the error label', () => {
+      filter.catch(
+        new HttpException({ code: '', error: 'Forbidden', message: 'Access denied' }, 403),
+        mockExecutionContext as ExecutionContext,
+      );
+
+      expect(mockJson).toHaveBeenCalledWith(expect.objectContaining({ code: 'Forbidden' }));
+    });
+
     it('should handle HttpException with string message', () => {
       const exception = new HttpException('Not found', HttpStatus.NOT_FOUND);
 
@@ -88,6 +152,7 @@ describe('AllExceptionsFilter', () => {
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: HttpStatus.NOT_FOUND,
+          code: 'INTERNAL_ERROR',
           message: 'Not found',
         }),
       );
@@ -106,6 +171,44 @@ describe('AllExceptionsFilter', () => {
         expect.objectContaining({
           message: 'Custom message',
           code: 'CustomError',
+        }),
+      );
+    });
+
+    it('keeps the error label and the message list of a ValidationPipe error', () => {
+      // ValidationPipe throws a BadRequestException built from the list of failed constraints.
+      const messages = ['id must be a UUID', 'property extra should not exist'];
+
+      filter.catch(new BadRequestException(messages), mockExecutionContext as ExecutionContext);
+
+      expect(mockStatus).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.BAD_REQUEST,
+          code: 'Bad Request',
+          message: messages,
+        }),
+      );
+    });
+
+    it.each([
+      [{ message: 'Boom' }],
+      [{ code: 42, message: 'Boom' }],
+      [{ code: '', message: 'Boom' }],
+      [{ error: 42, message: 'Boom' }],
+      [{ error: '', message: 'Boom' }],
+    ])('falls back to INTERNAL_ERROR for %p, which has no usable code or error label', (body) => {
+      filter.catch(
+        new HttpException(body, HttpStatus.BAD_REQUEST),
+        mockExecutionContext as ExecutionContext,
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+      expect(mockJson).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.BAD_REQUEST,
+          code: 'INTERNAL_ERROR',
+          message: 'Boom',
         }),
       );
     });

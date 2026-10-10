@@ -5,7 +5,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard, ThrottlerStorage, ThrottlerStorageService } from '@nestjs/throttler';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
@@ -206,6 +206,7 @@ class MockVerificationTokenRepository {
  */
 describe('E2E: Password Reset Flow', () => {
   let app: INestApplication<App>;
+  let throttleStorage: ThrottlerStorageService;
   let userRepository: InMemoryUserRepository;
   let verificationTokenRepository: MockVerificationTokenRepository;
   let jwtService: JwtTokenService;
@@ -266,6 +267,7 @@ describe('E2E: Password Reset Flow', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    throttleStorage = moduleFixture.get<ThrottlerStorageService>(ThrottlerStorage);
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.setGlobalPrefix('api');
     await app.init();
@@ -275,11 +277,13 @@ describe('E2E: Password Reset Flow', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {
     userRepository.clear();
+    throttleStorage.onApplicationShutdown();
+    throttleStorage.storage.clear();
   });
 
   describe('Password Reset Request → Reset → Login Workflow', () => {

@@ -19,6 +19,7 @@ describe('PaymeeAdapter', () => {
     mockConfigService = {
       get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
         const config: Record<string, any> = {
+          'payments.gateways.enabled': true,
           PAYMEE_API_URL: 'https://sandbox.paymee.tn/api/v2',
           PAYMEE_API_KEY: 'test_api_key',
           PAYMEE_WEBHOOK_SECRET: 'paymee_secret',
@@ -60,6 +61,51 @@ describe('PaymeeAdapter', () => {
       updatedAt: new Date(),
     });
   }
+
+  describe('disabled gateways', () => {
+    it.each([false, undefined, 'false', 'true'])(
+      'boots without credentials and blocks every method without fetch for flag=%p',
+      async (enabled) => {
+        const disabledAdapter = new PaymeeAdapter(new ConfigService({
+          payments: { gateways: { enabled } },
+        }));
+        const disabledError = { response: expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' }) };
+
+        await expect(disabledAdapter.createPaymentIntent(createMockOrder())).rejects.toMatchObject(disabledError);
+        await expect(disabledAdapter.confirmPayment('pm_existing')).rejects.toMatchObject(disabledError);
+        await expect(disabledAdapter.refund('pm_existing', Money.create(50, 'TND'))).rejects.toMatchObject(disabledError);
+        expect(disabledAdapter.verifyWebhook('', {})).toBe(false);
+        expect(mockFetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([false, undefined, 'false', 'true'])(
+      'rejects a correctly checksummed webhook when booted with flag=%p',
+      (enabled) => {
+        const disabledAdapter = new PaymeeAdapter(new ConfigService({
+          payments: { gateways: { enabled } },
+          PAYMEE_API_KEY: 'test_api_key',
+        }));
+        const token = 'pm_existing';
+        const checkSum = crypto.createHash('md5').update(token + '1test_api_key').digest('hex');
+
+        expect(disabledAdapter.verifyWebhook('', {
+          token, check_sum: checkSum, payment_status: true,
+        })).toBe(false);
+      },
+    );
+
+    it('rejects a valid checksum when disabled after credentialed boot', () => {
+      const token = 'pm_existing';
+      const checkSum = crypto.createHash('md5').update(token + '1test_api_key').digest('hex');
+      mockConfigService.get.mockReturnValue(false);
+
+      expect(adapter.verifyWebhook('', {
+        token, check_sum: checkSum, payment_status: true,
+      })).toBe(false);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
 
   describe('createPaymentIntent', () => {
     it('should create payment and return redirect URL', async () => {
@@ -138,6 +184,17 @@ describe('PaymeeAdapter', () => {
       const result = await adapter.confirmPayment('pm_token_123');
 
       expect(result.success).toBe(false);
+    });
+
+    it('should throw when the payment status check fails', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 503,
+      });
+
+      await expect(adapter.confirmPayment('pm_token_123')).rejects.toThrow(
+        'Paymee payment check failed: 503',
+      );
     });
   });
 

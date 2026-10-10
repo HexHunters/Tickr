@@ -3,6 +3,10 @@
 import { CreateOrderHandler } from '@modules/payments/application/commands/create-order/create-order.handler';
 import { ProcessPaymentHandler } from '@modules/payments/application/commands/process-payment/process-payment.handler';
 import { RequestRefundHandler } from '@modules/payments/application/commands/request-refund/request-refund.handler';
+import {
+  PAYMENT_METHOD_DISABLED_MESSAGE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '@modules/payments/application/constants/payment-method-disabled.constants';
 import { GetOrderByIdHandler } from '@modules/payments/application/queries/get-order-by-id/get-order-by-id.handler';
 import { GetOrdersByUserHandler } from '@modules/payments/application/queries/get-orders-by-user/get-orders-by-user.handler';
 import { PaymentMethod } from '@modules/payments/domain/value-objects/payment-method.vo';
@@ -11,6 +15,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  HttpException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Result } from '@shared/domain/result';
@@ -24,6 +29,18 @@ describe('OrdersController', () => {
   let mockGetOrdersByUserHandler: jest.Mocked<GetOrdersByUserHandler>;
 
   const mockUser = { userId: 'user-123', role: 'ATTENDEE' };
+
+  // Resolves to the HttpException a controller call rejects with, so a test can read getResponse().
+  const httpErrorOf = async (call: Promise<unknown>): Promise<HttpException> => {
+    const error: unknown = await call.then(
+      () => undefined,
+      (reason: unknown) => reason,
+    );
+    if (!(error instanceof HttpException)) {
+      throw new Error(`Expected the call to reject with an HttpException, got ${String(error)}`);
+    }
+    return error;
+  };
 
   beforeEach(async () => {
     mockCreateOrderHandler = { execute: jest.fn() } as any;
@@ -80,14 +97,30 @@ describe('OrdersController', () => {
       );
     });
 
-    it('should throw ForbiddenException for RATE_LIMITED', async () => {
+    it('should throw HttpException with 429 status for RATE_LIMITED', async () => {
       mockCreateOrderHandler.execute.mockResolvedValue(
         Result.fail({ type: 'RATE_LIMITED', message: 'Too many orders' }),
       );
 
-      await expect(controller.createOrder(mockUser, dto)).rejects.toThrow(
-        ForbiddenException,
+      const error = await httpErrorOf(controller.createOrder(mockUser, dto));
+
+      // RATE_LIMITED now returns 429 Too Many Requests
+      expect(error.getStatus()).toBe(429);
+      expect(error.message).toBe('Too many orders');
+    });
+
+    it('should throw ForbiddenException with the PAYMENT_METHOD_DISABLED code for PAYMENT_METHOD_DISABLED', async () => {
+      mockCreateOrderHandler.execute.mockResolvedValue(
+        Result.fail({ type: 'PAYMENT_METHOD_DISABLED', message: PAYMENTS_DISABLED_MESSAGE }),
       );
+
+      const error = await httpErrorOf(controller.createOrder(mockUser, dto));
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(error.getResponse()).toEqual({
+        code: 'PAYMENT_METHOD_DISABLED',
+        message: PAYMENTS_DISABLED_MESSAGE,
+      });
     });
 
     it('should throw BadRequestException for VALIDATION_ERROR', async () => {
@@ -194,6 +227,22 @@ describe('OrdersController', () => {
         controller.processPayment(mockUser, 'order-123', dto),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it.each([PAYMENTS_DISABLED_MESSAGE, PAYMENT_METHOD_DISABLED_MESSAGE])(
+      'should throw ForbiddenException with the PAYMENT_METHOD_DISABLED code and handler message "%s"',
+      async (message) => {
+        mockProcessPaymentHandler.execute.mockResolvedValue(
+          Result.fail({ type: 'PAYMENT_METHOD_DISABLED', message }),
+        );
+
+        const error = await httpErrorOf(
+          controller.processPayment(mockUser, 'order-123', dto),
+        );
+
+        expect(error).toBeInstanceOf(ForbiddenException);
+        expect(error.getResponse()).toEqual({ code: 'PAYMENT_METHOD_DISABLED', message });
+      },
+    );
   });
 
   describe('requestRefund', () => {
@@ -227,5 +276,21 @@ describe('OrdersController', () => {
         controller.requestRefund(mockUser, 'order-123', dto),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it.each([PAYMENTS_DISABLED_MESSAGE, PAYMENT_METHOD_DISABLED_MESSAGE])(
+      'should throw ForbiddenException with the PAYMENT_METHOD_DISABLED code and handler message "%s"',
+      async (message) => {
+        mockRequestRefundHandler.execute.mockResolvedValue(
+          Result.fail({ type: 'PAYMENT_METHOD_DISABLED', message }),
+        );
+
+        const error = await httpErrorOf(
+          controller.requestRefund(mockUser, 'order-123', dto),
+        );
+
+        expect(error).toBeInstanceOf(ForbiddenException);
+        expect(error.getResponse()).toEqual({ code: 'PAYMENT_METHOD_DISABLED', message });
+      },
+    );
   });
 });

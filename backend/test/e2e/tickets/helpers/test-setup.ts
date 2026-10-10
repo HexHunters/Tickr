@@ -13,6 +13,10 @@ import type {
   EventInfo,
   TicketTypeAvailability,
 } from '@modules/tickets/application/ports/event-query.port';
+import type {
+  OrderQueryPort,
+  OrderInfoInterface,
+} from '@modules/tickets/application/ports/order-query.port';
 import type { TicketCheckInPersistencePort } from '@modules/tickets/application/ports/ticket-check-in-persistence.port';
 import type { TicketRepositoryPort } from '@modules/tickets/application/ports/ticket.repository.port';
 import type { UserQueryPort, UserInfo } from '@modules/tickets/application/ports/user-query.port';
@@ -508,6 +512,41 @@ export class MockDomainEventPublisher {
 }
 
 // ============================================
+// Mock Order Query Adapter (Cross-module: Payments → Tickets)
+// ============================================
+
+export class MockOrderQueryAdapter implements OrderQueryPort {
+  private orders: Map<string, OrderInfoInterface> = new Map();
+
+  constructor() {
+    // Default: seed a PAID order for testing confirm flow
+    this.orders.set('40000000-0000-4000-8000-000000000001', {
+      id: '40000000-0000-4000-8000-000000000001',
+      userId: TEST_USER_IDS.participant,
+      status: 'PAID',
+    });
+  }
+
+  async findById(orderId: string): Promise<OrderInfoInterface | null> {
+    return this.orders.get(orderId) ?? null;
+  }
+
+  seedOrder(order: OrderInfoInterface): void {
+    this.orders.set(order.id, order);
+  }
+
+  clear(): void {
+    this.orders.clear();
+    // Re-seed default order
+    this.orders.set('40000000-0000-4000-8000-000000000001', {
+      id: '40000000-0000-4000-8000-000000000001',
+      userId: TEST_USER_IDS.participant,
+      status: 'PAID',
+    });
+  }
+}
+
+// ============================================
 // Mock S3 Storage Service
 // ============================================
 
@@ -530,9 +569,10 @@ export function generateTestToken(
   payload: { userId: string; email: string; role: string },
 ): string {
   return jwtService.sign({
-    sub: payload.userId,
+    userId: payload.userId,
     email: payload.email,
     role: payload.role,
+    type: 'access',
   });
 }
 

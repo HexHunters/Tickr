@@ -12,6 +12,10 @@ import type {
   RefundResult,
 } from '../../application/ports/payment-provider.port';
 import { OrderEntity } from '../../domain/entities/order.entity';
+import {
+  arePaymentGatewaysEnabled,
+  assertPaymentGatewaysEnabled,
+} from '../config/payment-gateway.policy';
 
 /**
  * Stripe Payment Gateway Adapter
@@ -24,10 +28,15 @@ import { OrderEntity } from '../../domain/entities/order.entity';
 @Injectable()
 export class StripeAdapter implements PaymentProviderPort {
   private readonly logger = new Logger(StripeAdapter.name);
-  private readonly stripe: Stripe;
+  private readonly stripe: Stripe | null;
   private readonly webhookSecret: string;
 
   constructor(private readonly configService: ConfigService) {
+    if (!arePaymentGatewaysEnabled(this.configService)) {
+      this.stripe = null;
+      this.webhookSecret = '';
+      return;
+    }
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY', '');
     this.webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET', '');
 
@@ -37,11 +46,12 @@ export class StripeAdapter implements PaymentProviderPort {
       });
     } else {
       this.logger.warn('STRIPE_SECRET_KEY not configured - Stripe payments will not work');
-      this.stripe = null as unknown as Stripe;
+      this.stripe = null;
     }
   }
 
   async createPaymentIntent(order: OrderEntity): Promise<PaymentIntent> {
+    const stripe = this.getClient();
     this.logger.debug(`Creating Stripe PaymentIntent for order ${order.id}`);
 
     const amountInSmallestUnit = CurrencyVO.toSmallestUnit(
@@ -49,7 +59,7 @@ export class StripeAdapter implements PaymentProviderPort {
       order.currency as Currency,
     );
 
-    const paymentIntent = await this.stripe.paymentIntents.create({
+    const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInSmallestUnit,
       currency: order.currency.toLowerCase(),
       metadata: {
@@ -68,9 +78,10 @@ export class StripeAdapter implements PaymentProviderPort {
   }
 
   async confirmPayment(paymentIntentId: string): Promise<PaymentResult> {
+    const stripe = this.getClient();
     this.logger.debug(`Confirming Stripe payment: ${paymentIntentId}`);
 
-    const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     return {
       success: paymentIntent.status === 'succeeded',
@@ -81,6 +92,7 @@ export class StripeAdapter implements PaymentProviderPort {
   }
 
   async refund(paymentIntentId: string, amount: Money): Promise<RefundResult> {
+    const stripe = this.getClient();
     this.logger.debug(`Refunding Stripe payment: ${paymentIntentId}`);
 
     const amountInSmallestUnit = CurrencyVO.toSmallestUnit(
@@ -88,7 +100,7 @@ export class StripeAdapter implements PaymentProviderPort {
       amount.currency as Currency,
     );
 
-    const refund = await this.stripe.refunds.create({
+    const refund = await stripe.refunds.create({
       payment_intent: paymentIntentId,
       amount: amountInSmallestUnit,
     });
@@ -101,6 +113,9 @@ export class StripeAdapter implements PaymentProviderPort {
   }
 
   verifyWebhook(signature: string, body: unknown): boolean {
+    if (!arePaymentGatewaysEnabled(this.configService) || !this.stripe) {
+      return false;
+    }
     try {
       this.stripe.webhooks.constructEvent(
         body as string | Buffer,
@@ -112,5 +127,17 @@ export class StripeAdapter implements PaymentProviderPort {
       this.logger.warn('Invalid Stripe webhook signature');
       return false;
     }
+  }
+
+  isConfigured(): boolean {
+    return this.stripe !== null;
+  }
+
+  private getClient(): Stripe {
+    assertPaymentGatewaysEnabled(this.configService);
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured');
+    }
+    return this.stripe;
   }
 }

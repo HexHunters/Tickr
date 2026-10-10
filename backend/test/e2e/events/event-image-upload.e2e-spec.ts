@@ -40,6 +40,7 @@ import { DOMAIN_EVENT_PUBLISHER } from '../../../src/shared/application/interfac
 import { JwtAuthGuard } from '../../../src/shared/infrastructure/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../src/shared/infrastructure/common/guards/roles.guard';
 
+import { createCheckInStaffFixture } from './helpers/check-in-staff-providers';
 import {
   InMemoryEventRepository,
   MockDomainEventPublisher,
@@ -74,6 +75,7 @@ const JWT_SECRET = 'e2e-test-secret-key-for-events-module-32-chars';
 describe('E2E: Event Image Upload', () => {
   let app: INestApplication<App>;
   let eventRepository: InMemoryEventRepository;
+  let staffFixture: ReturnType<typeof createCheckInStaffFixture>;
   let domainEventPublisher: MockDomainEventPublisher;
   let mockUserValidation: ReturnType<typeof createMockUserValidationService>;
   let mockS3Service: ReturnType<typeof createMockS3Service>;
@@ -88,6 +90,7 @@ describe('E2E: Event Image Upload', () => {
 
   beforeAll(async () => {
     eventRepository = new InMemoryEventRepository();
+    staffFixture = createCheckInStaffFixture(eventRepository);
     domainEventPublisher = new MockDomainEventPublisher();
     mockUserValidation = createMockUserValidationService();
     mockS3Service = createMockS3Service();
@@ -107,6 +110,7 @@ describe('E2E: Event Image Upload', () => {
       ],
       controllers: [EventsController],
       providers: [
+        ...staffFixture.providers,
         EventMapper,
         TicketTypeMapper,
         { provide: EVENT_REPOSITORY, useValue: eventRepository },
@@ -189,11 +193,12 @@ describe('E2E: Event Image Upload', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {
     eventRepository.clear();
+    staffFixture.reset();
     domainEventPublisher.clear();
     jest.clearAllMocks();
 

@@ -17,10 +17,21 @@ import { Public } from '@shared/infrastructure/common/decorators/public.decorato
 
 import { PAYMENT_EVENT_QUERY_PORT } from '../../application/ports/event-query.port';
 import type { PaymentEventQueryPort } from '../../application/ports/event-query.port';
+import { PAYMENT_PROVIDER_FACTORY } from '../../application/ports/payment-provider.port';
+import type { PaymentProviderFactoryPort } from '../../application/ports/payment-provider.port';
+import { PaymentMethod } from '../../domain/value-objects/payment-method.vo';
 
 import { PublicConfigQueryDto } from './dtos/public-config-query.dto';
 
 class PublicConfigResponse {
+  @ApiProperty({
+    description: 'Implemented payment methods enabled for this deployment. Offline is not yet exposed.',
+    enum: PaymentMethod,
+    isArray: true,
+    example: [],
+  })
+  availablePaymentMethods!: PaymentMethod[];
+
   @ApiProperty({
     description: 'Global commission rate configured for the platform',
     example: 0.06,
@@ -57,6 +68,8 @@ export class PublicConfigController {
     private readonly configService: ConfigService,
     @Inject(PAYMENT_EVENT_QUERY_PORT)
     private readonly eventQuery: PaymentEventQueryPort,
+    @Inject(PAYMENT_PROVIDER_FACTORY)
+    private readonly providerFactory: PaymentProviderFactoryPort,
   ) {}
 
   @Get('public')
@@ -94,6 +107,7 @@ export class PublicConfigController {
     }
 
     return {
+      availablePaymentMethods: this.providerFactory.getSupportedMethods(),
       globalCommissionRate,
       commissionRateOverride,
       effectiveCommissionRate:

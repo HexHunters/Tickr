@@ -17,6 +17,7 @@ describe('KonnectAdapter', () => {
     mockConfigService = {
       get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
         const config: Record<string, any> = {
+          'payments.gateways.enabled': true,
           KONNECT_API_URL: 'https://api.preprod.konnect.network/api/v2',
           KONNECT_API_KEY: 'test_key',
           KONNECT_WALLET_ID: 'wallet_123',
@@ -59,6 +60,43 @@ describe('KonnectAdapter', () => {
       updatedAt: new Date(),
     });
   }
+
+  describe('disabled gateways', () => {
+    it.each([false, undefined, 'false', 'true'])(
+      'boots without credentials and blocks every method without fetch for flag=%p',
+      async (enabled) => {
+        const disabledAdapter = new KonnectAdapter(new ConfigService({
+          payments: { gateways: { enabled } },
+        }));
+        const disabledError = { response: expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' }) };
+
+        await expect(disabledAdapter.createPaymentIntent(createMockOrder())).rejects.toMatchObject(disabledError);
+        await expect(disabledAdapter.confirmPayment('kn_existing')).rejects.toMatchObject(disabledError);
+        await expect(disabledAdapter.refund('kn_existing', Money.create(100, 'TND'))).rejects.toMatchObject(disabledError);
+        expect(disabledAdapter.verifyWebhook('secret_123', {})).toBe(false);
+        expect(mockFetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([false, undefined, 'false', 'true'])(
+      'rejects a correctly signed webhook when booted with flag=%p',
+      (enabled) => {
+        const disabledAdapter = new KonnectAdapter(new ConfigService({
+          payments: { gateways: { enabled } },
+          KONNECT_WEBHOOK_SECRET: 'secret_123',
+        }));
+
+        expect(disabledAdapter.verifyWebhook('secret_123', {})).toBe(false);
+      },
+    );
+
+    it('rejects a valid webhook secret when disabled after credentialed boot', () => {
+      mockConfigService.get.mockReturnValue(false);
+
+      expect(adapter.verifyWebhook('secret_123', {})).toBe(false);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
 
   describe('createPaymentIntent', () => {
     it('should create payment and return redirect URL', async () => {
@@ -125,6 +163,17 @@ describe('KonnectAdapter', () => {
 
       expect(result.success).toBe(false);
     });
+
+    it('should throw when the payment status check fails', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 503,
+      });
+
+      await expect(adapter.confirmPayment('kn_ref_123')).rejects.toThrow(
+        'Konnect payment check failed: 503',
+      );
+    });
   });
 
   describe('refund', () => {
@@ -146,5 +195,21 @@ describe('KonnectAdapter', () => {
     it('should return false for invalid signature', () => {
       expect(adapter.verifyWebhook('wrong_secret', {})).toBe(false);
     });
+
+    it.each([
+      ['', 'secret_123'],
+      ['secret_123', ''],
+      ['', ''],
+    ])(
+      'should return false for signature=%p with webhook secret=%p',
+      (signature, webhookSecret) => {
+        const enabledAdapter = new KonnectAdapter(new ConfigService({
+          payments: { gateways: { enabled: true } },
+          KONNECT_WEBHOOK_SECRET: webhookSecret,
+        }));
+
+        expect(enabledAdapter.verifyWebhook(signature, {})).toBe(false);
+      },
+    );
   });
 });

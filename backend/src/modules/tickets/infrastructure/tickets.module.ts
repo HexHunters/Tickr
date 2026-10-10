@@ -1,5 +1,6 @@
 import { EventsModule } from '@modules/events/infrastructure/events.module';
 import { TicketTypeOrmEntity } from '@modules/events/infrastructure/persistence/entities/ticket-type.orm-entity';
+import { OrderOrmEntity } from '@modules/payments/infrastructure/persistence/entities/order.orm-entity';
 import { UsersModule } from '@modules/users/infrastructure/users.module';
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -19,6 +20,7 @@ import { TicketExpiredEventHandler } from '../application/event-handlers/ticket-
 import { CHECK_IN_REPOSITORY } from '../application/ports/check-in.repository.port';
 import { EVENT_CHECK_IN_ACCESS_PORT } from '../application/ports/event-check-in-access.port';
 import { EVENT_QUERY_PORT } from '../application/ports/event-query.port';
+import { ORDER_QUERY_PORT } from '../application/ports/order-query.port';
 import { TICKET_CHECK_IN_PERSISTENCE_PORT } from '../application/ports/ticket-check-in-persistence.port';
 import { TICKET_REPOSITORY } from '../application/ports/ticket.repository.port';
 import { USER_QUERY_PORT } from '../application/ports/user-query.port';
@@ -30,6 +32,7 @@ import { GetUserTicketsHandler } from '../application/queries/get-user-tickets/g
 
 import { EventCheckInAccessAdapter } from './adapters/event-check-in-access.adapter';
 import { EventQueryAdapter } from './adapters/event-query.adapter';
+import { OrderQueryAdapter } from './adapters/order-query.adapter';
 import { UserQueryAdapter } from './adapters/user-query.adapter';
 import { TicketsController } from './controllers/tickets.controller';
 import { DuplicateCheckInInfraHandler } from './event-handlers/duplicate-check-in-infra.listener';
@@ -128,6 +131,11 @@ const userQueryProvider: Provider = {
   useClass: UserQueryAdapter,
 };
 
+const orderQueryProvider: Provider = {
+  provide: ORDER_QUERY_PORT,
+  useClass: OrderQueryAdapter,
+};
+
 /**
  * Tickets Module
  *
@@ -155,10 +163,12 @@ const userQueryProvider: Provider = {
   imports: [
     // TypeORM for persistence
     // Includes TicketTypeOrmEntity for cross-module availability queries
+    // Includes OrderOrmEntity for cross-module order verification
     TypeOrmModule.forFeature([
       TicketOrmEntity,
       CheckInOrmEntity,
       TicketTypeOrmEntity,
+      OrderOrmEntity,
     ]),
 
     // CQRS for command/query separation
@@ -186,6 +196,7 @@ const userQueryProvider: Provider = {
     eventQueryProvider,
     eventCheckInAccessProvider,
     userQueryProvider,
+    orderQueryProvider,
 
     // Infrastructure services
     QRCodeService,

@@ -20,9 +20,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e:http": "jest --config ./test/jest-e2e-http.json",
+    "test:e2e:app": "jest --config ./test/jest-e2e-app.json --runInBand",
     "test:arch": "jest --config ./test/jest-architecture.json",
-    "test:unit": "jest --passWithNoTests",
-    "test:integration": "jest --config ./test/jest-e2e.json --testPathPatterns=integration --passWithNoTests",
+    "test:unit": "jest",
+    "test:integration": "jest --config ./test/jest-integration.json",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:arch",
     "typeorm": "typeorm-ts-node-commonjs",
     "migration:generate": "npm run typeorm -- migration:generate -d src/shared/infrastructure/database/data-source.ts",
@@ -114,7 +116,10 @@
       "ts"
     ],
     "rootDir": ".",
-    "testRegex": ".*\\.spec\\.ts$",
+    "testMatch": [
+      "<rootDir>/src/**/*.spec.ts",
+      "<rootDir>/test/unit/**/*.spec.ts"
+    ],
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
