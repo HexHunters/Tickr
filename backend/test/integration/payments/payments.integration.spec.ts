@@ -14,6 +14,7 @@ import { ProcessPaymentCommand } from '@modules/payments/application/commands/pr
 import { ProcessPaymentHandler } from '@modules/payments/application/commands/process-payment/process-payment.handler';
 import { RequestRefundCommand } from '@modules/payments/application/commands/request-refund/request-refund.command';
 import { RequestRefundHandler } from '@modules/payments/application/commands/request-refund/request-refund.handler';
+import { PAYMENTS_DISABLED_MESSAGE } from '@modules/payments/application/constants/payment-method-disabled.constants';
 import type { PaymentEventQueryPort } from '@modules/payments/application/ports/event-query.port';
 import type { FraudDetectionPort } from '@modules/payments/application/ports/fraud-detection.port';
 import type { OrderRepositoryPort } from '@modules/payments/application/ports/order.repository.port';
@@ -254,6 +255,7 @@ describe('Payments Module - Integration Tests', () => {
       for (const result of [createResult, processResult, refundResult]) {
         expect(result.isFailure).toBe(true);
         expect(result.error.type).toBe('PAYMENT_METHOD_DISABLED');
+        expect(result.error.message).toBe(PAYMENTS_DISABLED_MESSAGE);
       }
       expect(orderRepository.getAll()).toEqual([order]);
       expect((await orderRepository.findById(order.id))?.status).toBe(OrderStatus.PAID);
@@ -271,6 +273,40 @@ describe('Payments Module - Integration Tests', () => {
       for (const spy of [...intentSpies, ...refundSpies]) {
         expect(spy).not.toHaveBeenCalled();
       }
+    });
+  });
+
+  describe('enabled gateway profile', () => {
+    it('lists payment methods exactly when CreateOrderHandler opens its gate on the same ConfigService', async () => {
+      // Konnect is fully configured, so expecting it in the list does not depend on
+      // the factory also listing providers that have no credentials.
+      const config = new ConfigService({
+        payments: { gateways: { enabled: true } },
+        KONNECT_API_KEY: 'konnect-test-key',
+        KONNECT_WALLET_ID: 'konnect-test-wallet',
+        KONNECT_WEBHOOK_SECRET: 'konnect-test-webhook-secret',
+      });
+      const factory = new PaymentProviderFactoryAdapter(
+        new StripeAdapter(config), new KonnectAdapter(config), new PaymeeAdapter(config), config,
+      );
+      const publicConfig = new PublicConfigController(config, mockEventQuery, factory);
+      const createHandler = new CreateOrderHandler(
+        orderRepository, mockEventQuery, mockFraudDetection,
+        mockTicketReservation, mockEventPublisher, config,
+      );
+
+      const { availablePaymentMethods } = await publicConfig.getPublicConfig({});
+      const createResult = await createHandler.execute(new CreateOrderCommand(
+        TEST_USER_ID, TEST_EVENT_ID,
+        [{ ticketTypeId: TEST_TICKET_TYPE_ID, quantity: 1, holders: [{ name: 'A', email: 'a@b.com' }] }],
+        { holderFirstName: 'A', holderLastName: 'User', holderEmail: 'a@b.com' },
+      ));
+
+      // The disabled profile above asserts the converse: [] and PAYMENT_METHOD_DISABLED.
+      expect(availablePaymentMethods).toContain(PaymentMethod.KONNECT);
+      expect(createResult.isSuccess).toBe(true);
+      expect(mockFraudDetection.checkRateLimit).toHaveBeenCalledWith(TEST_USER_ID);
+      expect((await orderRepository.findById(createResult.value.orderId))?.status).toBe(OrderStatus.PENDING);
     });
   });
 

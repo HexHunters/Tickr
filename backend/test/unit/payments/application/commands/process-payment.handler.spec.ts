@@ -1,13 +1,20 @@
 
 import { ProcessPaymentCommand } from '@modules/payments/application/commands/process-payment/process-payment.command';
 import { ProcessPaymentHandler } from '@modules/payments/application/commands/process-payment/process-payment.handler';
+import {
+  PAYMENT_METHOD_DISABLED_MESSAGE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '@modules/payments/application/constants/payment-method-disabled.constants';
 import type { OrderRepositoryPort } from '@modules/payments/application/ports/order.repository.port';
 import type { PaymentProviderFactoryPort, PaymentProviderPort } from '@modules/payments/application/ports/payment-provider.port';
 import type { PaymentRepositoryPort } from '@modules/payments/application/ports/payment.repository.port';
 import { OrderEntity } from '@modules/payments/domain/entities/order.entity';
 import { PaymentEntity } from '@modules/payments/domain/entities/payment.entity';
+import { OrderExpiredException } from '@modules/payments/domain/exceptions/order-expired.exception';
 import { OrderStatus } from '@modules/payments/domain/value-objects/order-status.vo';
 import { PaymentMethod } from '@modules/payments/domain/value-objects/payment-method.vo';
+import { PaymentStatus } from '@modules/payments/domain/value-objects/payment-status.vo';
+import { Result } from '@shared/domain/result';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 describe('ProcessPaymentHandler', () => {
@@ -165,6 +172,21 @@ describe('ProcessPaymentHandler', () => {
       expect(payment.paymentUrl).toBe('https://pay.example.com/existing');
     });
 
+    it.each([
+      [[], PAYMENTS_DISABLED_MESSAGE],
+      [[PaymentMethod.STRIPE, PaymentMethod.PAYMEE], PAYMENT_METHOD_DISABLED_MESSAGE],
+    ])(
+      'rejects KONNECT when the supported methods are %p with message %p',
+      async (supportedMethods, message) => {
+        mockProviderFactory.getSupportedMethods.mockReturnValue(supportedMethods);
+
+        const result = await handler.execute(new ProcessPaymentCommand(validOrderId, validUserId, PaymentMethod.KONNECT));
+
+        expect(result.isFailure).toBe(true);
+        expect(result.error).toEqual({ type: 'PAYMENT_METHOD_DISABLED', message });
+      },
+    );
+
     it('preserves pending intent replay when the method is enabled', async () => {
       const order = createMockOrder({ status: OrderStatus.PROCESSING });
       const payment = PaymentEntity.create({
@@ -211,6 +233,73 @@ describe('ProcessPaymentHandler', () => {
       expect(mockOrderRepo.save).toHaveBeenCalled();
       expect(mockEventPublisher.publishMany).toHaveBeenCalled();
     });
+
+    it.each([PaymentMethod.KONNECT, PaymentMethod.PAYMEE])(
+      'should process an enabled %s payment through its own provider',
+      async (method) => {
+        const order = createMockOrder();
+        mockOrderRepo.findById.mockResolvedValue(order);
+        mockProviderFactory.getSupportedMethods.mockReturnValue([
+          PaymentMethod.STRIPE,
+          PaymentMethod.KONNECT,
+          PaymentMethod.PAYMEE,
+        ]);
+        // Redirect gateways return a payment URL and no client secret.
+        mockProvider.createPaymentIntent.mockResolvedValue({
+          id: 'gw_ref_123',
+          paymentUrl: 'https://gateway.example.com/pay/gw_ref_123',
+          status: 'pending',
+        });
+        // The handler re-saves one PaymentEntity instance, so snapshot what each save persisted.
+        const persistedPayments: Array<
+          Pick<PaymentEntity, 'provider' | 'status' | 'gatewayPaymentRef' | 'paymentUrl'>
+        > = [];
+        mockPaymentRepo.save.mockImplementation((payment) => {
+          persistedPayments.push({
+            provider: payment.provider,
+            status: payment.status,
+            gatewayPaymentRef: payment.gatewayPaymentRef,
+            paymentUrl: payment.paymentUrl,
+          });
+          return Promise.resolve(payment);
+        });
+
+        const command = new ProcessPaymentCommand(validOrderId, validUserId, method);
+
+        const result = await handler.execute(command);
+
+        expect(result.isSuccess).toBe(true);
+        expect(result.value).toEqual({
+          orderId: validOrderId,
+          gatewayRef: 'gw_ref_123',
+          paymentUrl: 'https://gateway.example.com/pay/gw_ref_123',
+        });
+        expect(mockProviderFactory.getProvider).toHaveBeenCalledTimes(1);
+        expect(mockProviderFactory.getProvider).toHaveBeenCalledWith(method);
+        expect(mockProvider.createPaymentIntent).toHaveBeenCalledWith(order);
+        // A retry replays only a PENDING row that carries the gateway ref and URL.
+        expect(persistedPayments).toContainEqual({
+          provider: method,
+          status: PaymentStatus.PENDING,
+          gatewayPaymentRef: 'gw_ref_123',
+          paymentUrl: 'https://gateway.example.com/pay/gw_ref_123',
+        });
+        expect(order.status).toBe(OrderStatus.PROCESSING);
+        expect(order.paymentMethod).toBe(method);
+        expect(order.gatewayPaymentRef).toBe('gw_ref_123');
+        expect(mockOrderRepo.save).toHaveBeenCalledWith(order);
+        expect(mockEventPublisher.publishMany).toHaveBeenCalledTimes(1);
+        expect(mockEventPublisher.publishMany).toHaveBeenCalledWith([
+          expect.objectContaining({
+            eventName: 'OrderProcessingEvent',
+            orderId: validOrderId,
+            userId: validUserId,
+            paymentMethod: method,
+            gatewayRef: 'gw_ref_123',
+          }),
+        ]);
+      },
+    );
 
     it('should allow retry for PROCESSING order', async () => {
       const order = createMockOrder({ status: OrderStatus.PROCESSING });
@@ -327,6 +416,30 @@ describe('ProcessPaymentHandler', () => {
       expect(result.error!.type).toBe('GATEWAY_ERROR');
     });
 
+    it('should fail with INVALID_STATUS without saving the order or publishing when the order refuses PROCESSING', async () => {
+      const order = createMockOrder();
+      mockOrderRepo.findById.mockResolvedValue(order);
+      // Simulates the order expiring while createPaymentIntent is awaited.
+      const transitionError = OrderExpiredException.orderExpired(order.id);
+      const markAsProcessingSpy = jest
+        .spyOn(order, 'markAsProcessing')
+        .mockReturnValue(Result.fail(transitionError));
+
+      const command = new ProcessPaymentCommand(
+        validOrderId,
+        validUserId,
+        PaymentMethod.STRIPE,
+      );
+
+      const result = await handler.execute(command);
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error).toEqual({ type: 'INVALID_STATUS', message: transitionError.message });
+      expect(markAsProcessingSpy).toHaveBeenCalledWith(PaymentMethod.STRIPE, 'pi_123');
+      expect(mockOrderRepo.save).not.toHaveBeenCalled();
+      expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
+    });
+
     it('should fail if persistence fails', async () => {
       const order = createMockOrder();
       mockOrderRepo.findById.mockResolvedValue(order);
@@ -342,6 +455,26 @@ describe('ProcessPaymentHandler', () => {
 
       expect(result.isFailure).toBe(true);
       expect(result.error!.type).toBe('PERSISTENCE_ERROR');
+    });
+
+    it('should fail with PERSISTENCE_ERROR without publishing when saving the order fails after the gateway call', async () => {
+      const order = createMockOrder();
+      mockOrderRepo.findById.mockResolvedValue(order);
+      mockOrderRepo.save.mockRejectedValue(new Error('DB error'));
+
+      const command = new ProcessPaymentCommand(
+        validOrderId,
+        validUserId,
+        PaymentMethod.STRIPE,
+      );
+
+      const result = await handler.execute(command);
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error.type).toBe('PERSISTENCE_ERROR');
+      expect(mockProvider.createPaymentIntent).toHaveBeenCalledWith(order);
+      expect(mockOrderRepo.save).toHaveBeenCalledWith(order);
+      expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
     });
   });
 });

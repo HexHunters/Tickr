@@ -2,13 +2,14 @@
 
 import { ConfirmPaymentHandler } from '@modules/payments/application/commands/confirm-payment/confirm-payment.handler';
 import { FailPaymentHandler } from '@modules/payments/application/commands/fail-payment/fail-payment.handler';
+import { PAYMENTS_DISABLED_MESSAGE } from '@modules/payments/application/constants/payment-method-disabled.constants';
 import { PAYMENT_PROVIDER_FACTORY } from '@modules/payments/application/ports/payment-provider.port';
 import type { PaymentProviderFactoryPort, PaymentProviderPort } from '@modules/payments/application/ports/payment-provider.port';
 import { WEBHOOK_EVENT_STORE } from '@modules/payments/application/ports/webhook-event-store.port';
 import type { WebhookEventStorePort } from '@modules/payments/application/ports/webhook-event-store.port';
 import { PaymentMethod } from '@modules/payments/domain/value-objects/payment-method.vo';
 import { WebhooksController } from '@modules/payments/infrastructure/controllers/webhooks.controller';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Result } from '@shared/domain/result';
 
@@ -91,9 +92,13 @@ describe('WebhooksController', () => {
       mockStripeProvider.verifyWebhook.mockReturnValue(true);
       mockPaymeeProvider.verifyWebhook.mockReturnValue(true);
 
+      // With no gateway enabled the body also carries the "payments disabled" wording;
+      // the wording for a partial enablement is not pinned here, only the code.
       const disabledError = {
         status: 403,
-        response: expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' }),
+        response: othersEnabled
+          ? expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' })
+          : { code: 'PAYMENT_METHOD_DISABLED', message: PAYMENTS_DISABLED_MESSAGE },
       };
       for (const success of [true, false]) {
         if (method === PaymentMethod.STRIPE) {
@@ -138,6 +143,41 @@ describe('WebhooksController', () => {
         expect(provider.createPaymentIntent).not.toHaveBeenCalled();
         expect(provider.refund).not.toHaveBeenCalled();
       }
+    });
+  });
+
+  describe('with only STRIPE enabled', () => {
+    it('processes Stripe callbacks and rejects Konnect and Paymee before getProvider', async () => {
+      mockProviderFactory.getSupportedMethods.mockReturnValue([PaymentMethod.STRIPE]);
+      mockStripeProvider.verifyWebhook.mockReturnValue(true);
+      mockKonnectProvider.confirmPayment.mockResolvedValue({
+        success: true, transactionId: 'txn_kn_1', amount: 104000, currency: 'TND',
+      });
+      mockPaymeeProvider.verifyWebhook.mockReturnValue(true);
+      mockConfirmPaymentHandler.execute.mockResolvedValue(Result.okVoid());
+      const rawBody = Buffer.from(JSON.stringify({
+        id: 'evt_1',
+        type: 'payment_intent.succeeded',
+        data: { object: { id: 'pi_1', metadata: { orderId: 'order-123' }, status: 'succeeded' } },
+      }));
+      const disabledError = {
+        status: 403,
+        response: expect.objectContaining({ code: 'PAYMENT_METHOD_DISABLED' }),
+      };
+
+      await expect(controller.handleStripeWebhook('sig_1', { rawBody })).resolves.toEqual({ received: true });
+      await expect(controller.handleKonnectWebhook('kn_ref_1')).rejects.toMatchObject(disabledError);
+      await expect(controller.handlePaymeeWebhook({
+        token: 'pm_token_1', check_sum: 'valid_checksum', payment_status: true,
+      })).rejects.toMatchObject(disabledError);
+
+      expect(mockProviderFactory.getProvider).toHaveBeenCalledTimes(1);
+      expect(mockProviderFactory.getProvider).toHaveBeenCalledWith(PaymentMethod.STRIPE);
+      expect(mockWebhookEventStore.tryMarkAsProcessed).toHaveBeenCalledTimes(1);
+      expect(mockWebhookEventStore.tryMarkAsProcessed).toHaveBeenCalledWith('evt_1', 'stripe');
+      expect(mockConfirmPaymentHandler.execute).toHaveBeenCalledTimes(1);
+      expect(mockKonnectProvider.confirmPayment).not.toHaveBeenCalled();
+      expect(mockPaymeeProvider.verifyWebhook).not.toHaveBeenCalled();
     });
   });
 
@@ -209,6 +249,30 @@ describe('WebhooksController', () => {
       expect(result).toEqual({ received: true });
       expect(mockConfirmPaymentHandler.execute).not.toHaveBeenCalled();
     });
+
+    it.each([
+      { type: 'payment_intent.succeeded', status: 'succeeded' },
+      { type: 'payment_intent.payment_failed', status: 'failed' },
+    ])('should acknowledge a duplicate $type event without confirming or failing the payment', async ({ type, status }) => {
+      const req = createReq({
+        id: 'evt_stripe_dup',
+        type,
+        data: { object: { id: 'pi_123', metadata: { orderId: 'order-123' }, status } },
+      });
+      mockStripeProvider.verifyWebhook.mockReturnValue(true);
+      // The store already holds this event.
+      mockWebhookEventStore.tryMarkAsProcessed.mockResolvedValue(false);
+      mockWebhookEventStore.isProcessed.mockResolvedValue(true);
+      mockConfirmPaymentHandler.execute.mockResolvedValue(Result.okVoid());
+      mockFailPaymentHandler.execute.mockResolvedValue(Result.ok({ canRetry: true, attemptNumber: 1 }));
+
+      const result = await controller.handleStripeWebhook('sig_123', req);
+
+      expect(result).toEqual({ received: true });
+      expect(mockWebhookEventStore.tryMarkAsProcessed).toHaveBeenCalledWith('evt_stripe_dup', 'stripe');
+      expect(mockConfirmPaymentHandler.execute).not.toHaveBeenCalled();
+      expect(mockFailPaymentHandler.execute).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleKonnectWebhook', () => {
@@ -247,6 +311,30 @@ describe('WebhooksController', () => {
         BadRequestException,
       );
     });
+
+    it.each([true, false])(
+      'should acknowledge a duplicate payment_ref with Konnect success=%p without confirming or failing the payment',
+      async (success) => {
+        // The store already holds this payment_ref.
+        mockWebhookEventStore.tryMarkAsProcessed.mockResolvedValue(false);
+        mockWebhookEventStore.isProcessed.mockResolvedValue(true);
+        mockKonnectProvider.confirmPayment.mockResolvedValue({
+          success,
+          transactionId: 'txn_kn_dup',
+          amount: 104000,
+          currency: 'TND',
+        });
+        mockConfirmPaymentHandler.execute.mockResolvedValue(Result.okVoid());
+        mockFailPaymentHandler.execute.mockResolvedValue(Result.ok({ canRetry: true, attemptNumber: 1 }));
+
+        const result = await controller.handleKonnectWebhook('kn_ref_dup');
+
+        // Whether Konnect is queried before or after deduplication is left open on purpose.
+        expect(result).toEqual({ received: true });
+        expect(mockConfirmPaymentHandler.execute).not.toHaveBeenCalled();
+        expect(mockFailPaymentHandler.execute).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('handlePaymeeWebhook', () => {
@@ -301,6 +389,82 @@ describe('WebhooksController', () => {
 
       await expect(controller.handlePaymeeWebhook(body)).rejects.toThrow(
         BadRequestException,
+      );
+    });
+
+    it.each([true, false])(
+      'should acknowledge a duplicate token with payment_status=%p without confirming or failing the payment',
+      async (paymentStatus) => {
+        const body = {
+          token: 'pm_token_dup',
+          check_sum: 'valid_checksum',
+          payment_status: paymentStatus,
+        };
+        mockPaymeeProvider.verifyWebhook.mockReturnValue(true);
+        // The store already holds this token.
+        mockWebhookEventStore.tryMarkAsProcessed.mockResolvedValue(false);
+        mockWebhookEventStore.isProcessed.mockResolvedValue(true);
+        mockConfirmPaymentHandler.execute.mockResolvedValue(Result.okVoid());
+        mockFailPaymentHandler.execute.mockResolvedValue(Result.ok({ canRetry: true, attemptNumber: 1 }));
+
+        const result = await controller.handlePaymeeWebhook(body);
+
+        expect(result).toEqual({ received: true });
+        expect(mockWebhookEventStore.tryMarkAsProcessed).toHaveBeenCalledWith('pm_token_dup', 'paymee');
+        expect(mockConfirmPaymentHandler.execute).not.toHaveBeenCalled();
+        expect(mockFailPaymentHandler.execute).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe('when the payment command fails', () => {
+    let loggerErrorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      loggerErrorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      loggerErrorSpy.mockRestore();
+    });
+
+    it('should still acknowledge the webhook and log the confirm failure', async () => {
+      mockStripeProvider.verifyWebhook.mockReturnValue(true);
+      // The order expired before the gateway called back, so a retry cannot succeed either.
+      mockConfirmPaymentHandler.execute.mockResolvedValue(
+        Result.fail({ type: 'INVALID_STATUS', message: 'Cannot transition order from EXPIRED to PAID' }),
+      );
+      const rawBody = Buffer.from(JSON.stringify({
+        id: 'evt_stripe_expired_order',
+        type: 'payment_intent.succeeded',
+        data: { object: { id: 'pi_123', metadata: { orderId: 'order-123' }, status: 'succeeded' } },
+      }));
+
+      const result = await controller.handleStripeWebhook('sig_123', { rawBody });
+
+      expect(result).toEqual({ received: true });
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/Failed to confirm payment.*INVALID_STATUS.*Cannot transition order from EXPIRED to PAID/),
+      );
+    });
+
+    it('should still acknowledge the webhook and log the fail-payment failure', async () => {
+      mockPaymeeProvider.verifyWebhook.mockReturnValue(true);
+      mockFailPaymentHandler.execute.mockResolvedValue(
+        Result.fail({ type: 'INVALID_STATUS', message: 'Order already paid' }),
+      );
+
+      const result = await controller.handlePaymeeWebhook({
+        token: 'pm_token_late',
+        check_sum: 'valid_checksum',
+        payment_status: false,
+      });
+
+      expect(result).toEqual({ received: true });
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/Failed to mark payment as failed.*INVALID_STATUS.*Order already paid/),
       );
     });
   });

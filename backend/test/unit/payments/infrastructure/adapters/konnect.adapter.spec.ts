@@ -63,7 +63,7 @@ describe('KonnectAdapter', () => {
 
   describe('disabled gateways', () => {
     it.each([false, undefined, 'false', 'true'])(
-      'boots without credentials and blocks every method without fetch for flag=%s',
+      'boots without credentials and blocks every method without fetch for flag=%p',
       async (enabled) => {
         const disabledAdapter = new KonnectAdapter(new ConfigService({
           payments: { gateways: { enabled } },
@@ -75,6 +75,18 @@ describe('KonnectAdapter', () => {
         await expect(disabledAdapter.refund('kn_existing', Money.create(100, 'TND'))).rejects.toMatchObject(disabledError);
         expect(disabledAdapter.verifyWebhook('secret_123', {})).toBe(false);
         expect(mockFetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([false, undefined, 'false', 'true'])(
+      'rejects a correctly signed webhook when booted with flag=%p',
+      (enabled) => {
+        const disabledAdapter = new KonnectAdapter(new ConfigService({
+          payments: { gateways: { enabled } },
+          KONNECT_WEBHOOK_SECRET: 'secret_123',
+        }));
+
+        expect(disabledAdapter.verifyWebhook('secret_123', {})).toBe(false);
       },
     );
 
@@ -151,6 +163,17 @@ describe('KonnectAdapter', () => {
 
       expect(result.success).toBe(false);
     });
+
+    it('should throw when the payment status check fails', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 503,
+      });
+
+      await expect(adapter.confirmPayment('kn_ref_123')).rejects.toThrow(
+        'Konnect payment check failed: 503',
+      );
+    });
   });
 
   describe('refund', () => {
@@ -172,5 +195,21 @@ describe('KonnectAdapter', () => {
     it('should return false for invalid signature', () => {
       expect(adapter.verifyWebhook('wrong_secret', {})).toBe(false);
     });
+
+    it.each([
+      ['', 'secret_123'],
+      ['secret_123', ''],
+      ['', ''],
+    ])(
+      'should return false for signature=%p with webhook secret=%p',
+      (signature, webhookSecret) => {
+        const enabledAdapter = new KonnectAdapter(new ConfigService({
+          payments: { gateways: { enabled: true } },
+          KONNECT_WEBHOOK_SECRET: webhookSecret,
+        }));
+
+        expect(enabledAdapter.verifyWebhook(signature, {})).toBe(false);
+      },
+    );
   });
 });
