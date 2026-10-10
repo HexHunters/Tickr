@@ -27,7 +27,9 @@ describe('AppController (e2e)', () => {
       JWT_SECRET: 'app-e2e-test-only-secret-not-for-production',
       PAYMENT_GATEWAYS_ENABLED: 'false', OFFLINE_PAYMENT_ENABLED: 'false',
     });
-    const { AppModule } = await import('../src/app.module');
+    // Not import(): under module=nodenext it stays a native ESM import, which
+    // Jest cannot run without --experimental-vm-modules (and tsc cannot resolve).
+    const { AppModule } = jest.requireActual<typeof import('../src/app.module')>('../src/app.module');
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

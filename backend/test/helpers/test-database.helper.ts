@@ -37,9 +37,15 @@ export class TestDatabaseHelper {
     if (!source?.isInitialized) return;
     await this.assertTarget(source);
     const quote = (identifier: string): string => `"${identifier.replace(/"/g, '""')}"`;
-    const tables = [...new Set(source.entityMetadatas.map((entity) =>
-      `${quote(entity.schema || 'public')}.${quote(entity.tableName)}`,
-    ))];
+    // Some entities (payments, analytics) have no migration yet, so their tables
+    // may not exist; one missing relation would abort the whole TRUNCATE.
+    const existing: { schemaname: string; tablename: string }[] = await source.query(
+      'SELECT schemaname, tablename FROM pg_catalog.pg_tables',
+    );
+    const existingTables = new Set(existing.map((row) => `${row.schemaname}.${row.tablename}`));
+    const tables = [...new Set(source.entityMetadatas
+      .filter((entity) => existingTables.has(`${entity.schema || 'public'}.${entity.tableName}`))
+      .map((entity) => `${quote(entity.schema || 'public')}.${quote(entity.tableName)}`))];
     // One schema-qualified statement; no CASCADE into unknown tables.
     // Migration history is not an entity and remains intact.
     if (tables.length) await source.query(`TRUNCATE TABLE ${tables.join(', ')} RESTART IDENTITY`);
