@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Logger,
   BadRequestException,
+  ForbiddenException,
   Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
@@ -18,6 +19,10 @@ import { ConfirmPaymentCommand } from '../../application/commands/confirm-paymen
 import { ConfirmPaymentHandler } from '../../application/commands/confirm-payment/confirm-payment.handler';
 import { FailPaymentCommand } from '../../application/commands/fail-payment/fail-payment.command';
 import { FailPaymentHandler } from '../../application/commands/fail-payment/fail-payment.handler';
+import {
+  PAYMENT_METHOD_DISABLED,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '../../application/constants/payment-method-disabled.constants';
 import { PAYMENT_PROVIDER_FACTORY } from '../../application/ports/payment-provider.port';
 import type { PaymentProviderFactoryPort } from '../../application/ports/payment-provider.port';
 import { WEBHOOK_EVENT_STORE } from '../../application/ports/webhook-event-store.port';
@@ -45,7 +50,7 @@ export class WebhooksController {
     @Headers('stripe-signature') signature: string,
     @Req() req: { rawBody?: Buffer },
   ) {
-    const provider = this.providerFactory.getProvider(PaymentMethod.STRIPE);
+    const provider = this.getEnabledProvider(PaymentMethod.STRIPE);
     const rawBody = req.rawBody;
 
     if (!signature || !rawBody) {
@@ -102,6 +107,7 @@ export class WebhooksController {
   async handleKonnectWebhook(
     @Query('payment_ref') paymentRef: string,
   ) {
+    const provider = this.getEnabledProvider(PaymentMethod.KONNECT);
     if (!paymentRef) {
       throw new BadRequestException('Missing payment_ref');
     }
@@ -115,7 +121,6 @@ export class WebhooksController {
 
     this.logger.debug(`Konnect webhook received: ${paymentRef}`);
 
-    const provider = this.providerFactory.getProvider(PaymentMethod.KONNECT);
     const paymentResult = await provider.confirmPayment(paymentRef);
 
     // Find the order associated with this payment ref
@@ -148,11 +153,11 @@ export class WebhooksController {
       amount?: number;
     },
   ) {
+    const provider = this.getEnabledProvider(PaymentMethod.PAYMEE);
     if (!body.token || !body.check_sum) {
       throw new BadRequestException('Missing token or check_sum');
     }
 
-    const provider = this.providerFactory.getProvider(PaymentMethod.PAYMEE);
     const isValid = provider.verifyWebhook('', body);
 
     if (!isValid) {
@@ -186,6 +191,16 @@ export class WebhooksController {
   // ============================================
   // Private helpers
   // ============================================
+
+  private getEnabledProvider(method: PaymentMethod) {
+    if (!this.providerFactory.getSupportedMethods().includes(method)) {
+      throw new ForbiddenException({
+        code: PAYMENT_METHOD_DISABLED,
+        message: PAYMENTS_DISABLED_MESSAGE,
+      });
+    }
+    return this.providerFactory.getProvider(method);
+  }
 
   private async handlePaymentSuccess(
     gatewayRef: string,

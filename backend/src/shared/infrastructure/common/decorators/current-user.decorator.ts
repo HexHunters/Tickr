@@ -10,7 +10,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
  * async getProfile(@CurrentUser() user: User) { ... }
  * 
  * @Get()
- * async getProfile(@CurrentUser('id') userId: string) { ... }
+ * async getProfile(@CurrentUser('userId') userId: string) { ... }
  */
 export const CurrentUser = createParamDecorator(
   (data: string | undefined, ctx: ExecutionContext) => {

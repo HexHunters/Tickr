@@ -18,6 +18,7 @@ import { GetNotificationByIdHandler } from '@modules/notifications/application/q
 import { GetUserNotificationsHandler } from '@modules/notifications/application/queries/get-user-notifications/get-user-notifications.handler';
 import { GetUserPreferencesHandler } from '@modules/notifications/application/queries/get-user-preferences/get-user-preferences.handler';
 import { NotificationsController } from '@modules/notifications/infrastructure/controllers/notifications.controller';
+import { JwtStrategy } from '@modules/users/infrastructure/strategies/jwt.strategy';
 import { HttpStatus, ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -63,7 +64,7 @@ describe('Notification Lifecycle E2E', () => {
 
     const module = await Test.createTestingModule({
       imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
+        ConfigModule.forRoot({ isGlobal: true, load: [() => ({ JWT_SECRET: 'test-secret' })] }),
         JwtModule.register({
           secret: 'test-secret',
           signOptions: { expiresIn: '1h' },
@@ -71,6 +72,7 @@ describe('Notification Lifecycle E2E', () => {
       ],
       controllers: [NotificationsController],
       providers: [
+        JwtStrategy,
         { provide: NOTIFICATION_REPOSITORY, useValue: notificationRepo },
         { provide: NOTIFICATION_PREFERENCE_REPOSITORY, useValue: preferenceRepo },
         { provide: NOTIFICATION_TEMPLATE_REPOSITORY, useValue: templateRepo },
@@ -93,23 +95,6 @@ describe('Notification Lifecycle E2E', () => {
     app = module.createNestApplication();
 
     jwtService = module.get<JwtService>(JwtService);
-    app.use((req: any, _res: any, next: any) => {
-      const authHeader = req.headers?.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        try {
-          const payload = jwtService.verify(authHeader.substring(7));
-          req.user = {
-            id: payload.sub,
-            userId: payload.sub,
-            email: payload.email,
-            role: payload.role,
-          };
-        } catch {
-          /* leave req.user undefined */
-        }
-      }
-      next();
-    });
 
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, transform: true }),
@@ -120,12 +105,12 @@ describe('Notification Lifecycle E2E', () => {
     userToken = generateTestToken(jwtService, {
       userId: TEST_USER_IDS.user1,
       email: 'user1@tickr.tn',
-      role: 'USER',
+      role: 'PARTICIPANT',
     });
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {
@@ -267,8 +252,9 @@ describe('Notification Lifecycle E2E', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .expect(HttpStatus.OK);
 
-      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
-      expect(response.body.total).toBeGreaterThanOrEqual(1);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.total).toBe(1);
+      expect(response.body.data[0].userId).toBe(TEST_USER_IDS.user1);
     });
 
     it('should return 401 without auth token', async () => {
@@ -335,7 +321,7 @@ describe('Notification Lifecycle E2E', () => {
       const user2Token = generateTestToken(jwtService, {
         userId: TEST_USER_IDS.user2,
         email: 'user2@tickr.tn',
-        role: 'USER',
+        role: 'PARTICIPANT',
       });
 
       await request(app.getHttpServer())

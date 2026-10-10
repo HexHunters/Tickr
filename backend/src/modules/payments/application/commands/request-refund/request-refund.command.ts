@@ -1,6 +1,7 @@
 import { BaseCommand } from '@shared/application/interfaces/command.interface';
 
 export type RequestRefundError =
+  | { type: 'PAYMENT_METHOD_DISABLED'; message: string }
   | { type: 'ORDER_NOT_FOUND'; message: string }
   | { type: 'INVALID_STATUS'; message: string }
   | { type: 'REFUND_NOT_ALLOWED'; message: string }

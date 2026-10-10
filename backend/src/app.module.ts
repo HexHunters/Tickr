@@ -11,7 +11,7 @@ import awsConfig from './config/aws.config';
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
 import notificationConfig from './config/notification.config';
-import paymentsConfig from './config/payments.config';
+import paymentsConfig, { paymentFeatureFlagsSchema } from './config/payments.config';
 import redisConfig from './config/redis.config';
 import { AnalyticsModule } from './modules/analytics/infrastructure/analytics.module';
 import { EventsModule } from './modules/events/infrastructure/events.module';
@@ -64,6 +64,7 @@ import { EventBusModule } from './shared/infrastructure/events/event-bus.module'
         JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
 
         // Payments
+        ...paymentFeatureFlagsSchema,
         PLATFORM_COMMISSION_RATE: Joi.number().min(0).max(0.2).default(0.06),
       }),
       validationOptions: {

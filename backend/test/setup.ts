@@ -2,13 +2,15 @@
  * Test Setup Configuration
  * 
  * This file configures the test environment for integration and E2E tests.
- * It ensures proper database connection and cleanup.
+ * Loads test configuration only; it does not initialize or clean a database.
  */
+
+import { resolve } from 'path';
 
 import { config } from 'dotenv';
 
 // Load test environment variables
-config({ path: '.env.test' });
+config({ path: resolve(__dirname, '../.env.test') });
 
 // Set test environment
 process.env.NODE_ENV = 'test';

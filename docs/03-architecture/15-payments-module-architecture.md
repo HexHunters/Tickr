@@ -116,14 +116,16 @@ src/modules/payments/
 Payment gateways are abstracted behind `PaymentProviderPort`. A factory selects the appropriate adapter based on the payment method:
 
 ```
-PaymentMethod → PaymentProviderFactory → Adapter
-  CARD          → StripeAdapter
-  KONNECT       → KonnectAdapter
-  PAYMEE        → PaymeeAdapter
+PaymentMethod → PaymentProviderFactory → Adapter (if configured)
+  CARD          → StripeAdapter         (requires STRIPE_SECRET_KEY)
+  KONNECT       → KonnectAdapter        (requires KONNECT_API_KEY)
+  PAYMEE        → PaymeeAdapter         (requires PAYMEE_API_KEY)
 ```
 
-Adding a new gateway requires only:
-1. New adapter implementing `PaymentProviderPort`
+The factory's `getSupportedMethods()` filters providers by their `isConfigured()` status, ensuring only gateways with valid credentials are exposed to clients via `/config/public`.
+
+Adding a new gateway requires:
+1. New adapter implementing `PaymentProviderPort` (including `isConfigured()`)
 2. One registration in the factory
 
 Zero changes to domain or application layers.
@@ -138,10 +140,14 @@ Orders follow a strict state machine:
 
 ```
 PENDING → PROCESSING → PAID → (REFUNDED)
-                    ↘ FAILED
+                    ↘ FAILED    ↑
+                                │ only on gateway success
+                                │ (GATEWAY_ERROR keeps PAID)
 PENDING → EXPIRED (via cron)
 PENDING → CANCELLED (user action)
 ```
+
+**Refund behavior**: When a refund is requested, the handler verifies ownership (`order.userId === command.userId`) and calls the payment gateway. If the gateway returns success, the order transitions to `REFUNDED`. If the gateway fails or declines, the handler returns `GATEWAY_ERROR` and the order remains `PAID` — it is never blindly marked as refunded.
 
 Invalid transitions are rejected by the `OrderStatusVO`.
 

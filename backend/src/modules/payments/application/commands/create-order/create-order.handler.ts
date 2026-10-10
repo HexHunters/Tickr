@@ -5,6 +5,7 @@ import { Money } from '@shared/domain/value-objects/money.vo';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 import { OrderEntity } from '../../../domain/entities/order.entity';
+import { PAYMENTS_DISABLED_MESSAGE } from '../../constants/payment-method-disabled.constants';
 import { PAYMENT_EVENT_QUERY_PORT } from '../../ports/event-query.port';
 import type { PaymentEventQueryPort } from '../../ports/event-query.port';
 import { FRAUD_DETECTION_PORT } from '../../ports/fraud-detection.port';
@@ -41,13 +42,24 @@ export class CreateOrderHandler {
     this.commissionRate =
       this.configService.get<number>('payments.commission.rate') ??
       this.configService.get<number>('PLATFORM_COMMISSION_RATE', 0.06);
-    this.expirationMinutes = this.configService.get<number>('ORDER_EXPIRATION_MINUTES', 15);
+    // Use the validated config (already parsed as number in payments.config.ts)
+    this.expirationMinutes =
+      this.configService.get<number>('payments.order.expirationMinutes') ?? 15;
   }
 
   async execute(
     command: CreateOrderCommand,
   ): Promise<Result<CreateOrderResult, CreateOrderError>> {
     this.logger.debug(`Creating order for user ${command.userId}, event ${command.eventId}`);
+
+    // Current order creation supports gateways only. The offline policy flag must
+    // not expose reservations before the atomic offline flow is implemented.
+    if (this.configService.get<boolean>('payments.gateways.enabled', false) !== true) {
+      return Result.fail({
+        type: 'PAYMENT_METHOD_DISABLED',
+        message: PAYMENTS_DISABLED_MESSAGE,
+      });
+    }
 
     // 1. Fraud check: rate limit
     const withinRateLimit = await this.fraudDetection.checkRateLimit(command.userId);

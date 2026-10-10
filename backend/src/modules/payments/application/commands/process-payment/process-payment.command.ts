@@ -3,6 +3,7 @@ import { BaseCommand } from '@shared/application/interfaces/command.interface';
 import { PaymentMethod } from '../../../domain/value-objects/payment-method.vo';
 
 export type ProcessPaymentError =
+  | { type: 'PAYMENT_METHOD_DISABLED'; message: string }
   | { type: 'ORDER_NOT_FOUND'; message: string }
   | { type: 'ORDER_EXPIRED'; message: string }
   | { type: 'INVALID_STATUS'; message: string }

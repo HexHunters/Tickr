@@ -11,6 +11,7 @@ export type OrderItemInput = {
 };
 
 export type CreateOrderError =
+  | { type: 'PAYMENT_METHOD_DISABLED'; message: string }
   | { type: 'VALIDATION_ERROR'; message: string }
   | { type: 'EVENT_NOT_FOUND'; message: string }
   | { type: 'EVENT_NOT_PUBLISHED'; message: string }

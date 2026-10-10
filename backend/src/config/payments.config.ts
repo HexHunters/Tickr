@@ -1,6 +1,20 @@
 import { registerAs } from '@nestjs/config';
+import * as Joi from 'joi';
+
+export const paymentFeatureFlagsSchema = {
+  PAYMENT_GATEWAYS_ENABLED: Joi.string().valid('true', 'false').default('false'),
+  OFFLINE_PAYMENT_ENABLED: Joi.string().valid('true', 'false').default('false'),
+};
 
 export default registerAs('payments', () => ({
+  gateways: {
+    enabled: process.env.PAYMENT_GATEWAYS_ENABLED === 'true',
+  },
+  offline: {
+    // Policy flag only: no OFFLINE provider is exposed until the flow is complete.
+    // Default to false (fail closed) until the offline flow is implemented.
+    enabled: (process.env.OFFLINE_PAYMENT_ENABLED ?? 'false') === 'true',
+  },
   commission: {
     /** Platform commission rate (0.06 = 6%) */
     rate: parseFloat(process.env.PLATFORM_COMMISSION_RATE || '0.06'),

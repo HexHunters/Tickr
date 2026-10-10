@@ -3,6 +3,8 @@ import { DOMAIN_EVENT_PUBLISHER } from '@shared/application/interfaces/domain-ev
 import type { DomainEventPublisherPort } from '@shared/application/interfaces/domain-event-publisher.port';
 import { Result } from '@shared/domain/result';
 
+import { ORDER_QUERY_PORT } from '../../ports/order-query.port';
+import type { OrderQueryPort } from '../../ports/order-query.port';
 import { TICKET_REPOSITORY } from '../../ports/ticket.repository.port';
 import type { TicketRepositoryPort } from '../../ports/ticket.repository.port';
 
@@ -35,6 +37,8 @@ export class ConfirmTicketsHandler {
   constructor(
     @Inject(TICKET_REPOSITORY)
     private readonly ticketRepository: TicketRepositoryPort,
+    @Inject(ORDER_QUERY_PORT)
+    private readonly orderQuery: OrderQueryPort,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisherPort,
   ) {}
 
@@ -63,7 +67,45 @@ export class ConfirmTicketsHandler {
     }
 
     // ============================================
-    // 2. Confirm each ticket
+    // 2. Verify ownership (when userId provided — HTTP flow)
+    // ============================================
+    if (command.userId) {
+      const notOwned = tickets.filter((t) => t!.userId !== command.userId);
+      if (notOwned.length > 0) {
+        return Result.fail({
+          type: 'NOT_TICKET_OWNER',
+          message: 'You do not own all the tickets being confirmed',
+        });
+      }
+    }
+
+    // ============================================
+    // 3. Verify order is PAID (when userId provided — HTTP flow)
+    // ============================================
+    if (command.userId) {
+      const order = await this.orderQuery.findById(command.orderId);
+      if (!order) {
+        return Result.fail({
+          type: 'INVALID_ORDER',
+          message: `Order ${command.orderId} not found`,
+        });
+      }
+      if (order.userId !== command.userId) {
+        return Result.fail({
+          type: 'INVALID_ORDER',
+          message: `Order ${command.orderId} not found`,
+        });
+      }
+      if (order.status !== 'PAID') {
+        return Result.fail({
+          type: 'INVALID_ORDER',
+          message: 'Order must be paid before confirming tickets',
+        });
+      }
+    }
+
+    // ============================================
+    // 4. Confirm each ticket
     // ============================================
     const errors: string[] = [];
     const confirmed = [];
@@ -85,13 +127,13 @@ export class ConfirmTicketsHandler {
     }
 
     // ============================================
-    // 3. Save confirmed tickets
+    // 5. Save confirmed tickets
     // ============================================
     try {
       await this.ticketRepository.saveAll(confirmed);
 
       // ============================================
-      // 4. Publish domain events
+      // 6. Publish domain events
       // ============================================
       for (const ticket of confirmed) {
         await this.eventPublisher.publishFromAggregate(ticket);

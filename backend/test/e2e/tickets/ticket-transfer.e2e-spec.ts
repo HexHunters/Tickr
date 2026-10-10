@@ -11,7 +11,10 @@ import { ExpireTicketsHandler } from '@modules/tickets/application/commands/expi
 import { ReserveTicketsHandler } from '@modules/tickets/application/commands/reserve-tickets/reserve-tickets.handler';
 import { TransferTicketHandler } from '@modules/tickets/application/commands/transfer-ticket/transfer-ticket.handler';
 import { CHECK_IN_REPOSITORY } from '@modules/tickets/application/ports/check-in.repository.port';
+import { EVENT_CHECK_IN_ACCESS_PORT } from '@modules/tickets/application/ports/event-check-in-access.port';
 import { EVENT_QUERY_PORT } from '@modules/tickets/application/ports/event-query.port';
+import { ORDER_QUERY_PORT } from '@modules/tickets/application/ports/order-query.port';
+import { TICKET_CHECK_IN_PERSISTENCE_PORT } from '@modules/tickets/application/ports/ticket-check-in-persistence.port';
 import { TICKET_REPOSITORY } from '@modules/tickets/application/ports/ticket.repository.port';
 import { USER_QUERY_PORT } from '@modules/tickets/application/ports/user-query.port';
 import { GetEventCheckInStatsHandler } from '@modules/tickets/application/queries/get-event-check-in-stats/get-event-check-in-stats.handler';
@@ -22,6 +25,7 @@ import { GetUserTicketsHandler } from '@modules/tickets/application/queries/get-
 import { TicketStatus } from '@modules/tickets/domain/value-objects/ticket-status.vo';
 import { TicketsController } from '@modules/tickets/infrastructure/controllers/tickets.controller';
 import { TicketS3StorageService } from '@modules/tickets/infrastructure/services/ticket-s3-storage.service';
+import { JwtStrategy } from '@modules/users/infrastructure/strategies/jwt.strategy';
 import { HttpStatus, ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -35,7 +39,10 @@ import request from 'supertest';
 import {
   InMemoryTicketRepository,
   InMemoryCheckInRepository,
+  InMemoryTicketCheckInPersistence,
+  MockEventCheckInAccessAdapter,
   MockEventQueryAdapter,
+  MockOrderQueryAdapter,
   MockUserQueryAdapter,
   MockDomainEventPublisher,
   MockTicketS3StorageService,
@@ -60,14 +67,18 @@ describe('Ticket Transfer E2E', () => {
 
     const module = await Test.createTestingModule({
       imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
+        ConfigModule.forRoot({ isGlobal: true, load: [() => ({ JWT_SECRET: 'test-secret' })] }),
         JwtModule.register({ secret: 'test-secret', signOptions: { expiresIn: '1h' } }),
       ],
       controllers: [TicketsController],
       providers: [
+        JwtStrategy,
+        { provide: EVENT_CHECK_IN_ACCESS_PORT, useValue: new MockEventCheckInAccessAdapter(eventQueryAdapter) },
+        { provide: TICKET_CHECK_IN_PERSISTENCE_PORT, useValue: new InMemoryTicketCheckInPersistence(ticketRepository, checkInRepository) },
         { provide: TICKET_REPOSITORY, useValue: ticketRepository },
         { provide: CHECK_IN_REPOSITORY, useValue: checkInRepository },
         { provide: EVENT_QUERY_PORT, useValue: eventQueryAdapter },
+        { provide: ORDER_QUERY_PORT, useValue: new MockOrderQueryAdapter() },
         { provide: USER_QUERY_PORT, useValue: userQueryAdapter },
         { provide: DOMAIN_EVENT_PUBLISHER, useValue: eventPublisher },
         { provide: TicketS3StorageService, useValue: new MockTicketS3StorageService() },
@@ -89,18 +100,6 @@ describe('Ticket Transfer E2E', () => {
 
     app = module.createNestApplication();
 
-    const jwtSvc = module.get<JwtService>(JwtService);
-    app.use((req: any, _res: any, next: any) => {
-      const authHeader = req.headers?.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        try {
-          const payload = jwtSvc.verify(authHeader.substring(7));
-          req.user = { userId: payload.sub, email: payload.email, role: payload.role };
-        } catch { /* leave req.user undefined */ }
-      }
-      next();
-    });
-
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     app.setGlobalPrefix('api');
     await app.init();
@@ -119,7 +118,7 @@ describe('Ticket Transfer E2E', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {

@@ -4,6 +4,7 @@
 
 import { ConfirmTicketsCommand } from '@modules/tickets/application/commands/confirm-tickets/confirm-tickets.command';
 import { ConfirmTicketsHandler } from '@modules/tickets/application/commands/confirm-tickets/confirm-tickets.handler';
+import type { OrderQueryPort } from '@modules/tickets/application/ports/order-query.port';
 import type { TicketRepositoryPort } from '@modules/tickets/application/ports/ticket.repository.port';
 import { TicketEntity, QRCodeVO, TicketStatus } from '@modules/tickets/domain';
 import { Logger } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event
 describe('ConfirmTicketsHandler', () => {
   let handler: ConfirmTicketsHandler;
   let mockTicketRepository: jest.Mocked<TicketRepositoryPort>;
+  let mockOrderQuery: jest.Mocked<OrderQueryPort>;
   let mockEventPublisher: jest.Mocked<DomainEventPublisher>;
 
   const ticketId1 = '550e8400-e29b-41d4-a716-446655440010';
@@ -51,11 +53,19 @@ describe('ConfirmTicketsHandler', () => {
       findById: jest.fn(),
     } as any;
 
+    mockOrderQuery = {
+      findById: jest.fn().mockResolvedValue({
+        id: orderId,
+        userId: '550e8400-e29b-41d4-a716-446655440003',
+        status: 'PAID',
+      }),
+    };
+
     mockEventPublisher = {
       publishFromAggregate: jest.fn(),
     } as any;
 
-    handler = new ConfirmTicketsHandler(mockTicketRepository, mockEventPublisher);
+    handler = new ConfirmTicketsHandler(mockTicketRepository, mockOrderQuery, mockEventPublisher);
 
     jest.spyOn(Logger.prototype, 'debug').mockImplementation();
     jest.spyOn(Logger.prototype, 'log').mockImplementation();

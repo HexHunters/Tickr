@@ -5,7 +5,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard, ThrottlerStorage, ThrottlerStorageService } from '@nestjs/throttler';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
@@ -196,6 +196,7 @@ class MockVerificationTokenRepository {
  */
 describe('E2E: Authentication Flow', () => {
   let app: INestApplication<App>;
+  let throttleStorage: ThrottlerStorageService;
   let userRepository: InMemoryUserRepository;
   let verificationTokenRepository: MockVerificationTokenRepository;
   let jwtService: JwtTokenService;
@@ -255,6 +256,7 @@ describe('E2E: Authentication Flow', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    throttleStorage = moduleFixture.get<ThrottlerStorageService>(ThrottlerStorage);
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.setGlobalPrefix('api');
     await app.init();
@@ -264,11 +266,15 @@ describe('E2E: Authentication Flow', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {
     userRepository.clear();
+    verificationTokenRepository.clear();
+    // Isolate clients between tests without bypassing real per-route limits.
+    throttleStorage.onApplicationShutdown();
+    throttleStorage.storage.clear();
   });
 
   describe('JWT Token Generation and Validation', () => {
@@ -742,8 +748,8 @@ describe('E2E: Authentication Flow', () => {
       expect(response.status).toBe(HttpStatus.CREATED);
     });
 
-    it('should allow sequential password reset requests for different emails', async () => {
-      // Make sequential requests - all should succeed with test config
+    it('should allow three reset requests, then throttle the same client regardless of email', async () => {
+      // The real route allows three requests per IP, not per email address.
       for (let i = 0; i < 3; i++) {
         const response = await request(app.getHttpServer())
           .post('/api/auth/request-reset')
@@ -751,6 +757,10 @@ describe('E2E: Authentication Flow', () => {
         
         expect(response.status).toBe(HttpStatus.OK);
       }
+      await request(app.getHttpServer())
+        .post('/api/auth/request-reset')
+        .send({ email: 'ratelimit3@example.com' })
+        .expect(HttpStatus.TOO_MANY_REQUESTS);
     });
   });
 
