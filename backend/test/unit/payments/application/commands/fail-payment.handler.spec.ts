@@ -44,7 +44,7 @@ describe('FailPaymentHandler', () => {
       refundedAt: null,
       refundReason: null,
       expiresAt: futureDate,
-      metadata: null,
+      metadata: { ticketIds: ['ticket-1', 'ticket-2'] },
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -77,6 +77,7 @@ describe('FailPaymentHandler', () => {
       findByEventId: jest.fn(),
       findExpired: jest.fn(),
       countByUserIdSince: jest.fn(),
+      findByGatewayPaymentRef: jest.fn(),
     };
 
     mockPaymentRepo = {

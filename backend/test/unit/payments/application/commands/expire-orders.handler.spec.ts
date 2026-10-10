@@ -36,7 +36,7 @@ describe('ExpireOrdersHandler', () => {
       refundedAt: null,
       refundReason: null,
       expiresAt: pastDate,
-      metadata: null,
+      metadata: { ticketIds: ['ticket-1', 'ticket-2'] },
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -50,6 +50,7 @@ describe('ExpireOrdersHandler', () => {
       findByEventId: jest.fn(),
       findExpired: jest.fn().mockResolvedValue([]),
       countByUserIdSince: jest.fn(),
+      findByGatewayPaymentRef: jest.fn(),
     };
 
     mockTicketReservation = {
@@ -143,7 +144,7 @@ describe('ExpireOrdersHandler', () => {
         refundedAt: null,
         refundReason: null,
         expiresAt: new Date(Date.now() - 60000),
-        metadata: null,
+        metadata: { ticketIds: ['ticket-1', 'ticket-2'] },
         createdAt: new Date(),
         updatedAt: new Date(),
       });

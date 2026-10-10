@@ -163,6 +163,10 @@ class InMemoryOrderRepository implements OrderRepositoryPort {
   async countByUserIdSince(): Promise<number> {
     return 0;
   }
+
+  async findByGatewayPaymentRef(ref: string): Promise<OrderEntity | null> {
+    return [...this.orders.values()].find((o) => o.gatewayPaymentRef === ref) ?? null;
+  }
 }
 
 function createPorts() {
@@ -258,6 +262,7 @@ async function bootPaymentApi(
       { provide: PAYMENT_PROVIDER_FACTORY, useClass: PaymentProviderFactoryAdapter },
       { provide: PAYMENT_EVENT_QUERY_PORT, useValue: ports.eventQuery },
       { provide: WEBHOOK_EVENT_STORE, useValue: ports.dedupe },
+      { provide: ORDER_REPOSITORY, useValue: ports.orders },
       { provide: ConfirmPaymentHandler, useValue: ports.confirmPayment },
       { provide: FailPaymentHandler, useValue: ports.failPayment },
       { provide: GetOrderByIdHandler, useValue: { execute: jest.fn() } },

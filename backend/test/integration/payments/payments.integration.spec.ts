@@ -77,6 +77,10 @@ class InMemoryOrderRepository implements OrderRepositoryPort {
     return 0;
   }
 
+  async findByGatewayPaymentRef(ref: string): Promise<OrderEntity | null> {
+    return this.orders.find((o) => o.gatewayPaymentRef === ref) || null;
+  }
+
   getAll(): OrderEntity[] {
     return this.orders;
   }

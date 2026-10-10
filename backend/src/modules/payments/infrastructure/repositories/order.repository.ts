@@ -120,4 +120,17 @@ export class OrderTypeOrmRepository implements OrderRepositoryPort {
       .andWhere('order.created_at >= :since', { since })
       .getCount();
   }
+
+  async findByGatewayPaymentRef(ref: string): Promise<OrderEntity | null> {
+    const entity = await this.repository.findOne({
+      where: { gatewayPaymentRef: ref },
+      relations: ['items'],
+    });
+
+    if (!entity) {
+      return null;
+    }
+
+    return this.mapper.toDomain(entity);
+  }
 }
