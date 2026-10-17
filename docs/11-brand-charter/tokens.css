@@ -1,0 +1,121 @@
+/* Generated token values from tokens.json. Keep both files in sync. */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./assets/fonts/manrope-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Readex Pro';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/readex-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Readex Pro';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/readex-arabic.woff2') format('woff2');
+  unicode-range:
+    U+0600-06FF, U+0750-077F, U+0870-0891, U+0897-08E1, U+08E3-08FF,
+    U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74,
+    U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC7, U+10EC9-10EEE,
+    U+10EF0-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24,
+    U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47,
+    U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59,
+    U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64-1EE6A, U+1EE6C-1EE72,
+    U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B,
+    U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+
+:root {
+  --color-canvas: #f7f9f8;
+  --color-surface: #ffffff;
+  --color-ink: #233a42;
+  --color-muted: #52656b;
+  --color-action: #315b64;
+  --color-action-hover: #264851;
+  --color-line: #d9e2e1;
+  --color-control: #75878c;
+  --color-mist: #dceaf3;
+  --color-sage: #dde9df;
+  --color-lilac: #e7e1f0;
+  --color-shell: #f2ded7;
+  --color-butter: #f2ebcf;
+  --color-night: #203840;
+  --color-success: #32634f;
+  --color-warning: #76581c;
+  --color-error: #8d433f;
+  --font-ui: 'Manrope', sans-serif;
+  --font-arabic: 'Readex Pro', sans-serif;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+  --type-12-size: 12px;
+  --type-12-line-height: 18px;
+  --type-12-tracking: 0em;
+  --type-14-size: 14px;
+  --type-14-line-height: 22px;
+  --type-14-tracking: 0em;
+  --type-16-size: 16px;
+  --type-16-line-height: 26px;
+  --type-16-tracking: 0em;
+  --type-18-size: 18px;
+  --type-18-line-height: 28px;
+  --type-18-tracking: -0.01em;
+  --type-24-size: 24px;
+  --type-24-line-height: 32px;
+  --type-24-tracking: -0.02em;
+  --type-32-size: 32px;
+  --type-32-line-height: 40px;
+  --type-32-tracking: -0.025em;
+  --type-48-size: 48px;
+  --type-48-line-height: 56px;
+  --type-48-tracking: -0.04em;
+  --type-72-size: 72px;
+  --type-72-line-height: 80px;
+  --type-72-tracking: -0.05em;
+  --type-96-size: 96px;
+  --type-96-line-height: 104px;
+  --type-96-tracking: -0.055em;
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-feature: 20px;
+  --radius-chip: 999px;
+  --focus-width: 3px;
+  --focus-offset: 3px;
+  --motion-fast: 160ms;
+  --motion-standard: 240ms;
+  --motion-deliberate: 420ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --layout-content: 1200px;
+  --layout-reading: 65ch;
+  --layout-gutter-mobile: 20px;
+  --layout-gutter-desktop: 48px;
+  --layout-target-min: 44px;
+}

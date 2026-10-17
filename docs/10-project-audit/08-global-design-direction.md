@@ -1,5 +1,10 @@
 # Tickr — Global Design Direction · *Chaux & Faïence*
 
+> **New visual proposal — 17 October 2026:** see [Porcelaine](../11-brand-charter/README.md)
+> for the new graphic charter, PDF and launch concept submitted for review. This
+> file remains the historical direction; the newer proposal changes visual choices
+> while retaining the product and purchase requirements.
+
 **Scope:** the visual and interaction foundation for Tickr as a **multi-market product**. This edition
 replaces the rejected cobalt/sun palette with a pastel direction, **Chaux & Faïence**, chosen from four
 independent concepts by a three-judge panel and then hardened: every text and control pair below was
