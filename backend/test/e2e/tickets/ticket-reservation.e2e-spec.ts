@@ -22,6 +22,7 @@ import { GetEventTicketsHandler } from '@modules/tickets/application/queries/get
 import { GetTicketByIdHandler } from '@modules/tickets/application/queries/get-ticket-by-id/get-ticket-by-id.handler';
 import { GetTicketByQRCodeHandler } from '@modules/tickets/application/queries/get-ticket-by-qr-code/get-ticket-by-qr-code.handler';
 import { GetUserTicketsHandler } from '@modules/tickets/application/queries/get-user-tickets/get-user-tickets.handler';
+import { TicketStatus } from '@modules/tickets/domain';
 import { TicketsController } from '@modules/tickets/infrastructure/controllers/tickets.controller';
 import { TicketS3StorageService } from '@modules/tickets/infrastructure/services/ticket-s3-storage.service';
 import { JwtStrategy } from '@modules/users/infrastructure/strategies/jwt.strategy';
@@ -203,7 +204,7 @@ describe('Ticket Reservation E2E', () => {
   // ============================================
 
   describe('POST /api/tickets/confirm', () => {
-    it('should confirm reserved tickets', async () => {
+    it('should reject unlinked reservations even when the user has a paid order', async () => {
       // Reserve first
       const reserveResponse = await request(app.getHttpServer())
         .post('/api/tickets/reserve')
@@ -225,9 +226,29 @@ describe('Ticket Reservation E2E', () => {
           ticketIds,
           orderId: '40000000-0000-4000-8000-000000000001',
         })
+        .expect(HttpStatus.NOT_FOUND);
+
+      expect(confirmResponse.body.message).toBe('All tickets must already belong to the paid order');
+      const ticket = await ticketRepository.findById(ticketIds[0]);
+      expect(ticket?.status).toBe(TicketStatus.RESERVED);
+      expect(ticket?.orderId).toBeNull();
+    });
+
+    it('should confirm a reserved ticket already linked to the paid order', async () => {
+      const orderId = '40000000-0000-4000-8000-000000000001';
+      const ticket = ticketRepository.seedTicket({
+        status: TicketStatus.RESERVED,
+        orderId,
+      });
+
+      const response = await request(app.getHttpServer())
+        .post('/api/tickets/confirm')
+        .set('Authorization', `Bearer ${participantToken}`)
+        .send({ ticketIds: [ticket.id], orderId })
         .expect(HttpStatus.OK);
 
-      expect(confirmResponse.body.confirmedIds).toEqual(ticketIds);
+      expect(response.body.confirmedIds).toEqual([ticket.id]);
+      expect(ticket.status).toBe(TicketStatus.CONFIRMED);
     });
 
     it('should fail when tickets not found', async () => {
@@ -277,7 +298,7 @@ describe('Ticket Reservation E2E', () => {
   // ============================================
 
   describe('Full Lifecycle', () => {
-    it('should complete reserve → confirm → get details flow', async () => {
+    it('should keep a standalone reservation unpaid after a rejected confirmation', async () => {
       // Step 1: Reserve
       const reserveResponse = await request(app.getHttpServer())
         .post('/api/tickets/reserve')
@@ -300,7 +321,7 @@ describe('Ticket Reservation E2E', () => {
           ticketIds: [ticketId],
           orderId: '40000000-0000-4000-8000-000000000001',
         })
-        .expect(HttpStatus.OK);
+        .expect(HttpStatus.NOT_FOUND);
 
       // Step 3: Get ticket details
       const detailsResponse = await request(app.getHttpServer())
@@ -309,7 +330,8 @@ describe('Ticket Reservation E2E', () => {
         .expect(HttpStatus.OK);
 
       expect(detailsResponse.body.id).toBe(ticketId);
-      expect(detailsResponse.body.status).toBe('CONFIRMED');
+      expect(detailsResponse.body.status).toBe('RESERVED');
+      expect(detailsResponse.body.orderId).toBeNull();
       expect(detailsResponse.body.holderName).toBe('John Doe');
       expect(detailsResponse.body.qrCode).toMatch(/^v1-/);
     });

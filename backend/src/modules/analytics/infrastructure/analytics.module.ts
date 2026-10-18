@@ -1,3 +1,4 @@
+import { EventsModule } from '@modules/events/infrastructure/events.module';
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -8,6 +9,7 @@ import { RecordMetricHandler } from '../application/commands/record-metric/recor
 import { RefreshAnalyticsHandler } from '../application/commands/refresh-analytics/refresh-analytics.handler';
 import { AnalyticsEventListener } from '../application/event-handlers/analytics-event.listener';
 import { ANALYTICS_CACHE } from '../application/ports/cache.port';
+import { EVENT_ACCESS_PORT } from '../application/ports/event-access.port';
 import { EVENT_ANALYTICS_REPOSITORY } from '../application/ports/event-analytics.repository.port';
 import { METRIC_REPOSITORY } from '../application/ports/metric.repository.port';
 import { PLATFORM_ANALYTICS_REPOSITORY } from '../application/ports/platform-analytics.repository.port';
@@ -18,6 +20,7 @@ import { GetPlatformAnalyticsHandler } from '../application/queries/get-platform
 import { GetRevenueReportHandler } from '../application/queries/get-revenue-report/get-revenue-report.handler';
 import { GetSalesTimeSeriesHandler } from '../application/queries/get-sales-time-series/get-sales-time-series.handler';
 
+import { EventAccessAdapter } from './adapters/event-access.adapter';
 import { S3ReportStorageAdapter } from './adapters/s3-report-storage.adapter';
 import { AnalyticsController } from './controllers/analytics.controller';
 import { CrossModuleEventListener } from './event-handlers/cross-module-event.listener';
@@ -112,6 +115,7 @@ const reportStorageProvider: Provider = {
  */
 @Module({
   imports: [
+    EventsModule,
     TypeOrmModule.forFeature([
       MetricOrmEntity,
       EventAnalyticsOrmEntity,
@@ -133,6 +137,7 @@ const reportStorageProvider: Provider = {
     platformAnalyticsRepoProvider,
 
     // Services
+    { provide: EVENT_ACCESS_PORT, useClass: EventAccessAdapter },
     cacheProvider,
     reportStorageProvider,
     MetricAggregationService,

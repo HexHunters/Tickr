@@ -51,6 +51,7 @@ describe('Notification Lifecycle E2E', () => {
   let smsProvider: MockSmsProvider;
   let rateLimiter: MockRateLimiter;
   let userToken: string;
+  let adminToken: string;
 
   beforeAll(async () => {
     notificationRepo = new InMemoryNotificationRepository();
@@ -107,6 +108,11 @@ describe('Notification Lifecycle E2E', () => {
       email: 'user1@tickr.tn',
       role: 'PARTICIPANT',
     });
+    adminToken = generateTestToken(jwtService, {
+      userId: TEST_USER_IDS.user2,
+      email: 'admin@tickr.tn',
+      role: 'ADMIN',
+    });
   });
 
   afterAll(async () => {
@@ -130,7 +136,7 @@ describe('Notification Lifecycle E2E', () => {
     it('should send an email notification with direct content', async () => {
       const response = await request(app.getHttpServer())
         .post('/notifications')
-        .set('Authorization', `Bearer ${userToken}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           userId: TEST_USER_IDS.user1,
           type: 'ORDER_CONFIRMATION',
@@ -154,7 +160,7 @@ describe('Notification Lifecycle E2E', () => {
 
       const response = await request(app.getHttpServer())
         .post('/notifications')
-        .set('Authorization', `Bearer ${userToken}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           userId: TEST_USER_IDS.user1,
           type: 'ORDER_CONFIRMATION',
@@ -171,7 +177,7 @@ describe('Notification Lifecycle E2E', () => {
     it('should send an SMS notification', async () => {
       const response = await request(app.getHttpServer())
         .post('/notifications')
-        .set('Authorization', `Bearer ${userToken}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           userId: TEST_USER_IDS.user1,
           type: 'ORDER_CONFIRMATION',
@@ -202,7 +208,7 @@ describe('Notification Lifecycle E2E', () => {
 
       const response = await request(app.getHttpServer())
         .post('/notifications')
-        .set('Authorization', `Bearer ${userToken}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           userId: TEST_USER_IDS.user1,
           type: 'ORDER_CONFIRMATION',
@@ -236,7 +242,7 @@ describe('Notification Lifecycle E2E', () => {
       // Send a notification first
       await request(app.getHttpServer())
         .post('/notifications')
-        .set('Authorization', `Bearer ${userToken}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           userId: TEST_USER_IDS.user1,
           type: 'ORDER_CONFIRMATION',
@@ -273,7 +279,7 @@ describe('Notification Lifecycle E2E', () => {
       // Send first
       const sendRes = await request(app.getHttpServer())
         .post('/notifications')
-        .set('Authorization', `Bearer ${userToken}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           userId: TEST_USER_IDS.user1,
           type: 'ORDER_CONFIRMATION',
@@ -303,10 +309,9 @@ describe('Notification Lifecycle E2E', () => {
     });
 
     it('should return 404 when accessing another user notification', async () => {
-      // user1 sends notification
       const sendRes = await request(app.getHttpServer())
         .post('/notifications')
-        .set('Authorization', `Bearer ${userToken}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({
           userId: TEST_USER_IDS.user1,
           type: 'ORDER_CONFIRMATION',

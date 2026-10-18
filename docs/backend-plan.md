@@ -1,8 +1,49 @@
 # Tickr backend audit and offline-launch plan
 
 **Date:** 2026-10-07  
-**Status:** Implementation approved on 2026-10-07 (“yes process”). P01 implemented and validated locally; P02–P33 remain pending. No production rollout authorized or performed.  
+**Last refreshed:** 2026-10-18
+
+**Status:** Implementation approved with automatic routine implementation decisions. Baseline/database foundation and local auth email delivery are verified; targeted P06/P07 authorization fixes are implemented. The wider security review, durable delivery and remaining offline milestones are still pending. The execution tracker below supersedes historical progress statements. No production rollout authorized or performed.
+
 **Launch:** Tunisia, French, reserve online → pay organizer/seller → seller records cash → ticket becomes admissible. Online gateways remain in the repository but are disabled. “Offline payment” means cash outside Tickr, **not disconnected scanning**.
+
+## Execution tracker - 2026-10-18
+
+Branch: `feature/backend-completion`. Commits `66ee48a` (database foundation and auth template seeds) and `8da9866` (auth email flows) are on origin. The follow-up SES, auth-boundary and authorization changes below are in the latest commit on this branch. Automatic routine approval does not include paid provider calls, destructive data operations or production rollout.
+
+### Verified progress
+
+- **P01:** gateway-disable policy completed previously. OFFLINE checkout is still not implemented or publicly advertised.
+- **P02 baseline:** unit, architecture, integration and HTTP suites now run successfully. This replaces the October 7 failing/no-discovery baseline below. Skipped tests still require explicit disposition; passing HTTP tests alone do not prove real-database concurrency.
+- **P03-P05 local foundation:** ORM registration across all six modules, source/compiled migration discovery, production migration scripts, payments and analytics base migrations, and database registration regression tests completed. Fresh disposable-database up/down/up and compiled runner checks passed. Existing-deployment schema adoption, realistic historical-data upgrades and production rehearsal remain release gates, not completed deployments.
+- **P09 partial, local delivery verified:** fixed missing `AWS_ENDPOINT` configuration, switched the adapter to the SES API supported by the local emulator, and corrected the LocalStack ready-hook mount/bootstrap command. Local registration -> captured verification email -> verification -> login -> captured reset link -> password reset -> password-changed alert passed. Unverified login, token reuse and old-password login were rejected. All three notification records are `SENT`; this proves local capture, not real inbox delivery. Added HTTP resend privacy/throttling coverage and real token-entity/repository expiry/reuse checks; fixed acceptance at the exact expiry instant. Durable handoff, concurrent token consumption/session hardening and P07/P08 dependencies remain open.
+- **P06 partial:** public ticket confirmation now requires every ticket to be prelinked to the caller's paid order. Unlinked/differently linked batches are rejected before mutation with the existing `INVALID_ORDER` / HTTP 404 contract. Handler and real-route regressions prove rejection and linked-ticket success. Standalone reservation is not a completed checkout; trusted internal confirmation and real transactional linkage remain P19 work. Wider cancellation/PDF/transfer checks remain open.
+- **P07 partial:** arbitrary notification sends are now admin-only, with participant/organizer/anonymous denial tests; lifecycle tests retain participant-scoped reads. Event analytics now checks current event ownership through an application port before any cache access, supports authorized admin reads and rejects deleted events/stale ownership. Refund purchaser checks were confirmed in source, not newly implemented. Other analytics/report/export surfaces still need authorization verification.
+- **SES follow-up checks:** 39 affected provider/auth tests passed, TypeScript and changed-file lint passed, script syntax/executable mode and effective Compose ready-hook mapping passed. The running local emulator was provisioned with the missing SES identity/configuration set without resetting services. A fresh-container startup rehearsal remains separate from the validated hook configuration.
+- **Latest follow-up gates:** 219 unit suites / 2,927 tests passed, 2 skipped; 12 HTTP suites / 231 tests passed; architecture 34/34; TypeScript passed; full backend lint has 0 errors and 4 existing Money VO warnings. Development API health returned `ok` after analytics module wiring. No new coverage measurement or production delivery proof is claimed.
+- **Earlier foundation checks:** integration 48 passed; disposable migration up/down/up and compiled CLI checks passed. Database integration was not rerun for this follow-up. Coverage and load targets are not inferred from test counts.
+
+### Remaining execution order
+
+These nine milestones organize the existing P/R tasks; their detailed acceptance criteria and dependencies in sections 5-6 remain binding. A milestone may begin with independent work, but cannot close before its prerequisites pass.
+
+| Milestone | Status / scope | Remaining work and completion gate |
+| --- | --- | --- |
+| 1. Baseline and database foundation | Complete locally: P01, P02 baseline, P03-P05 | Preserve the passing baseline. Carry skipped-test disposition, deployed-schema adoption and realistic upgrade/restore evidence into milestones 8-9. |
+| 2. Auth email delivery | Local journey, resend and expiry checks verified; P09 still partial | Preserve the verification/reset/replay/password-change regression coverage. Close only after P07/P08 security and durable delivery integration; emulator acceptance is not real inbox delivery proof. |
+| 3. Authorization and durable events | In progress: targeted P06/P07 fixes; P08/R01 pending | Complete cancellation/PDF/transfer and other analytics/report/export authorization checks beyond the fixes above. Implement PostgreSQL outbox with transactional writes, claims, retry/dedupe and restart recovery. Harden concurrent token consumption, refresh rotation/revocation and session invalidation. Add negative authorization and crash/replay tests, then finish milestone 2's durable handoff. |
+| 4. Organizer and phone eligibility | Pending: P10-P12 | Self-service profile/terms onboarding, current-phone verification model, +216 normalization and purpose-bound OTP with atomic consumption, resend/attempt limits and send budgets. Use deterministic provider doubles until live SMS spending and provider qualification are approved. |
+| 5. Offline policy and persistence | Pending: P13-P18 | Owner-granted collection permissions, event opt-in/deadline snapshots, OFFLINE method with zero fees, HMAC v2, order codes/ticket links/cash audit, unpaid quotas and strike/block persistence. Require migration roundtrips, live revocation tests and fail-closed QR checks; expose no incomplete offline writes. |
+| 6. Transactional commerce | Pending: P19-P26 | Replace reservation stub; atomically reserve stock/order/real tickets, expose eligible idempotent orders, scoped lookup, collect and selected-ticket entry. Coordinate cancellation/expiry/stock release, no-show processing and manual refunds. Prove last-stock, quota, collector and expiry races plus rollback on real PostgreSQL. |
+| 7. Delivery and reporting | Pending: P27-P30, R02, R03, R05 | French reservation/reminder/paid flows, private paid-PDF handoff, quiet hours/opt-out, real organizer projections, owner participant exports, offline analytics and cash reconciliation. Verify stale-send suppression, redaction, CSV safety and authoritative totals; extend notifications one trigger family at a time. |
+| 8. Privacy and operational readiness | Pending: P31, R06-R08 | CI/image/migration/readiness gates, retention/export/deletion, private storage, backup/restore and monitoring. Resolve only approved remaining product discrepancies. Obtain provider, budget, legal and operational sign-off; no implicit gateway re-enable or deployment. |
+| 9. Acceptance and release handoff | Pending: P32-P33 | Run the complete section 6 matrix on disposable services, full quality suites, measured coverage and load/restart rehearsals. Reconcile skips and realistic migration fixtures; update API/spec/status/runbook and obtain release approval. Working participant/seller frontend journeys remain a separate launch prerequisite. |
+
+**Deferred, not dropped:** R04 gateway callback/refund correctness remains a separately approved future gateway release, after real ticket linkage. Gateway adapters stay disabled throughout this offline plan. R08 changes outside the selected launch rules require explicit product approval rather than silently expanding scope.
+
+**Immediate next slice:** complete the remaining P06/P07 cancellation/PDF/transfer and analytics/report/export authorization checks, then implement P08 before declaring P09 complete. Keep concurrent auth-token consumption and session invalidation in the R01 security work. Do not expose offline checkout until the integrity, abuse and delivery gates in section 6 pass.
+
+**Estimates:** the original 35-55 engineer-day envelope below is historical, not a fresh remaining-work estimate. Re-estimate after SES/auth closure and the P06-P08 verification pass; do not derive a completion percentage from commits or test counts.
 
 ## Decision record — 2026-10-07 follow-up
 
@@ -27,7 +68,7 @@ The user approved reuse of existing states/rules, zero commission, and confirmed
 
 ## 1. Scope, evidence and verdict
 
-### Implementation progress — P01
+### Historical implementation progress — P01 (2026-10-07)
 
 - **Done locally:** strict `PAYMENT_GATEWAYS_ENABLED=false` and `OFFLINE_PAYMENT_ENABLED=true` defaults in [payment configuration](../backend/src/config/payments.config.ts); validated values are exactly `true`/`false`. The offline flag is policy only, **not a completed offline payment method**. No enum/provider/commission/reservation implementation is exposed yet.
 - [Gateway policy](../backend/src/modules/payments/infrastructure/config/payment-gateway.policy.ts) gates factory access and every direct adapter intent/confirmation/refund call. Disabled Stripe skips SDK initialization and credential requirements. Flags are deployment configuration; restart after changing them, not an in-flight runtime kill switch.
@@ -174,7 +215,7 @@ The request's conditional `WHERE status = RESERVED` translates to **`WHERE statu
 | Delivery / outbox | [Map event store](../backend/src/shared/infrastructure/events/event-store.service.ts#L25), [publisher](../backend/src/shared/infrastructure/events/domain-event.publisher.ts#L24), [notification ORM migration](../backend/src/shared/infrastructure/database/migrations/1700000000000005-create-notifications-tables.ts#L1) | Durable outbox saved with business transaction; retry/lease/consumer dedupe. Versioned template seeds, notification idempotency keys and reminder claims. Existing tables/providers are reused. |
 | Analytics | [Event analytics ORM](../backend/src/modules/analytics/infrastructure/persistence/entities/event-analytics.orm-entity.ts#L1), [refresh](../backend/src/modules/analytics/application/commands/refresh-analytics/refresh-analytics.handler.ts#L129), [reports](../backend/src/modules/analytics/infrastructure/services/report-generator.service.ts#L1) | Reserved, paid, expired and refunded measures; exact paid amounts from orders/collection records; separate Tickr receivable from collected organizer cash. New indexes/read models where needed. Reconciliation is authoritative SQL, not stale metric cache. |
 
-**Foundation migrations first:** runtime [database registration](../backend/src/shared/infrastructure/database/database.module.ts#L27) omits payments/notifications/analytics. Seven migrations currently cover users/tokens/events/tickets/notifications/commission override/staff, but no payments or analytics schema creation was found. Add missing base migrations before offline alterations; do not generate offline ALTERs against tables that only exist through development synchronization. Audit ORM parity, including user entity filename patterns, against [CLI data source](../backend/src/shared/infrastructure/database/data-source.ts#L19).
+**Foundation migrations first (updated 2026-10-18):** [database registration](../backend/src/shared/infrastructure/database/database.module.ts) now includes all six modules, and payments/analytics base migrations plus auth template seeds have been added. Source/compiled discovery in the [CLI data source](../backend/src/shared/infrastructure/database/data-source.ts) has been verified locally. Offline alterations must build on these migrations, not development synchronization. Existing-deployment adoption and historical-data upgrade checks remain required below.
 
 Migration policy for every PR:
 
@@ -428,7 +469,7 @@ For each behavior, add pure domain/unit tests and API-level tests using real rep
 
 ### Remaining sign-off and operational gates
 
-The twelve original product questions are captured in C01–C12. **Implementation go-ahead received.** This does not authorize paid SMS/procurement, destructive data operations, commits or production deployment. P01 is complete locally; continue the ordered work slices with tests rather than treating one feature flag as a launch-ready checkout.
+The twelve original product questions are captured in C01–C12. **Implementation go-ahead received.** This does not authorize paid SMS/procurement, destructive data operations or production deployment. The explicitly requested commits/push were completed on 2026-10-18; this is not standing authorization for future commits. Follow the refreshed execution tracker and ordered acceptance gates; local database/auth progress does not make offline checkout launch-ready.
 
 1. **Before live SMS:** what approved daily/monthly spend ceilings and operational contact should be configured? Keep live sending unenabled until these are set; qualify sender, three-network Tunisian delivery, lawful OTP timing and opt-out behavior before rollout. P01 has not added a global SMS sending guard; that control belongs to P12/P27 and existing deployments must not be treated as SMS-safe merely because gateway flags are disabled.
 2. **Before public launch:** who signs off organizer cash/refund terms, support escalation and financial/IP/device retention periods? Recommendations here are product/engineering policy, not legal or accounting certification.

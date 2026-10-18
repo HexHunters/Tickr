@@ -4,6 +4,8 @@ import { Result } from '@shared/domain/result';
 import { EventAnalyticsMapper } from '../../mappers/event-analytics.mapper';
 import { ANALYTICS_CACHE } from '../../ports/cache.port';
 import type { CachePort } from '../../ports/cache.port';
+import { EVENT_ACCESS_PORT } from '../../ports/event-access.port';
+import type { EventAccessPort } from '../../ports/event-access.port';
 import { EVENT_ANALYTICS_REPOSITORY } from '../../ports/event-analytics.repository.port';
 import type { EventAnalyticsRepositoryPort } from '../../ports/event-analytics.repository.port';
 
@@ -24,12 +26,25 @@ export class GetEventAnalyticsHandler {
     private readonly eventAnalyticsRepository: EventAnalyticsRepositoryPort,
     @Inject(ANALYTICS_CACHE)
     private readonly cache: CachePort,
+    @Inject(EVENT_ACCESS_PORT)
+    private readonly eventAccess: EventAccessPort,
   ) {}
 
   async execute(
     query: GetEventAnalyticsQuery,
   ): Promise<Result<GetEventAnalyticsResult, GetEventAnalyticsError>> {
     this.logger.debug(`Getting analytics for event: ${query.eventId}`);
+
+    const organizerId = await this.eventAccess.findOrganizerId(query.eventId);
+    if (organizerId === null) {
+      return Result.fail({ type: 'NOT_FOUND', message: 'Event not found' });
+    }
+    if (!query.isAdmin && organizerId !== query.requestingUserId) {
+      return Result.fail({
+        type: 'ACCESS_DENIED',
+        message: 'You do not have permission to view analytics for this event',
+      });
+    }
 
     // 1. Check cache
     const cacheKey = `analytics:event:${query.eventId}`;
