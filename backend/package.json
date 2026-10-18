@@ -31,6 +31,8 @@
     "migration:create": "npm run typeorm -- migration:create",
     "migration:run": "npm run typeorm -- migration:run -d src/shared/infrastructure/database/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/shared/infrastructure/database/data-source.ts",
+    "migration:run:prod": "typeorm migration:run -d dist/shared/infrastructure/database/data-source.js",
+    "migration:show:prod": "typeorm migration:show -d dist/shared/infrastructure/database/data-source.js",
     "schema:sync": "npm run typeorm -- schema:sync -d src/shared/infrastructure/database/data-source.ts",
     "schema:drop": "npm run typeorm -- schema:drop -d src/shared/infrastructure/database/data-source.ts"
   },

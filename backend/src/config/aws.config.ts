@@ -8,6 +8,7 @@ import { registerAs } from '@nestjs/config';
  *
  * Environment Variables:
  * - AWS_REGION: AWS region (default: eu-west-1)
+ * - AWS_ENDPOINT: Custom endpoint for SES/SNS in local development (optional)
  * - AWS_ACCESS_KEY_ID: AWS access key (for local dev, use 'test')
  * - AWS_SECRET_ACCESS_KEY: AWS secret key (for local dev, use 'test')
  * - AWS_S3_BUCKET: S3 bucket name for images
@@ -16,6 +17,7 @@ import { registerAs } from '@nestjs/config';
  */
 export default registerAs('aws', () => ({
   region: process.env.AWS_REGION || 'eu-west-1',
+  endpoint: process.env.AWS_ENDPOINT || undefined,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'test',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'test',
@@ -45,6 +47,7 @@ export default registerAs('aws', () => ({
  */
 export interface AwsConfig {
   region: string;
+  endpoint?: string;
   credentials: {
     accessKeyId: string;
     secretAccessKey: string;

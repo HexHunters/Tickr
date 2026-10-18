@@ -7,12 +7,6 @@ set -e
 
 echo "🚀 Initializing LocalStack resources..."
 
-# Wait for LocalStack to be ready
-until curl -s http://localhost:4566/_localstack/health | grep -q "running"; do
-  echo "⏳ Waiting for LocalStack..."
-  sleep 2
-done
-
 echo "✅ LocalStack is ready!"
 
 # Create S3 bucket for event images
@@ -34,7 +28,7 @@ awslocal ses verify-email-identity --email-address support@tickr.local
 
 # Create SES configuration set for notification tracking
 echo "📧 Creating SES configuration set..."
-awslocal sesv2 create-configuration-set --configuration-set-name tickr-notifications || echo "Configuration set already exists"
+awslocal ses create-configuration-set --configuration-set '{"Name":"tickr-notifications"}' || echo "Configuration set already exists"
 
 # Create SNS topic for notifications
 echo "📢 Creating SNS topic..."

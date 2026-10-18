@@ -1,3 +1,5 @@
+import { join } from 'path';
+
 import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 import { DataSource, DataSourceOptions } from 'typeorm';
@@ -6,6 +8,13 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 config();
 
 const configService = new ConfigService();
+
+// Compiled output also contains .d.ts files, so match only the running extension.
+const extension = __filename.endsWith('.ts') ? 'ts' : 'js';
+const entities = [
+  join(__dirname, `../../../modules/**/infrastructure/persistence/entities/*.orm-entity.${extension}`),
+];
+const migrations = [join(__dirname, `migrations/*-*.${extension}`)];
 
 // Parse DATABASE_URL if provided, otherwise use individual env vars
 const getDatabaseConfig = (): DataSourceOptions => {
@@ -16,8 +25,8 @@ const getDatabaseConfig = (): DataSourceOptions => {
     return {
       type: 'postgres',
       url: databaseUrl,
-      entities: ['src/modules/**/infrastructure/persistence/entities/*.orm-entity.ts'],
-      migrations: ['src/shared/infrastructure/database/migrations/*.ts'],
+      entities,
+      migrations,
       synchronize: false,
       logging: configService.get('NODE_ENV') === 'development',
       migrationsTableName: 'migrations',
@@ -32,8 +41,8 @@ const getDatabaseConfig = (): DataSourceOptions => {
     username: configService.get('DB_USERNAME', 'postgres'),
     password: configService.get('DB_PASSWORD', 'postgres'),
     database: configService.get('DB_DATABASE', 'tickr'),
-    entities: ['src/modules/**/infrastructure/persistence/entities/*.orm-entity.ts'],
-    migrations: ['src/shared/infrastructure/database/migrations/*.ts'],
+    entities,
+    migrations,
     synchronize: false,
     logging: configService.get('NODE_ENV') === 'development',
     migrationsTableName: 'migrations',

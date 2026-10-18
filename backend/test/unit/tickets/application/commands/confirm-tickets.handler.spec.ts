@@ -20,12 +20,12 @@ describe('ConfirmTicketsHandler', () => {
   const ticketId2 = '550e8400-e29b-41d4-a716-446655440011';
   const orderId = '550e8400-e29b-41d4-a716-446655440020';
 
-  const createReservedTicket = (id: string): TicketEntity => {
+  const createReservedTicket = (id: string, linkedOrderId: string | null = null): TicketEntity => {
     return TicketEntity.reconstitute({
       id,
       eventId: '550e8400-e29b-41d4-a716-446655440001',
       ticketTypeId: '550e8400-e29b-41d4-a716-446655440002',
-      orderId: null,
+      orderId: linkedOrderId,
       userId: '550e8400-e29b-41d4-a716-446655440003',
       qrCode: QRCodeVO.generate(),
       status: TicketStatus.RESERVED,
@@ -112,6 +112,43 @@ describe('ConfirmTicketsHandler', () => {
       await handler.execute(command);
 
       expect(mockEventPublisher.publishFromAggregate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Public confirmation', () => {
+    it.each([null, '550e8400-e29b-41d4-a716-446655440099'])(
+      'rejects a batch containing a ticket linked to %s before any mutation',
+      async (linkedOrderId) => {
+        const ticket1 = createReservedTicket(ticketId1, orderId);
+        const ticket2 = createReservedTicket(ticketId2, linkedOrderId);
+        mockTicketRepository.findById
+          .mockResolvedValueOnce(ticket1)
+          .mockResolvedValueOnce(ticket2);
+
+        const result = await handler.execute(
+          new ConfirmTicketsCommand([ticketId1, ticketId2], orderId, ticket1.userId),
+        );
+
+        expect(result.isFailure).toBe(true);
+        expect(result.error.type).toBe('INVALID_ORDER');
+        expect(ticket1.status).toBe(TicketStatus.RESERVED);
+        expect(ticket2.status).toBe(TicketStatus.RESERVED);
+        expect(mockTicketRepository.saveAll).not.toHaveBeenCalled();
+        expect(mockEventPublisher.publishFromAggregate).not.toHaveBeenCalled();
+      },
+    );
+
+    it('accepts an owned reserved ticket linked to the paid order', async () => {
+      const ticket = createReservedTicket(ticketId1, orderId);
+      mockTicketRepository.findById.mockResolvedValue(ticket);
+
+      const result = await handler.execute(
+        new ConfirmTicketsCommand([ticketId1], orderId, ticket.userId),
+      );
+
+      expect(result.isSuccess).toBe(true);
+      expect(ticket.status).toBe(TicketStatus.CONFIRMED);
+      expect(mockOrderQuery.findById).toHaveBeenCalledWith(orderId);
     });
   });
 

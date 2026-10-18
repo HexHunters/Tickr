@@ -23,7 +23,9 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { CurrentUser } from '@shared/infrastructure/common/decorators/current-user.decorator';
+import { Roles } from '@shared/infrastructure/common/decorators/roles.decorator';
 import { JwtAuthGuard } from '@shared/infrastructure/common/guards/jwt-auth.guard';
+import { RolesGuard } from '@shared/infrastructure/common/guards/roles.guard';
 
 import { SendNotificationCommand } from '../../application/commands/send-notification/send-notification.command';
 import { SendNotificationHandler } from '../../application/commands/send-notification/send-notification.handler';
@@ -70,14 +72,16 @@ export class NotificationsController {
   // ============================================
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Send a notification' })
+  @ApiOperation({ summary: 'Send a notification (admin only)' })
   @ApiBody({ type: SendNotificationRequestDto })
   @ApiResponse({ status: 201, description: 'Notification sent/scheduled' })
   @ApiResponse({ status: 400, description: 'Validation error or send failure' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Administrator role required' })
   async sendNotification(
     @Body() dto: SendNotificationRequestDto,
   ): Promise<{ notificationId: string; status: string }> {

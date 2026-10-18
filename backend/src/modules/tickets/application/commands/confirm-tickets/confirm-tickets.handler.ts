@@ -102,6 +102,12 @@ export class ConfirmTicketsHandler {
           message: 'Order must be paid before confirming tickets',
         });
       }
+      if (tickets.some((ticket) => ticket?.orderId !== command.orderId)) {
+        return Result.fail({
+          type: 'INVALID_ORDER',
+          message: 'All tickets must already belong to the paid order',
+        });
+      }
     }
 
     // ============================================

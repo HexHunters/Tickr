@@ -296,12 +296,57 @@ describe('AuthController', () => {
 
       expect(result1.message).toBe(result2.message);
     });
+
+    it('should email a reset link to an active user, normalising the address', async () => {
+      mockUserRepository.findByEmail.mockResolvedValue(mockUser);
+      mockVerificationTokenRepository.createPasswordResetToken.mockResolvedValue('reset+token/1');
+
+      await controller.requestPasswordReset({ email: 'TEST@Example.com' });
+
+      expect(mockUserRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(mockVerificationTokenRepository.createPasswordResetToken).toHaveBeenCalledWith(mockUUID, 1);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('user.password-reset-requested', {
+        userId: mockUUID,
+        email: 'test@example.com',
+        firstName: 'John',
+        resetUrl: 'http://localhost:3001/reset-password?token=reset%2Btoken%2F1',
+      });
+    });
+
+    it('should not issue a reset link for unknown or deactivated accounts', async () => {
+      mockUserRepository.findByEmail.mockResolvedValueOnce(null);
+      await controller.requestPasswordReset({ email: 'missing@example.com' });
+
+      mockUserRepository.findByEmail.mockResolvedValueOnce({ ...mockUser, isActive: false });
+      await controller.requestPasswordReset({ email: 'test@example.com' });
+
+      expect(mockVerificationTokenRepository.createPasswordResetToken).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+    });
   });
 
   describe('resetPassword', () => {
     it('should throw BadRequestException for invalid token', async () => {
       await expect(controller.resetPassword({ token: 'invalid', newPassword: 'NewPass123!' }))
         .rejects.toThrow(BadRequestException);
+    });
+
+    it('should update the password, consume the token and send a security alert', async () => {
+      mockVerificationTokenRepository.findValidToken.mockResolvedValue({ id: 'token-1', userId: mockUUID });
+      mockPasswordService.createHashedPassword.mockResolvedValue({ hash: 'new-hash' });
+      mockUserRepository.updatePassword = jest.fn();
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+
+      const result = await controller.resetPassword({ token: 'valid', newPassword: 'NewPass123!' });
+
+      expect(result.message).toContain('Password reset successfully');
+      expect(mockUserRepository.updatePassword).toHaveBeenCalledWith(mockUUID, 'new-hash');
+      expect(mockVerificationTokenRepository.markAsUsed).toHaveBeenCalledWith('token-1');
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('user.password-reset', {
+        userId: mockUUID,
+        email: 'test@example.com',
+        firstName: 'John',
+      });
     });
   });
 

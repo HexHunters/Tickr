@@ -2,7 +2,7 @@ import { INestApplication, ValidationPipe, HttpStatus } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { CqrsModule } from '@nestjs/cqrs';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -737,6 +737,49 @@ describe('E2E: Authentication Flow', () => {
   });
 
   describe('Rate Limiting', () => {
+    it('returns the same resend response and throttles before dispatching another email', async () => {
+      await userRepository.seedUser({
+        id: 'resend-user',
+        email: 'resend@example.com',
+        firstName: 'Resend',
+        emailVerified: false,
+        isActive: true,
+      });
+      await userRepository.seedUser({
+        id: 'verified-user',
+        email: 'verified@example.com',
+        emailVerified: true,
+        isActive: true,
+      });
+      const emit = jest.spyOn(app.get(EventEmitter2), 'emit');
+
+      try {
+        const responses = [];
+        for (const email of ['RESEND@example.com', 'unknown@example.com', 'verified@example.com']) {
+          const response = await request(app.getHttpServer())
+            .post('/api/auth/resend-verification')
+            .send({ email })
+            .expect(HttpStatus.OK);
+          responses.push(response.body);
+        }
+        expect(responses[0]).toEqual(responses[1]);
+        expect(responses[1]).toEqual(responses[2]);
+        expect(emit).toHaveBeenCalledTimes(1);
+        expect(emit).toHaveBeenCalledWith('user.registered', expect.objectContaining({
+          userId: 'resend-user',
+          email: 'resend@example.com',
+        }));
+
+        await request(app.getHttpServer())
+          .post('/api/auth/resend-verification')
+          .send({ email: 'resend@example.com' })
+          .expect(HttpStatus.TOO_MANY_REQUESTS);
+        expect(emit).toHaveBeenCalledTimes(1);
+      } finally {
+        emit.mockRestore();
+      }
+    });
+
     it('should allow requests within rate limit', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/auth/register')

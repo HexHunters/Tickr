@@ -1,10 +1,13 @@
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { SesEmailProvider } from '@modules/notifications/infrastructure/providers/ses-email.provider';
 import { ConfigService } from '@nestjs/config';
 
+import awsConfig from '@/config/aws.config';
+
 // Mock the AWS SDK
 const mockSend = jest.fn();
-jest.mock('@aws-sdk/client-sesv2', () => ({
-  SESv2Client: jest.fn().mockImplementation(() => ({
+jest.mock('@aws-sdk/client-ses', () => ({
+  SESClient: jest.fn().mockImplementation(() => ({
     send: mockSend,
   })),
   SendEmailCommand: jest.fn().mockImplementation((input) => ({ input })),
@@ -59,6 +62,19 @@ describe('SesEmailProvider', () => {
 
       expect(result.messageId).toBe('msg-456');
       expect(result.success).toBe(true);
+      expect(SendEmailCommand).toHaveBeenLastCalledWith({
+        Source: 'test@tickr.tn',
+        Destination: { ToAddresses: ['user@example.com'] },
+        Message: {
+          Subject: { Data: 'Test', Charset: 'UTF-8' },
+          Body: {
+            Html: { Data: '<p>Hello</p>', Charset: 'UTF-8' },
+            Text: { Data: 'Hello', Charset: 'UTF-8' },
+          },
+        },
+        ReplyToAddresses: ['reply@tickr.tn'],
+        ConfigurationSetName: 'test-set',
+      });
     });
 
     it('should use custom from address when provided', async () => {
@@ -101,6 +117,32 @@ describe('SesEmailProvider', () => {
   });
 
   describe('constructor', () => {
+    it.each(['http://localstack:4566', undefined, ''])(
+      'uses the configured AWS_ENDPOINT (%s) through the real config factory',
+      (endpoint) => {
+        const environment: NodeJS.ProcessEnv = {
+          ...process.env,
+          AWS_REGION: 'eu-west-1',
+        };
+        delete environment.SES_REGION;
+        delete environment.AWS_ENDPOINT;
+        if (endpoint !== undefined) environment.AWS_ENDPOINT = endpoint;
+        const replacedEnvironment = jest.replaceProperty(process, 'env', environment);
+
+        try {
+          const config = new ConfigService({ aws: awsConfig() });
+          new SesEmailProvider(config);
+
+          expect(SESClient).toHaveBeenLastCalledWith({
+            region: 'eu-west-1',
+            ...(endpoint && { endpoint }),
+          });
+        } finally {
+          replacedEnvironment.restore();
+        }
+      },
+    );
+
     it('should use defaults when config values are missing', () => {
       const emptyConfig = {
         get: jest.fn().mockReturnValue(undefined),
