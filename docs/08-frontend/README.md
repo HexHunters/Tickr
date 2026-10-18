@@ -1,5 +1,10 @@
 # 📚 Frontend Design & Architecture — Deliverables Index
 
+> **Visual proposal — 17 October 2026:** [Porcelaine](../11-brand-charter/README.md)
+> provides a new 24-page graphic charter, PDF, assets and responsive launch concept.
+> It proposes updated color and typography choices; the product requirements and
+> implementation contracts in this folder remain applicable.
+
 This folder is the **single source of truth** for the Tickr frontend design and architecture
 foundation, produced by the Epic **[FRONTEND] Define Frontend Plan & Design Direction**
 ([issue #64](https://github.com/HexHunters/Tickr/issues/64)).
