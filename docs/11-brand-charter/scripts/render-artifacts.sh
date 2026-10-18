@@ -2,69 +2,63 @@
 set -euo pipefail
 
 chart_dir="$(cd "$(dirname "$0")/.." && pwd)"
-repo_dir="$(cd "$chart_dir/../.." && pwd)"
-session_name="tickr-brand-export-$$"
-preview_dir="$chart_dir/assets/previews"
-server_temp="$(mktemp -d)"
-server_pid=""
-mkdir -p "$preview_dir" "$repo_dir/output/playwright"
-cd "$repo_dir"
+node --input-type=module - "$chart_dir" <<'JS'
+import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
+import { mkdir } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-pw() {
-  npx --yes --package @playwright/cli@0.1.22 playwright-cli -s="$session_name" "$@"
+const chart = process.argv[2]
+const require = createRequire(join(chart, '../../frontend/package.json'))
+const { chromium } = require('playwright')
+const chrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+const executablePath = process.env.CHROME_PATH || (existsSync(chrome) ? chrome : undefined)
+const browser = await chromium.launch({ executablePath, headless: true })
+try {
+  const page = await browser.newPage({ reducedMotion: 'reduce' })
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  const previews = join(chart, 'assets/previews')
+  await mkdir(previews, { recursive: true })
+  for (const filename of ['coming-soon.html', 'brand-book.html']) {
+    await page.goto(pathToFileURL(join(chart, filename)).href)
+    await page.evaluate(() => document.fonts.ready)
+    await page.evaluate(() => Promise.all([...document.images].map(image => {
+      image.loading = 'eager'
+      return image.decode()
+    })))
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 1000 })
+      const problems = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        brokenImages: [...document.images].filter(image => !image.complete || !image.naturalWidth).map(image => image.src),
+      }))
+      assert.equal(problems.overflow, false, `${filename}: horizontal overflow at ${width}px`)
+      assert.deepEqual(problems.brokenImages, [], `${filename}: missing images`)
+    }
+    if (filename === 'coming-soon.html') {
+      await page.screenshot({ path: join(previews, 'coming-soon-desktop.png'), scale: 'css' })
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.screenshot({ path: join(previews, 'coming-soon-mobile.png'), scale: 'css' })
+      assert.equal(await page.locator('.hero-copy').evaluate(element => getComputedStyle(element).animationName), 'none')
+    } else {
+      assert.equal(await page.locator('.sheet').count(), 24)
+      await page.emulateMedia({ media: 'print' })
+      const overlaps = await page.evaluate(() => [...document.querySelectorAll('.sheet')].flatMap(sheet => {
+        const footer = sheet.querySelector('.folio').getBoundingClientRect().top
+        return [...sheet.children].filter(element => element.tagName !== 'FOOTER' && !element.classList.contains('cover-art') && element.getBoundingClientRect().bottom > footer).map(() => sheet.id)
+      }))
+      assert.deepEqual(overlaps, [], 'Content overlaps a printed footer')
+      await page.pdf({ path: join(chart, 'tickr-charte-graphique.pdf'), preferCSSPageSize: true, printBackground: true, tagged: true, outline: true })
+      await page.emulateMedia({ media: 'screen' })
+      await page.locator('#couverture').screenshot({ path: join(previews, 'brand-cover.png'), scale: 'css' })
+    }
+  }
+  assert.deepEqual(errors, [], 'Browser runtime errors')
+  process.stdout.write('Exported PDF from 24 checked sheets and three previews. Layout/images verified at 320, 390, 768 and 1440px.\n')
+} finally {
+  await browser.close()
 }
-
-cleanup() {
-  pw close >/dev/null 2>&1 || true
-  if [[ -n "$server_pid" ]]; then
-    kill "$server_pid" 2>/dev/null || true
-    wait "$server_pid" 2>/dev/null || true
-  fi
-  rm -rf "$server_temp"
-}
-trap cleanup EXIT
-
-# Bind only to loopback and let the OS choose an available port.
-python3 - "$chart_dir" "$server_temp/url" >"$repo_dir/output/playwright/brand-export-server.log" 2>&1 <<'PY' &
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
-import sys
-
-server = ThreadingHTTPServer(('127.0.0.1', 0), partial(SimpleHTTPRequestHandler, directory=sys.argv[1]))
-Path(sys.argv[2]).write_text(f'http://127.0.0.1:{server.server_port}')
-server.serve_forever()
-PY
-server_pid="$!"
-for attempt in {1..50}; do
-  [[ -s "$server_temp/url" ]] && break
-  sleep 0.1
-done
-server_url="$(cat "$server_temp/url")"
-
-pw open "$server_url/coming-soon.html"
-pw resize 1440 1000
-pw run-code "async (page) => { await page.evaluate(() => document.fonts.ready); await page.screenshot({ path: 'docs/11-brand-charter/assets/previews/coming-soon-desktop.png', scale: 'css' }); }"
-pw resize 390 844
-pw run-code "async (page) => { await page.evaluate(() => document.fonts.ready); await page.screenshot({ path: 'docs/11-brand-charter/assets/previews/coming-soon-mobile.png', scale: 'css' }); }"
-pw goto "$server_url/brand-book.html"
-pw resize 1440 1000
-pw run-code "async (page) => { await page.evaluate(() => document.fonts.ready); const overflow = await page.evaluate(() => [...document.querySelectorAll('.sheet')].flatMap(sheet => [...sheet.children].filter(el => el.tagName !== 'FOOTER' && el.getBoundingClientRect().bottom > sheet.getBoundingClientRect().bottom - 52).map(() => sheet.id))); if (overflow.length) throw new Error('Content reaches footer: ' + overflow.join(', ')); }"
-pw run-code "async (page) => { await page.evaluate(() => document.fonts.ready); await page.pdf({ path: 'docs/11-brand-charter/tickr-charte-graphique.pdf', preferCSSPageSize: true, printBackground: true, tagged: true, outline: true }); }"
-
-python3 - "$chart_dir" <<'PY'
-from pathlib import Path
-import sys
-import fitz
-
-chart = Path(sys.argv[1])
-document = fitz.open(chart / 'tickr-charte-graphique.pdf')
-assert len(document) == 24, f'Expected 24 pages, got {len(document)}'
-for page in document:
-    for link in page.get_links():
-        assert not link.get('uri', '').startswith(('http://127.0.0.1', 'http://localhost')), 'Local server URL embedded in PDF'
-document[0].get_pixmap(matrix=fitz.Matrix(1.5, 1.5)).save(
-    chart / 'assets/previews/brand-cover.png'
-)
-print(f'Exported {len(document)} pages and three previews.')
-PY
+JS

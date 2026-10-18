@@ -115,14 +115,15 @@ p {
 h1 {
   font-size: 78px;
   line-height: 1.06;
-  letter-spacing: -5px;
+  letter-spacing: 0;
   font-weight: 700;
   margin-bottom: 28px;
 }
 h2 {
-  font-size: 44px;
+  font-family: var(--font-display);
+  font-size: 38px;
   line-height: 1.12;
-  letter-spacing: -2px;
+  letter-spacing: 0;
   font-weight: 700;
   margin-bottom: 22px;
   max-width: 850px;
@@ -130,7 +131,7 @@ h2 {
 h3 {
   font-size: 22px;
   line-height: 1.3;
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
   font-weight: 700;
   margin-bottom: 12px;
 }
@@ -176,7 +177,7 @@ p {
 .panel {
   background: white;
   padding: 26px;
-  border-radius: 12px;
+  border-radius: 0;
 }
 .panel.mist,
 .swatch.mist {
@@ -240,6 +241,22 @@ p {
 }
 .cover {
   padding-top: 45px;
+  isolation: isolate;
+  color: white;
+}
+.cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(12, 23, 21, 0.95), rgba(12, 23, 21, 0.75) 40%, rgba(12, 23, 21, 0.1));
+}
+.cover .folio {
+  color: white;
+}
+.cover .folio,
+.cover-bottom {
+  text-shadow: 0 1px 4px #0c1715;
 }
 .cover-top {
   display: flex;
@@ -254,15 +271,17 @@ p {
 }
 .cover-title h1 {
   font-size: 88px;
-  letter-spacing: -5.5px;
+  font-family: var(--font-display);
+  color: var(--color-electric);
+  letter-spacing: 0;
 }
 .cover-art {
   position: absolute;
-  right: -100px;
-  top: 170px;
-  width: 620px;
-  height: 510px;
-  object-fit: contain;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .cover-bottom {
   display: flex;
@@ -300,7 +319,7 @@ p {
 .quote {
   font-size: 37px;
   line-height: 1.3;
-  letter-spacing: -1.2px;
+  letter-spacing: 0;
 }
 .reference {
   min-height: 170px;
@@ -412,14 +431,16 @@ th:first-child {
   padding-left: 0;
 }
 .type-hero {
+  font-family: var(--font-display);
   font-size: 112px;
-  letter-spacing: -7px;
+  letter-spacing: 0;
   font-weight: 700;
   line-height: 1.1;
 }
 .type-sample {
+  font-family: var(--font-display);
   font-size: 27px;
-  letter-spacing: -0.6px;
+  letter-spacing: 0;
   line-height: 1.65;
 }
 .type-row {
@@ -571,13 +592,13 @@ th:first-child {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
 }
 .material img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 .stage-art {
   position: relative;
@@ -600,7 +621,7 @@ th:first-child {
 }
 .stage-art strong {
   font-size: 29px;
-  letter-spacing: -1px;
+  letter-spacing: 0;
   line-height: 1.1;
   display: block;
   max-width: 150px;
@@ -612,7 +633,7 @@ th:first-child {
 }
 .browser {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: white;
   overflow: hidden;
 }
@@ -675,7 +696,7 @@ th:first-child {
 }
 .phone-content h3 {
   font-size: 25px;
-  letter-spacing: -1px;
+  letter-spacing: 0;
 }
 .phone-content p {
   font-size: 10px;
@@ -715,7 +736,7 @@ th:first-child {
   background: white;
   padding: 22px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
 }
 .money-row {
   display: flex;
@@ -729,10 +750,10 @@ th:first-child {
   margin-top: 8px;
   padding-top: 18px;
   font-weight: 700;
-  letter-spacing: -0.6px;
+  letter-spacing: 0;
 }
 .ticket {
-  border-radius: 20px;
+  border-radius: 8px;
   background: white;
   overflow: hidden;
   max-width: 300px;
@@ -777,6 +798,12 @@ th:first-child {
   text-align: center;
   font-size: 11px;
 }
+.application-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 180px;
+  gap: 24px;
+  align-items: start;
+}
 .social-post {
   aspect-ratio: 1;
   padding: 24px;
@@ -788,32 +815,39 @@ th:first-child {
   height: 27px;
 }
 .social-post h3 {
-  font-size: 36px;
-  letter-spacing: -2px;
+  font-family: var(--font-display);
+  font-size: 34px;
+  letter-spacing: 0;
   line-height: 1.12;
   margin-top: 35px;
 }
 .social-post img.art {
   position: absolute;
-  width: 240px;
-  right: -95px;
-  bottom: -10px;
+  width: 100%;
+  height: 95px;
+  object-fit: cover;
+  right: 0;
+  bottom: 0;
 }
 .social-post .small {
   position: absolute;
+  bottom: 100px;
+}
+.social-post:not(:has(.art)) .small {
   bottom: 18px;
 }
 .story {
   width: 180px;
   height: 320px;
-  background: var(--lilac);
+  background: var(--mist);
   padding: 22px;
   position: relative;
   overflow: hidden;
 }
 .story h3 {
-  font-size: 29px;
-  letter-spacing: -1.5px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 0;
   line-height: 1.15;
   margin-top: 35px;
 }
@@ -823,9 +857,11 @@ th:first-child {
 }
 .story .art {
   position: absolute;
-  width: 250px;
-  bottom: -30px;
-  right: -50px;
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  bottom: 0;
+  right: 0;
 }
 .do-dont {
   display: grid;
@@ -895,8 +931,7 @@ th:first-child {
     right: 35px;
   }
   .cover-art {
-    opacity: 0.55;
-    right: -180px;
+    object-position: 60% center;
   }
 }
 @media screen and (max-width: 700px) {
@@ -911,21 +946,18 @@ th:first-child {
   h1,
   .cover-title h1 {
     font-size: 52px;
-    letter-spacing: -3px;
+    letter-spacing: 0;
   }
   h2 {
     font-size: 34px;
-    letter-spacing: -1.3px;
+    letter-spacing: 0;
   }
   .cover-title {
     width: auto;
     margin-top: 50px;
   }
   .cover-art {
-    top: 330px;
-    right: -110px;
-    width: 450px;
-    opacity: 0.9;
+    object-position: 65% center;
   }
   .cover-bottom {
     left: 35px;
@@ -941,9 +973,30 @@ th:first-child {
   .contents,
   .screen-grid,
   .landing-layout,
+  .application-grid,
   .do-dont {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 22px;
+  }
+  .spacing {
+    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+  .spacing i {
+    width: 100%;
+  }
+  .social-post {
+    aspect-ratio: auto;
+    min-height: 360px;
+    padding: 20px;
+  }
+  .social-post h3 {
+    font-size: 28px;
+  }
+  .social-post .small {
+    position: relative;
+    bottom: auto;
   }
   .palette-pastel {
     grid-template-columns: 1fr 1fr;
@@ -953,7 +1006,7 @@ th:first-child {
   }
   .type-hero {
     font-size: 70px;
-    letter-spacing: -4px;
+    letter-spacing: 0;
   }
   .type-row {
     gap: 10px;

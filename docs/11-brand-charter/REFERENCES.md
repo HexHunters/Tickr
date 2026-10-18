@@ -1,15 +1,30 @@
-# Tickr · Porcelaine — reference register
+# Tickr · En scène — reference register
 
 Research checked **17 October 2026**. These primary sources informed the proposal;
 their logos, screenshots, illustrations, layout code and marketing claims are not
 included as Tickr assets. Observations describe the pages available on that date,
 not a promise that the sites will retain those designs.
 
-Porcelaine is a **proposed visual replacement for review in this PR**, including
-the older cobalt direction and the audit's Chaux & Faïence direction. Its cool
-canvas, muted pastel surfaces, deep petrol actions and Manrope typography are
-original Tickr choices. Existing product scope and purchase requirements remain
-the reference for implementation.
+En scène (18 October 2026) evolves the initial Porcelaine proposal in this PR:
+acid-yellow brand emphasis, occasional coral, live photography and Readex Pro
+headlines. The cool canvas, deep petrol utility actions and Manrope UI remain.
+The observations below describe the initial research, not a new visual audit of
+those sites. Existing product scope and purchase requirements remain authoritative.
+
+## Photography in this revision
+
+- Local asset: [live-crowd.jpg](assets/live-crowd.jpg).
+- [Original Unsplash image endpoint](https://images.unsplash.com/photo-1501386761578-eac5c94b800a)
+  and [Unsplash license](https://unsplash.com/license). Downloaded 18 October 2026,
+  resized to 2200 px wide for this local design proposal.
+- This is illustrative crowd photography, not a confirmed Tunisian venue,
+  partner, customer endorsement or Tickr event. No such attribution is made.
+- Before public release, replace it with commissioned or organizer-authorized
+  local photography and record photographer credit and applicable permissions.
+  The stock license does not establish every depicted person's publicity rights
+  or clearance of visible third-party marks.
+- The existing ticket sculpture is original secondary artwork; it is no longer
+  the campaign hero. The logo has not been redesigned.
 
 ## Product and visual references
 
@@ -23,6 +38,10 @@ the reference for implementation.
 | [DICE: how fees work](https://dicefm.zendesk.com/hc/en-gb/articles/19919684020113-How-DICE-fees-work) | DICE states that the advertised ticket price includes its booking fee. The main DICE homepage rejected the research fetch, so this is a verified pricing reference rather than a visual audit.                                     | Show the payable total as early as Tickr's pricing contract permits, with a legible fee breakdown when a quantity is selected.              | Copying another provider's fee policy or claiming Tickr prices include fees when the API returns a base ticket price.                   |
 
 ## Typeface sources
+
+Revision 1.1 assigns Latin campaign headlines to Readex Pro 700 and retains
+Manrope for Latin UI and numerals. The original distribution sources below
+remain unchanged; both families are already supplied locally.
 
 | Role in Porcelaine                          | Specimen                                                              | Distribution and license                                                                                                                                       |
 | ------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,11 +77,17 @@ The detailed backend contract must be checked again before production work.
 - **Market and language:** French-first `fr-TN` for V1; externalized strings;
   Arabic-ready logical properties and bidirectional isolation for prices and codes.
   Do not expose an unimplemented locale switch as a working feature.
-- **Money and trust:** TND with three decimal places; local payment methods before
-  international cards when available; visible total and fees, a real order
-  reference and a confirmed payment state. A return from a gateway is not itself
-  proof of payment.
-- **Time:** a 15-minute reservation hold displayed in relative and absolute forms.
+- **Money and trust:** TND with three decimal places. The approved launch target
+  is reservation followed by cash payment to the organizer/seller, with zero
+  offline commission. Tickr records payment; it does not transfer cash. Online
+  gateways remain disabled. Only offer methods actually exposed by the backend;
+  an empty list is an unavailable state, not permission to invent an offline API.
+  Show the server total, fees and order reference. Never infer payment from a QR,
+  a client action or a gateway return.
+- **Time:** show the server reservation deadline in relative and absolute forms,
+  with dates and the `Africa/Tunis` timezone. Do not hardcode a 15-minute hold.
+  Offline timing recommendations and event caps belong to the backend plan,
+  not the brand charter; display the deadline snapshotted for each reservation.
   A launch countdown needs an approved release date; otherwise use “Bientôt
   disponible” without a fabricated date or ticking timer.
 - **Mobile:** design for a 390 px viewport and verify at 360 px on modest Android
@@ -73,6 +98,10 @@ The detailed backend contract must be checked again before production work.
 - **Launch interest:** an email form in a concept is an interface specification.
   Production requires a real submission endpoint, clear consent language, privacy
   destination, failure state and truthful success confirmation.
+
+For launch/payment policy, the [approved backend plan](../backend-plan.md)
+supersedes older online-checkout examples. Its implementation status remains a
+release gate, not a claim that offline purchase is ready.
 
 Repository sources: [product design brief](../08-frontend/02-product-design-brief.md),
 [design system](../08-frontend/08-design-system.md), and

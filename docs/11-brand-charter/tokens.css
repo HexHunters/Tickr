@@ -38,6 +38,9 @@
 }
 
 :root {
+  --color-electric: #d9f55c;
+  --color-coral: #ff8066;
+  --font-display: 'Readex Pro', sans-serif;
   --color-canvas: #f7f9f8;
   --color-surface: #ffffff;
   --color-ink: #233a42;
@@ -73,22 +76,22 @@
   --type-16-tracking: 0em;
   --type-18-size: 18px;
   --type-18-line-height: 28px;
-  --type-18-tracking: -0.01em;
+  --type-18-tracking: 0em;
   --type-24-size: 24px;
   --type-24-line-height: 32px;
-  --type-24-tracking: -0.02em;
+  --type-24-tracking: 0em;
   --type-32-size: 32px;
   --type-32-line-height: 40px;
-  --type-32-tracking: -0.025em;
+  --type-32-tracking: 0em;
   --type-48-size: 48px;
   --type-48-line-height: 56px;
-  --type-48-tracking: -0.04em;
+  --type-48-tracking: 0em;
   --type-72-size: 72px;
   --type-72-line-height: 80px;
-  --type-72-tracking: -0.05em;
+  --type-72-tracking: 0em;
   --type-96-size: 96px;
   --type-96-line-height: 104px;
-  --type-96-tracking: -0.055em;
+  --type-96-tracking: 0em;
   --space-0: 0px;
   --space-1: 4px;
   --space-2: 8px;
@@ -104,8 +107,8 @@
   --space-24: 96px;
   --space-32: 128px;
   --radius-control: 8px;
-  --radius-card: 12px;
-  --radius-feature: 20px;
+  --radius-card: 8px;
+  --radius-feature: 0px;
   --radius-chip: 999px;
   --focus-width: 3px;
   --focus-offset: 3px;

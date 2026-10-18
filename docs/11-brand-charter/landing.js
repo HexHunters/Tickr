@@ -68,27 +68,3 @@ if (
   // Keep the native submit path disabled until the local handler is installed.
   submitButton.disabled = false
 }
-
-const ticketArt = document.querySelector('[data-ticket-art]')
-const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
-const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
-
-if (ticketArt instanceof HTMLElement) {
-  const resetTilt = () => {
-    ticketArt.style.removeProperty('--tilt-x')
-    ticketArt.style.removeProperty('--tilt-y')
-  }
-
-  ticketArt.addEventListener('pointermove', (event) => {
-    if (motionPreference.matches || !finePointer.matches) return
-
-    const bounds = ticketArt.getBoundingClientRect()
-    const horizontal = (event.clientX - bounds.left) / bounds.width - 0.5
-    const vertical = (event.clientY - bounds.top) / bounds.height - 0.5
-    ticketArt.style.setProperty('--tilt-x', `${(-vertical * 5).toFixed(2)}deg`)
-    ticketArt.style.setProperty('--tilt-y', `${(horizontal * 7).toFixed(2)}deg`)
-  })
-
-  ticketArt.addEventListener('pointerleave', resetTilt)
-  motionPreference.addEventListener('change', resetTilt)
-}

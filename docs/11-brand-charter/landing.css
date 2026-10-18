@@ -102,7 +102,7 @@ a {
 }
 
 .site-header {
-  min-height: 114px;
+  min-height: 88px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -116,7 +116,7 @@ a {
   gap: 9px;
   font-size: 32px;
   font-weight: 750;
-  letter-spacing: -1.75px;
+  letter-spacing: 0;
 }
 
 .wordmark img,
@@ -165,18 +165,38 @@ a {
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: 1.03fr 1fr;
-  min-height: 709px;
-  align-items: center;
+  min-height: 620px;
   position: relative;
-  padding: 55px 0 65px;
+  isolation: isolate;
+  margin-inline: calc(-100% / 14);
+  padding: 42px 7.15%;
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.hero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 42%;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(12, 23, 21, 0.94), rgba(12, 23, 21, 0.78) 38%, transparent 76%);
 }
 
 .hero-copy {
   position: relative;
   z-index: 1;
-  padding-bottom: 8px;
+  max-width: 540px;
+  animation: arrive var(--motion-deliberate) var(--motion-ease) both;
 }
 
 .launch-status {
@@ -204,20 +224,37 @@ p {
 }
 
 h1 {
-  max-width: 620px;
-  margin-bottom: 26px;
-  font-size: clamp(48px, 5.27vw, 78px);
-  line-height: 1.085;
-  letter-spacing: -0.064em;
-  font-weight: 550;
+  margin-bottom: 4px;
+  font-family: var(--font-display);
+  font-size: 108px;
+  line-height: 1;
+  letter-spacing: 0;
+  font-weight: 700;
+  color: var(--color-electric);
+}
+
+.hero-tagline {
+  margin-bottom: 22px;
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1.06;
+}
+
+.hero .launch-status > span {
+  background: var(--color-electric);
+}
+
+.hero :focus-visible {
+  outline-color: var(--surface);
 }
 
 .hero-description {
   max-width: 370px;
   margin-bottom: 31px;
-  color: var(--muted);
+  color: var(--surface);
   font-size: 16px;
-  line-height: 1.85;
+  line-height: 1.65;
 }
 
 .button {
@@ -229,10 +266,10 @@ h1 {
   border: 0;
   border-radius: 6px;
   padding: 15px 20px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   font-weight: 650;
-  white-space: nowrap;
+  white-space: normal;
   transition: background-color var(--motion-fast) var(--motion-ease);
 }
 
@@ -252,51 +289,50 @@ h1 {
 
 .hero-note {
   margin: 17px 0 0;
-  color: var(--muted);
+  color: var(--surface);
   font-size: 12px;
 }
 
-.hero-art {
-  min-width: 0;
-  width: 125%;
-  margin-left: -12%;
-  margin-top: -5px;
-  position: relative;
-  perspective: 1300px;
+.hero .primary-button {
+  background: var(--color-electric);
+  color: var(--ink);
+  border-radius: 2px;
+  border-right: 2px dashed var(--ink);
 }
 
-.ticket-sculpture {
-  display: block;
-  width: 100%;
-  height: auto;
-  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-  transition: transform var(--motion-standard) var(--motion-ease);
-  will-change: auto;
+.hero .primary-button:hover {
+  background: var(--surface);
 }
 
-.art-caption {
-  position: absolute;
-  bottom: 6%;
-  left: 21%;
-  right: 9%;
+.programme-strip {
   display: flex;
   align-items: center;
-  gap: 13px;
-  color: var(--muted);
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  margin-inline: calc(-100% / 14);
+  padding: 18px 7.15%;
+  background: var(--color-electric);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.programme-place {
+  margin-left: auto;
+  font-family: var(--font-ui);
   font-size: 12px;
 }
 
-.caption-line {
-  height: 1px;
-  flex: 1;
-  background: var(--line);
+@keyframes arrive {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .discovery-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10%;
-  padding: 85px 0 96px;
+  padding: 56px 0 64px;
   border-top: 1px solid var(--line);
 }
 
@@ -309,10 +345,11 @@ h1 {
 
 h2 {
   margin-bottom: 23px;
-  font-size: clamp(30px, 3.05vw, 46px);
+  font-family: var(--font-display);
+  font-size: 40px;
   line-height: 1.2;
-  letter-spacing: -0.047em;
-  font-weight: 550;
+  letter-spacing: 0;
+  font-weight: 700;
 }
 
 .discovery-intro > p:not(.section-kicker) {
@@ -356,7 +393,7 @@ h2 {
   flex: 0 0 64px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 0;
 }
 
 .category-symbol svg {
@@ -368,13 +405,13 @@ h2 {
 }
 
 .symbol-music {
-  background: var(--mist);
+  background: var(--color-electric);
 }
 .symbol-stage {
-  background: var(--sage);
+  background: var(--color-coral);
 }
 .symbol-festival {
-  background: var(--lilac);
+  background: var(--mist);
 }
 .symbol-discover {
   background: var(--shell);
@@ -384,7 +421,7 @@ h2 {
   margin: 0 0 6px;
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
 }
 
 .category-row p {
@@ -408,8 +445,9 @@ h2 {
   gap: 12%;
   margin: 0 -3.55%;
   padding: 68px 6.5%;
-  background: var(--sage);
-  border-radius: 12px;
+  background: var(--mist);
+  border-radius: 0;
+  border-top: 2px dashed var(--control);
 }
 
 .launch-heading .launch-status {
@@ -419,7 +457,7 @@ h2 {
 
 .launch-heading h2 {
   margin-bottom: 18px;
-  font-size: clamp(36px, 3.6vw, 54px);
+  font-size: 44px;
 }
 
 .launch-heading > p:last-child {
@@ -447,20 +485,22 @@ h2 {
 .field-label {
   display: block;
   margin-bottom: 10px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .email-control {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .email-control input {
   width: 100%;
+  flex: 1 1 200px;
   min-width: 0;
   min-height: 52px;
-  border: 1px solid var(--control);
+  border: 1px solid var(--action);
   border-radius: 6px;
   background: var(--surface);
   padding: 13px 14px;
@@ -476,7 +516,7 @@ h2 {
 .email-control .button {
   gap: 12px;
   padding: 13px 16px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .consent-control {
@@ -499,21 +539,21 @@ h2 {
 .consent-control span {
   padding-top: 1px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
 }
 
 .form-privacy {
   margin: 3px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.7;
 }
 
 .field-error {
   margin: 0;
   color: var(--color-error);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -535,7 +575,7 @@ h2 {
   padding: 13px 15px;
   border-left: 3px solid var(--action);
   background: #f0f5ef;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.8;
 }
 
@@ -559,7 +599,7 @@ h2 {
   margin-bottom: 12px;
   font-size: 25px;
   line-height: 1.35;
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
 }
 
 .organizer-section p {
@@ -597,7 +637,7 @@ h2 {
   display: flex;
   align-items: center;
   font-size: 26px;
-  letter-spacing: -1.3px;
+  letter-spacing: 0;
   font-weight: 750;
 }
 
@@ -613,34 +653,19 @@ h2 {
   margin-left: auto;
 }
 
-@media (min-width: 1600px) {
-  .hero {
-    min-height: 760px;
-  }
-}
-
 @media (max-width: 1100px) {
   .page-shell {
-    padding: 0 5%;
+    padding: 0 6.25%;
   }
   .hero {
-    min-height: 640px;
+    min-height: 620px;
   }
   h1 {
-    font-size: 62px;
+    font-size: 96px;
   }
   .hero-description {
     max-width: 330px;
     font-size: 16px;
-  }
-  .hero-art {
-    width: 119%;
-    margin-left: -11%;
-  }
-  .art-caption {
-    font-size: 12px;
-    left: 16%;
-    right: 9%;
   }
   .discovery-section {
     gap: 7%;
@@ -660,6 +685,9 @@ h2 {
   .email-control {
     flex-direction: column;
   }
+  .email-control input {
+    flex-basis: auto;
+  }
   .email-control .button {
     align-self: flex-start;
     min-height: 45px;
@@ -677,7 +705,7 @@ h2 {
 
 @media (max-width: 760px) {
   .page-shell {
-    padding: 0 6%;
+    padding: 0 6.25%;
   }
   .site-header {
     min-height: 88px;
@@ -696,9 +724,14 @@ h2 {
     gap: 9px;
   }
   .hero {
-    grid-template-columns: 1fr;
-    padding: 52px 0 26px;
-    min-height: auto;
+    padding: 30px 7.15% 32px;
+    min-height: 540px;
+  }
+  .hero-photo {
+    object-position: 65% center;
+  }
+  .hero::before {
+    background: linear-gradient(90deg, rgba(12, 23, 21, 0.92), rgba(12, 23, 21, 0.65));
   }
   .hero-copy {
     padding: 0;
@@ -709,8 +742,19 @@ h2 {
   }
   h1 {
     max-width: 580px;
-    font-size: clamp(47px, 9.5vw, 68px);
-    margin-bottom: 24px;
+    font-size: 76px;
+    margin-bottom: 8px;
+  }
+  .hero-tagline {
+    font-size: 48px;
+  }
+  .programme-strip {
+    gap: 10px 16px;
+    font-size: 14px;
+    padding-block: 16px;
+  }
+  .programme-place {
+    display: none;
   }
   .hero-description {
     max-width: 380px;
@@ -720,21 +764,11 @@ h2 {
   }
   .button {
     min-height: 50px;
-    font-size: 13px;
+    font-size: 14px;
   }
   .hero-note {
     font-size: 12px;
     margin-top: 15px;
-  }
-  .hero-art {
-    width: 112%;
-    margin: -5px -6% 0;
-  }
-  .art-caption {
-    font-size: 12px;
-    bottom: 6%;
-    left: 12%;
-    right: 12%;
   }
   .discovery-section {
     grid-template-columns: 1fr;
@@ -746,7 +780,7 @@ h2 {
     font-size: 13px;
   }
   h2 {
-    font-size: 36px;
+    font-size: 30px;
     margin-bottom: 19px;
   }
   .discovery-intro > p:not(.section-kicker) {
@@ -766,7 +800,7 @@ h2 {
     width: 57px;
     height: 57px;
     flex-basis: 57px;
-    border-radius: 12px;
+    border-radius: 0;
   }
   .category-row h3 {
     font-size: 16px;
@@ -782,13 +816,13 @@ h2 {
     gap: 33px;
     padding: 35px 25px 37px;
     margin: 0 -2%;
-    border-radius: 10px;
+    border-radius: 0;
   }
   .launch-heading .launch-status {
     margin-bottom: 21px;
   }
   .launch-heading h2 {
-    font-size: 40px;
+    font-size: 32px;
   }
   .launch-heading > p:last-child {
     max-width: 400px;
@@ -806,17 +840,17 @@ h2 {
   .email-control .button {
     align-self: stretch;
     min-height: 48px;
-    font-size: 13px;
+    font-size: 14px;
   }
   .consent-control {
     margin-top: 5px;
     padding: 10px 0;
   }
   .consent-control span {
-    font-size: 12px;
+    font-size: 14px;
   }
   .form-privacy {
-    font-size: 12px;
+    font-size: 14px;
   }
   .organizer-section {
     grid-template-columns: 1fr;
@@ -860,18 +894,11 @@ h2 {
 
 @media (max-width: 390px) {
   .hero {
-    padding-top: 44px;
+    padding-top: 30px;
   }
   h1 {
-    font-size: 46px;
-    letter-spacing: -0.065em;
-  }
-  .hero-art {
-    margin-top: 5px;
-  }
-  .art-caption {
-    gap: 8px;
-    font-size: 12px;
+    font-size: 68px;
+    letter-spacing: 0;
   }
   .category-detail {
     display: none;
@@ -890,8 +917,6 @@ h2 {
   *::before,
   *::after {
     transition-duration: 0s !important;
-  }
-  .ticket-sculpture {
-    transform: none !important;
+    animation: none !important;
   }
 }

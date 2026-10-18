@@ -7,6 +7,29 @@ const { tokens, contrast } = JSON.parse(
 )
 const css = await readFile(new URL('tokens.css', root), 'utf8')
 
+for (const filename of ['brand-book.html', 'coming-soon.html']) {
+  const html = await readFile(new URL(filename, root), 'utf8')
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1])
+  assert.equal(new Set(ids).size, ids.length, `Duplicate HTML id: ${filename}`)
+  assert.equal(
+    [...html.matchAll(/<link\b[^>]*\brel="icon"/g)].length,
+    1,
+    `Expected one favicon declaration: ${filename}`,
+  )
+  for (const [, reference] of html.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
+    if (/^(?:https?:|mailto:|data:)/.test(reference)) continue
+    const target = new URL(reference, new URL(filename, root))
+    const contents = await readFile(new URL(target.pathname, 'file:'))
+    if (target.hash && target.pathname.endsWith('.html')) {
+      const anchor = decodeURIComponent(target.hash.slice(1))
+      assert(
+        contents.toString().includes(`id="${anchor}"`),
+        `Missing anchor ${reference} in ${filename}`,
+      )
+    }
+  }
+}
+
 function flatten(object, prefix = '') {
   return Object.entries(object).flatMap(([key, value]) => {
     const name = prefix ? `${prefix}-${key}` : key
@@ -72,7 +95,10 @@ assert.equal(tokens.focus.offset, '3px')
 for (const [step, value] of Object.entries(tokens.space)) {
   assert.equal(Number.parseInt(value, 10), Number(step) * 4)
 }
-assert.deepEqual(Object.values(tokens.radius), ['8px', '12px', '20px', '999px'])
+assert.deepEqual(Object.values(tokens.radius), ['8px', '8px', '0px', '999px'])
+for (const value of Object.values(tokens.type)) {
+  assert.equal(value.tracking, '0em')
+}
 for (const filename of [
   'assets/fonts/manrope-latin.woff2',
   'assets/fonts/readex-arabic.woff2',
@@ -109,6 +135,7 @@ if (process.argv.includes('--json')) {
   process.stdout.write(
     `${expected.size} CSS tokens match JSON; ${report.length} contrast pairs pass.\n` +
       `Minimum text ${lowest('text')}:1; control ${lowest('control')}:1; focus ${lowest('focus')}:1.\n` +
+      'HTML local references, anchors, unique IDs and favicon declarations verified.\n' +
       'Local WOFF2 fonts and outlined SVG logos verified. Palette checks only; inspect complete UI separately.\n',
   )
 }
