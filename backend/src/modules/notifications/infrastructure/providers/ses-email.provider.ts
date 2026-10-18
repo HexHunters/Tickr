@@ -1,4 +1,4 @@
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -12,12 +12,12 @@ import {
  * AWS SES Email Provider Adapter
  *
  * Sends emails via AWS SES (Simple Email Service).
- * Uses SESv2 client for modern API support.
+ * Uses the SES API supported by AWS and local development emulators.
  */
 @Injectable()
 export class SesEmailProvider implements EmailProviderPort {
   private readonly logger = new Logger(SesEmailProvider.name);
-  private readonly client: SESv2Client;
+  private readonly client: SESClient;
   private readonly fromEmail: string;
   private readonly configurationSet: string;
 
@@ -28,7 +28,7 @@ export class SesEmailProvider implements EmailProviderPort {
       'us-east-1';
     const endpoint = this.configService.get<string>('aws.endpoint');
 
-    this.client = new SESv2Client({
+    this.client = new SESClient({
       region,
       ...(endpoint && { endpoint }),
     });
@@ -45,12 +45,11 @@ export class SesEmailProvider implements EmailProviderPort {
 
     try {
       const command = new SendEmailCommand({
-        FromEmailAddress: request.from ?? this.fromEmail,
+        Source: request.from ?? this.fromEmail,
         Destination: {
           ToAddresses: [request.to],
         },
-        Content: {
-          Simple: {
+        Message: {
             Subject: {
               Data: request.subject,
               Charset: 'UTF-8',
@@ -67,7 +66,6 @@ export class SesEmailProvider implements EmailProviderPort {
                 },
               }),
             },
-          },
         },
         ...(request.replyTo && {
           ReplyToAddresses: [request.replyTo],

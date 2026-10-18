@@ -48,6 +48,9 @@ describe('NotificationsController (HTTP)', () => {
   let app: INestApplication;
   let accessToken: string;
 
+  const mockSendHandler: jest.Mocked<Pick<SendNotificationHandler, 'execute'>> = {
+    execute: jest.fn(),
+  };
   const mockGetUserNotificationsHandler: jest.Mocked<
     Pick<GetUserNotificationsHandler, 'execute'>
   > = { execute: jest.fn() };
@@ -116,7 +119,7 @@ describe('NotificationsController (HTTP)', () => {
           useValue: new ConfigService({ JWT_SECRET: jwtSecret }),
         },
         JwtStrategy,
-        { provide: SendNotificationHandler, useValue: { execute: jest.fn() } },
+        { provide: SendNotificationHandler, useValue: mockSendHandler },
         {
           provide: UpdatePreferencesHandler,
           useValue: mockUpdatePreferencesHandler,
@@ -164,6 +167,56 @@ describe('NotificationsController (HTTP)', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+  });
+
+  describe('POST /notifications', () => {
+    const payload = {
+      userId,
+      type: NotificationType.ORDER_CONFIRMATION,
+      channel: NotificationChannel.EMAIL,
+      recipientEmail: 'recipient@example.com',
+      subject: 'Order confirmation',
+      content: '<p>Confirmed</p>',
+    };
+
+    it.each([UserRole.PARTICIPANT, UserRole.ORGANIZER])(
+      'rejects arbitrary sends from %s before calling the handler',
+      async (role) => {
+        const token = app.get(JwtService).sign({
+          userId, email: 'user@tickr.tn', role, type: 'access',
+        });
+        await request(app.getHttpServer())
+          .post('/api/notifications')
+          .set('Authorization', `Bearer ${token}`)
+          .send(payload)
+          .expect(HttpStatus.FORBIDDEN);
+        expect(mockSendHandler.execute).not.toHaveBeenCalled();
+      },
+    );
+
+    it('allows an administrator to send a notification', async () => {
+      const token = app.get(JwtService).sign({
+        userId, email: 'admin@tickr.tn', role: UserRole.ADMIN, type: 'access',
+      });
+      mockSendHandler.execute.mockResolvedValue(Result.ok({
+        notificationId, status: NotificationStatus.SENT,
+      }));
+
+      await request(app.getHttpServer())
+        .post('/api/notifications')
+        .set('Authorization', `Bearer ${token}`)
+        .send(payload)
+        .expect(HttpStatus.CREATED);
+      expect(mockSendHandler.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects anonymous sends', async () => {
+      await request(app.getHttpServer())
+        .post('/api/notifications')
+        .send(payload)
+        .expect(HttpStatus.UNAUTHORIZED);
+      expect(mockSendHandler.execute).not.toHaveBeenCalled();
+    });
   });
 
   describe('GET /notifications/me', () => {

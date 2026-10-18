@@ -63,7 +63,7 @@ export class VerificationTokenEntity {
    * Check if token is expired
    */
   isExpired(): boolean {
-    return new Date() > this.expiresAt;
+    return new Date() >= this.expiresAt;
   }
 
   /**
