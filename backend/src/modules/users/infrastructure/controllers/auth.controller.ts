@@ -359,25 +359,25 @@ export class AuthController {
     @Body() dto: RequestPasswordResetDto,
   ): Promise<SuccessResponse> {
     // Find user by email (don't reveal if user exists)
-    const user = await this.userRepository.findByEmail(dto.email);
+    const user = await this.userRepository.findByEmail(dto.email.toLowerCase());
 
-    if (user) {
-      // Generate password reset token (expires in 1 hour)
-      // Token is generated but email sending is not yet implemented
-      // When notification service is ready, emit event with token
-      await this.verificationTokenRepository.createPasswordResetToken(
+    if (user?.isActive) {
+      const token = await this.verificationTokenRepository.createPasswordResetToken(
         user.id,
         1, // 1 hour expiry
       );
 
-      // TODO: Send reset email via event/notification service
-      // const token = await this.verificationTokenRepository.createPasswordResetToken(...)
-      // await this.eventEmitter.emit('user.password-reset-requested', {
-      //   userId: user.id,
-      //   email: user.email,
-      //   token: token,
-      //   resetUrl: `${process.env.FRONTEND_URL}/reset-password?token=${token}`,
-      // });
+      const frontendUrl = this.configService.get<string>(
+        'app.frontendUrl',
+        'http://localhost:3001',
+      );
+
+      this.eventEmitter.emit('user.password-reset-requested', {
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        resetUrl: `${frontendUrl}/reset-password?token=${encodeURIComponent(token)}`,
+      });
     }
 
     // Always return success to prevent email enumeration
@@ -429,6 +429,15 @@ export class AuthController {
       tokenEntity.userId,
       TokenType.PASSWORD_RESET,
     );
+
+    const user = await this.userRepository.findById(tokenEntity.userId);
+    if (user) {
+      this.eventEmitter.emit('user.password-reset', {
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+      });
+    }
 
     return {
       message: 'Password reset successfully. You can now log in with your new password.',

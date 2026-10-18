@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
 import { NotificationChannel } from '../../domain/value-objects/notification-channel.vo';
+import { NotificationPriority } from '../../domain/value-objects/notification-priority.vo';
 import { NotificationType } from '../../domain/value-objects/notification-type.vo';
 import { SendNotificationCommand } from '../commands/send-notification/send-notification.command';
 import { SendNotificationHandler } from '../commands/send-notification/send-notification.handler';
@@ -88,9 +89,8 @@ export class NotificationEventHandlers {
       {
         firstName: payload.firstName,
         verificationUrl: payload.verificationUrl,
-        verificationToken: payload.verificationToken,
       },
-      null,
+      NotificationPriority.HIGH,
       null,
       { source: 'user.registered' },
     );
@@ -104,16 +104,16 @@ export class NotificationEventHandlers {
   }
 
   /**
-   * When a password is reset, send security notification
+   * When a password reset is requested, send the reset link
    */
-  @OnEvent('user.password-reset')
-  async onPasswordReset(payload: {
+  @OnEvent('user.password-reset-requested')
+  async onPasswordResetRequested(payload: {
     userId: string;
     email: string;
+    firstName: string;
+    resetUrl: string;
   }): Promise<void> {
-    this.logger.debug(
-      `Password reset for user: ${payload.userId}`,
-    );
+    this.logger.debug(`Password reset requested for user: ${payload.userId}`);
 
     const command = new SendNotificationCommand(
       payload.userId,
@@ -122,9 +122,44 @@ export class NotificationEventHandlers {
       { email: payload.email },
       null,
       null,
-      'password-reset',
-      {},
+      'password-reset-request',
+      { firstName: payload.firstName, resetUrl: payload.resetUrl },
+      NotificationPriority.HIGH,
       null,
+      { source: 'user.password-reset-requested' },
+    );
+
+    const result = await this.sendHandler.execute(command);
+    if (result.isFailure) {
+      this.logger.warn(
+        `Failed to send password reset link: ${result.error.message}`,
+      );
+    }
+  }
+
+  /**
+   * When a password is reset, send security notification
+   */
+  @OnEvent('user.password-reset')
+  async onPasswordReset(payload: {
+    userId: string;
+    email: string;
+    firstName: string;
+  }): Promise<void> {
+    this.logger.debug(
+      `Password reset for user: ${payload.userId}`,
+    );
+
+    const command = new SendNotificationCommand(
+      payload.userId,
+      NotificationType.SECURITY_ALERT,
+      NotificationChannel.EMAIL,
+      { email: payload.email },
+      null,
+      null,
+      'password-changed',
+      { firstName: payload.firstName },
+      NotificationPriority.HIGH,
       null,
       { source: 'user.password-reset' },
     );
