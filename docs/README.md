@@ -1,5 +1,8 @@
 # 📚 Documentation Tickr - Plateforme de Billetterie (Tunisie)
 
+**Nouvelle proposition visuelle — 17 octobre 2026 :**
+[Porcelaine · charte graphique de 24 pages, PDF, actifs et concept de lancement 3D](11-brand-charter/README.md).
+
 **Version:** 1.2  
 **Date:** February 2026  
 **Équipe:** Solo/Duo Developer  
