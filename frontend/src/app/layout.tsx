@@ -1,44 +1,30 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Providers } from "@/components/providers";
+import { Providers } from '@/components/providers'
+import { SiteFooter, SiteHeader } from '@/components/design/site-shell'
 
-const inter = Inter({ subsets: ["latin"] });
+import type { Metadata } from 'next'
+
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: "Tickr - Billetterie en Ligne",
-  description: "Réservez vos billets pour les meilleurs événements en Tunisie",
-  keywords: ["billetterie", "événements", "tickets", "concerts", "spectacles", "Tunisie"],
-  authors: [{ name: "Tickr Team" }],
-  openGraph: {
-    title: "Tickr - Billetterie en Ligne",
-    description: "Réservez vos billets pour les meilleurs événements en Tunisie",
-    url: "https://tickr.tn",
-    siteName: "Tickr",
-    locale: "fr_TN",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Tickr - Billetterie en Ligne",
-    description: "Réservez vos billets pour les meilleurs événements en Tunisie",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+  icons: { icon: '/brand/symbol.svg' },
+  title: { default: 'Tickr · Ça se vit dehors.', template: '%s · Tickr' },
+  description:
+    'Trouvez vos prochaines sorties en Tunisie : concerts, festivals et spectacles. Réservez et retrouvez vos billets avec Tickr.',
+  robots: { index: false, follow: false },
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" suppressHydrationWarning>
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+    <html lang="fr-TN" dir="ltr">
+      <body>
+        <Providers>
+          <SiteHeader />
+          {children}
+          <SiteFooter />
+        </Providers>
       </body>
     </html>
-  );
+  )
 }

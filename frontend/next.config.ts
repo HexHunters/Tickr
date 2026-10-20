@@ -1,9 +1,9 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   output: 'standalone', // Enable standalone build for Docker
   reactCompiler: true,
-  
+
   // Image optimization
   images: {
     remotePatterns: [
@@ -22,17 +22,19 @@ const nextConfig: NextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
-  
+
   // Rewrites for API proxy (optional)
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/:path*`,
-      },
-    ];
+    return {
+      fallback: [
+        {
+          source: '/api/:path*',
+          destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/:path*`,
+        },
+      ],
+    }
   },
-  
+
   // Headers for security
   async headers() {
     return [
@@ -53,13 +55,13 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-    ];
+    ]
   },
-  
+
   // TypeScript strict mode
   typescript: {
     ignoreBuildErrors: false,
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
