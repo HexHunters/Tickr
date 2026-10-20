@@ -62,23 +62,15 @@ client privé.
 
 ### Données locales de test
 
-Depuis la racine, démarrer les services isolés :
+Depuis la racine, démarrer la démo complète dans Docker (arrête au préalable les
+conteneurs `backend`/`frontend` de `make dev`) :
 
 ```bash
-docker-compose -p tickr-demo -f docker-compose.demo.yml up -d
-cd backend
-npm ci
-npm run seed:demo
-npm run build
-npm run start:demo
-```
-
-Dans un autre terminal :
-
-```bash
-cd frontend
-npm ci
-npm run dev
+make demo-up      # seed, backend et frontend
+make demo-logs    # suivre le démarrage
+make demo-seed    # relancer le seed
+make demo-stop    # arrêter (données conservées)
+make demo-reset   # repartir d’une base vide
 ```
 
 Ouvrir `http://localhost:3001`. Le backend utilise le port 3000, PostgreSQL le port
