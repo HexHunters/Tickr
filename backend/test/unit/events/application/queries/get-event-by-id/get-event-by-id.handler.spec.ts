@@ -3,7 +3,7 @@
  * @description Tests for GetEventById query handler
  */
 
-
+import type { EventStaffUserDirectoryPort } from '@modules/events/application/ports/event-staff-user-directory.port';
 import type { EventRepositoryPort } from '@modules/events/application/ports/event.repository.port';
 import {
   GetEventByIdQuery,
@@ -23,6 +23,7 @@ import { Logger } from '@nestjs/common';
 describe('GetEventByIdHandler', () => {
   let handler: GetEventByIdHandler;
   let mockEventRepository: jest.Mocked<EventRepositoryPort>;
+  let directory: jest.Mocked<EventStaffUserDirectoryPort>;
 
   const userId = 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d';
   const eventId = 'b2c3d4e5-f6a7-4b6c-9d0e-1f2a3b4c5d6e';
@@ -34,7 +35,18 @@ describe('GetEventByIdHandler', () => {
       save: jest.fn(),
     } as any;
 
-    handler = new GetEventByIdHandler(mockEventRepository);
+    directory = {
+      getUserById: jest
+        .fn()
+        .mockResolvedValue({
+          id: userId,
+          firstName: 'Amal',
+          lastName: 'Studio',
+        }),
+      getUserByEmail: jest.fn(),
+      getUsersByIds: jest.fn(),
+    };
+    handler = new GetEventByIdHandler(mockEventRepository, directory);
 
     jest.spyOn(Logger.prototype, 'debug').mockImplementation();
     jest.spyOn(Logger.prototype, 'log').mockImplementation();
@@ -46,18 +58,16 @@ describe('GetEventByIdHandler', () => {
   });
 
   // Helper to create a test event
-  const createTestEvent = (status: EventStatus = EventStatus.PUBLISHED): EventEntity => {
+  const createTestEvent = (
+    status: EventStatus = EventStatus.PUBLISHED,
+  ): EventEntity => {
     const location = LocationVO.create({
       city: 'Tunis',
       country: 'Tunisia',
     });
     const startDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     const endDate = new Date(startDate.getTime() + 2 * 24 * 60 * 60 * 1000);
-    const dateRange = EventDateRangeVO.create(
-      startDate,
-      endDate,
-      true,
-    );
+    const dateRange = EventDateRangeVO.create(startDate, endDate, true);
 
     const eventResult = EventEntity.create({
       organizerId: userId,
@@ -77,8 +87,8 @@ describe('GetEventByIdHandler', () => {
       price: TicketPriceVO.create(50, Currency.TND),
       quantity: 100,
       salesPeriod: SalesPeriodVO.create(
-        new Date('2026-06-01T00:00:00Z'),
-        new Date('2026-07-14T23:59:59Z'),
+        new Date(Date.now() - 86400000),
+        new Date(Date.now() + 14 * 86400000),
       ),
     });
 
@@ -141,7 +151,8 @@ describe('GetEventByIdHandler', () => {
       expect(result.value).toHaveProperty('availableCapacity');
       expect(result.value).toHaveProperty('salesProgress');
       expect(result.value).toHaveProperty('isSoldOut');
-      expect(result.value).toHaveProperty('isOnSale');
+      expect(result.value.isOnSale).toBe(true);
+      expect(result.value.ticketTypes[0].isOnSale).toBe(true);
       expect(result.value).toHaveProperty('hasStarted');
       expect(result.value).toHaveProperty('hasEnded');
     });
@@ -156,6 +167,7 @@ describe('GetEventByIdHandler', () => {
       expect(result.isSuccess).toBe(true);
       expect(result.value.organizer).toBeDefined();
       expect(result.value.organizer.id).toBe(userId);
+      expect(result.value.organizer.displayName).toBe('Amal Studio');
     });
 
     it('should include location info', async () => {

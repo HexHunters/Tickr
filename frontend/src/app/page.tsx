@@ -1,64 +1,129 @@
-import Link from "next/link";
+import Image from 'next/image'
+import Link from 'next/link'
+import {
+  ArrowRightIcon,
+  ArrowUpRightIcon,
+  MusicalNoteIcon,
+  SparklesIcon,
+  TicketIcon,
+} from '@heroicons/react/24/outline'
 
-export default function HomePage() {
+import { EventCard } from '@/components/design/event-card'
+import { SearchForm } from '@/components/design/search-form'
+import { eventListSchema, paginated, toEventView } from '@/lib/api/contracts'
+import { serverApi } from '@/lib/api/server'
+import { DataState } from '@/components/design/data-state'
+import type { EventView } from '@/lib/api/contracts'
+
+export default async function HomePage() {
+  let events: EventView[] = []
+  let isUnavailable = false
+  try {
+    const response = await serverApi(
+      'events?limit=3&sortBy=startDate&sortOrder=ASC',
+      paginated(eventListSchema),
+    )
+    events = response.data.map(toEventView)
+  } catch {
+    isUnavailable = true
+  }
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-b from-blue-50 to-white">
-      <div className="text-center max-w-3xl">
-        <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          🎫 Tickr
-        </h1>
-        <p className="text-3xl font-semibold text-gray-800 mb-4">
-          Billetterie en Ligne
-        </p>
-        <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-          Réservez vos billets pour les meilleurs événements en Tunisie.
-          Concerts, festivals, spectacles et bien plus encore.
-        </p>
-        
-        <div className="flex gap-6 justify-center mb-16">
-          <Link
-            href="/events"
-            className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
-          >
-            Découvrir les événements
+    <main id="contenu" tabIndex={-1}>
+      <section className="home-hero" aria-labelledby="hero-title">
+        <div className="hero-copy">
+          <p className="hero-intro">
+            <span className="live-dot" />
+            La prochaine sortie commence ici.
+          </p>
+          <h1 id="hero-title">
+            Ça se vit
+            <br />
+            dehors.
+          </h1>
+          <p className="hero-description">
+            Le son qui monte. Les lumières qui tombent.
+            <br className="desktop-break" /> Les moments qui restent.
+          </p>
+          <Link className="hero-text-link" href="/events">
+            Trouvez votre prochaine scène
+            <ArrowUpRightIcon />
           </Link>
-          <Link
-            href="/auth/login"
-            className="px-8 py-4 bg-white text-gray-800 text-lg font-semibold rounded-lg hover:bg-gray-50 transition-colors border-2 border-gray-200 shadow-lg hover:shadow-xl"
-          >
-            Se connecter
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-          <div className="p-6 bg-white rounded-lg shadow-md">
-            <div className="text-4xl mb-4">🎵</div>
-            <h3 className="text-xl font-semibold mb-2">Concerts</h3>
-            <p className="text-gray-600">
-              Les meilleurs concerts de musique live
-            </p>
-          </div>
-          <div className="p-6 bg-white rounded-lg shadow-md">
-            <div className="text-4xl mb-4">🎭</div>
-            <h3 className="text-xl font-semibold mb-2">Spectacles</h3>
-            <p className="text-gray-600">
-              Théâtre, comédie et arts vivants
-            </p>
-          </div>
-          <div className="p-6 bg-white rounded-lg shadow-md">
-            <div className="text-4xl mb-4">🎪</div>
-            <h3 className="text-xl font-semibold mb-2">Festivals</h3>
-            <p className="text-gray-600">
-              Les plus grands festivals de Tunisie
-            </p>
+          <div className="hero-footnote">
+            <span className="hero-coordinate">TUN / 36°48′</span>
+            <span>En vrai. Ensemble.</span>
           </div>
         </div>
-
-        <div className="mt-16 text-sm text-gray-500">
-          <p>Plateforme de billetterie moderne et sécurisée</p>
-          <p className="mt-2">Powered by Next.js 16 • React 19 • TypeScript</p>
+        <div className="hero-photo">
+          <Image
+            src="/images/live-crowd.jpg"
+            alt="L’énergie d’un public de concert, bras levés face à la scène. Photographie illustrative."
+            fill
+            priority
+            sizes="(max-width: 760px) 100vw, 55vw"
+          />
+          <span className="hero-photo-caption">
+            <MusicalNoteIcon />
+            Le live, ça change tout.
+          </span>
+          <span className="hero-photo-index">En scène / 2026</span>
         </div>
+      </section>
+      <div className="container search-wrap">
+        <SearchForm />
       </div>
+      <section
+        className="container home-programme"
+        aria-labelledby="programme-title"
+      >
+        <div className="section-heading">
+          <div>
+            <p className="section-caption">La sélection Tickr</p>
+            <h2 id="programme-title">On sort où ?</h2>
+          </div>
+          <Link href="/events" className="text-link">
+            Tout le programme
+            <ArrowRightIcon />
+          </Link>
+        </div>
+        <div className="home-categories" aria-label="Explorer par catégorie">
+          <Link className="category-link" href="/events">
+            <SparklesIcon />
+            Toutes les envies
+          </Link>
+          <Link href="/events?category=CONCERT">Concerts</Link>
+          <Link href="/events?category=FESTIVAL">Festivals</Link>
+          <Link href="/events?category=THEATER">Spectacles</Link>
+          <Link href="/events?category=WORKSHOP">Ateliers</Link>
+        </div>
+        {isUnavailable ? (
+          <DataState error={null} />
+        ) : events.length === 0 ? (
+          <p className="empty-programme">
+            Le programme arrive bientôt. Revenez découvrir les prochaines
+            sorties.
+          </p>
+        ) : (
+          <div className="event-grid">
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        )}
+      </section>
+      <section className="home-manifesto">
+        <div className="container manifesto-inner">
+          <TicketIcon />
+          <h2>
+            Moins de « on devrait ».
+            <br />
+            Plus de « on y était ».
+          </h2>
+          <Link className="button button-electric" href="/events">
+            Allez, on sort
+            <ArrowUpRightIcon />
+          </Link>
+        </div>
+      </section>
     </main>
-  );
+  )
 }

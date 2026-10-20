@@ -1,7 +1,9 @@
 # Tickr - Makefile pour développement local
 # Requiert: Docker, Docker Compose, Node.js 20+
 
-.PHONY: help setup dev stop install env db-create db-migrate db-seed db-reset test lint docker-build docker-up docker-down logs clean
+.PHONY: help setup dev stop install env db-create db-migrate db-seed db-reset test lint docker-build docker-up docker-down logs clean demo-up demo-logs demo-seed demo-stop demo-reset
+
+DEMO_COMPOSE := docker-compose -p tickr-demo -f docker-compose.demo.yml
 
 # Couleurs pour output
 GREEN  := \033[0;32m
@@ -97,6 +99,29 @@ stop: ## Arrête tous les services
 	@echo "$(GREEN)✅ Services arrêtés$(NC)"
 
 restart: stop dev ## Redémarre tous les services
+
+##@ Démo locale (données de test)
+
+demo-up: ## Démarre la démo complète dans Docker (seed, backend 3000, frontend 3001)
+	@echo "$(GREEN)🎭 Démarrage de la démo...$(NC)"
+	@docker-compose -f docker-compose.yml -f docker-compose.dev.yml stop backend frontend 2>/dev/null || true
+	@$(DEMO_COMPOSE) up -d --build
+	@echo "$(GREEN)✅ Démo lancée. Frontend: http://localhost:3001 — Backend: http://localhost:3000/api$(NC)"
+	@echo "$(YELLOW)💡 Le backend compile au démarrage ; suivez 'make demo-logs'.$(NC)"
+
+demo-logs: ## Affiche les logs de la démo
+	@$(DEMO_COMPOSE) logs -f
+
+demo-seed: ## Relance le seed démo
+	@$(DEMO_COMPOSE) run --rm seed
+
+demo-stop: ## Arrête les services démo (conserve les données)
+	@$(DEMO_COMPOSE) down
+	@echo "$(GREEN)✅ Services démo arrêtés$(NC)"
+
+demo-reset: ## Supprime les données démo puis relance le seed
+	@$(DEMO_COMPOSE) down -v
+	@$(MAKE) demo-up
 
 ##@ Base de Données
 

@@ -34,7 +34,9 @@
     "migration:run:prod": "typeorm migration:run -d dist/shared/infrastructure/database/data-source.js",
     "migration:show:prod": "typeorm migration:show -d dist/shared/infrastructure/database/data-source.js",
     "schema:sync": "npm run typeorm -- schema:sync -d src/shared/infrastructure/database/data-source.ts",
-    "schema:drop": "npm run typeorm -- schema:drop -d src/shared/infrastructure/database/data-source.ts"
+    "schema:drop": "npm run typeorm -- schema:drop -d src/shared/infrastructure/database/data-source.ts",
+    "seed:demo": "DOTENV_CONFIG_PATH=.env.demo.example node -r dotenv/config -r ts-node/register -r tsconfig-paths/register src/shared/infrastructure/database/seeds/run-demo.ts",
+    "start:demo": "DOTENV_CONFIG_PATH=.env.demo.example NODE_ENV=test node -r dotenv/config dist/main.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.937.0",
