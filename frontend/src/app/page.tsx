@@ -10,19 +10,22 @@ import {
 
 import { EventCard } from '@/components/design/event-card'
 import { SearchForm } from '@/components/design/search-form'
-import { eventListSchema, paginated, toEventView } from '@/lib/api/contracts'
-import { serverApi } from '@/lib/api/server'
+import { toEventView } from '@/lib/api/contracts'
+import { getUpcomingPublicEvents } from '@/lib/api/catalog'
+import { publicMetadata, siteDescription } from '@/lib/seo'
 import { DataState } from '@/components/design/data-state'
 import type { EventView } from '@/lib/api/contracts'
+
+export const metadata = {
+  ...publicMetadata('Ça se vit dehors.', siteDescription, '/'),
+  title: { absolute: 'Tickr · Ça se vit dehors.' },
+}
 
 export default async function HomePage() {
   let events: EventView[] = []
   let isUnavailable = false
   try {
-    const response = await serverApi(
-      'events?limit=3&sortBy=startDate&sortOrder=ASC',
-      paginated(eventListSchema),
-    )
+    const response = await getUpcomingPublicEvents('', 3)
     events = response.data.map(toEventView)
   } catch {
     isUnavailable = true
@@ -44,7 +47,7 @@ export default async function HomePage() {
             Le son qui monte. Les lumières qui tombent.
             <br className="desktop-break" /> Les moments qui restent.
           </p>
-          <Link className="hero-text-link" href="/events">
+          <Link prefetch={false} className="hero-text-link" href="/events">
             Trouvez votre prochaine scène
             <ArrowUpRightIcon />
           </Link>
@@ -80,20 +83,28 @@ export default async function HomePage() {
             <p className="section-caption">La sélection Tickr</p>
             <h2 id="programme-title">On sort où ?</h2>
           </div>
-          <Link href="/events" className="text-link">
+          <Link prefetch={false} href="/events" className="text-link">
             Tout le programme
             <ArrowRightIcon />
           </Link>
         </div>
         <div className="home-categories" aria-label="Explorer par catégorie">
-          <Link className="category-link" href="/events">
+          <Link prefetch={false} className="category-link" href="/events">
             <SparklesIcon />
             Toutes les envies
           </Link>
-          <Link href="/events?category=CONCERT">Concerts</Link>
-          <Link href="/events?category=FESTIVAL">Festivals</Link>
-          <Link href="/events?category=THEATER">Spectacles</Link>
-          <Link href="/events?category=WORKSHOP">Ateliers</Link>
+          <Link prefetch={false} href="/programme/concerts">
+            Concerts
+          </Link>
+          <Link prefetch={false} href="/programme/festivals">
+            Festivals
+          </Link>
+          <Link prefetch={false} href="/programme/spectacles">
+            Spectacles
+          </Link>
+          <Link prefetch={false} href="/programme/ateliers">
+            Ateliers
+          </Link>
         </div>
         {isUnavailable ? (
           <DataState error={null} />
@@ -118,7 +129,11 @@ export default async function HomePage() {
             <br />
             Plus de « on y était ».
           </h2>
-          <Link className="button button-electric" href="/events">
+          <Link
+            prefetch={false}
+            className="button button-electric"
+            href="/events"
+          >
             Allez, on sort
             <ArrowUpRightIcon />
           </Link>

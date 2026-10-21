@@ -17,7 +17,7 @@ async function proxy(
   const { path: segments } = await context.params
   const path = segments.join('/')
   const allowed =
-    /^(events(?:\/[\w-]+)*|config\/public|users\/me(?:\/password)?|orders(?:\/[\w-]+)*|tickets(?:\/[\w-]+)*)$/.test(
+    /^(events(?:\/[\w-]+)*|config\/public|notifications\/preferences\/me|users\/me(?:\/password)?|orders(?:\/[\w-]+)*|tickets(?:\/[\w-]+)*)$/.test(
       path,
     )
   if (!allowed)

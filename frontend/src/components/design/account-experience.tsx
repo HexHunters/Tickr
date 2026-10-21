@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 import { DataState, SessionGate } from '@/components/design/data-state'
-import { AccountNavigation } from '@/components/design/order-experience'
+import { AccountNavigation } from '@/components/design/account-navigation'
 import { useSession } from '@/components/session-provider'
 import { userSchema } from '@/lib/api/contracts'
 import { friendlyError, requestApi } from '@/lib/api/request'

@@ -111,3 +111,13 @@ attributs de cet élément, pas ses enfants).
 - LocalStack n'est pas lancé par la démo : les fonctionnalités S3 (upload d'images)
   échouent si la stack dev est arrêtée.
 - Le reste du parcours testé (recherche, filtres catégorie, compte) fonctionne.
+
+## Mise à jour — lot espaces organisateur / SEO
+
+- **#1 corrigée** : le scheduler est enregistré une seule fois dans `AppModule` ;
+  les trois modules métier ne le réinitialisent plus. La recette locale observe
+  une expiration des commandes et des billets par minute.
+- **#3 corrigée** : le programme est rendu côté serveur et la ville est soumise
+  avec le formulaire GET. Aucune requête de recherche n’est envoyée par frappe.
+- **#2 et #4** : constats conservés. La console organisateur de ce lot utilise
+  les événements du compte, pas le tableau de revenus analytics.

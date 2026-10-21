@@ -46,6 +46,9 @@ import {
   createMockUserValidationService,
   createMockS3Service,
   futureDate,
+  generateTestToken,
+  TEST_PARTICIPANT_ID,
+  TEST_OTHER_ORGANIZER_ID,
   TEST_ORGANIZER_ID,
   TEST_EVENT_IDS,
 } from './helpers/test-setup';
@@ -244,6 +247,48 @@ describe('E2E: Event Queries', () => {
   // ============================================
   // GET /api/events — Published Events
   // ============================================
+
+  describe('GET /api/events/:id/manage — Organizer draft access', () => {
+    beforeEach(async () => { await seedPublishedEvents(); });
+
+    const token = (sub: string, role: string) => generateTestToken(app.get(JwtService), {
+      sub, role, email: 'organizer@example.com',
+    });
+
+    it('requires authentication', async () => {
+      await request(app.getHttpServer()).get(`/api/events/${TEST_EVENT_IDS.draft1}/manage`).expect(401);
+    });
+
+    it('lets the owner retrieve an unpublished draft', async () => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/events/${TEST_EVENT_IDS.draft1}/manage`)
+        .set('Authorization', `Bearer ${token(TEST_ORGANIZER_ID, 'ORGANIZER')}`)
+        .expect(200);
+      expect(response.body.status).toBe('DRAFT');
+      expect(response.body.organizer.id).toBe(TEST_ORGANIZER_ID);
+    });
+
+    it('keeps the draft inaccessible through the public endpoint', async () => {
+      await request(app.getHttpServer()).get(`/api/events/${TEST_EVENT_IDS.draft1}`).expect(403);
+    });
+
+    it.each([
+      [TEST_OTHER_ORGANIZER_ID, 'ORGANIZER'],
+      [TEST_PARTICIPANT_ID, 'PARTICIPANT'],
+    ])('rejects a non-owner or participant (%s)', async (sub, role) => {
+      await request(app.getHttpServer())
+        .get(`/api/events/${TEST_EVENT_IDS.draft1}/manage`)
+        .set('Authorization', `Bearer ${token(sub, role)}`)
+        .expect(403);
+    });
+
+    it('returns 404 for a missing event', async () => {
+      await request(app.getHttpServer())
+        .get('/api/events/ffffffff-ffff-4fff-afff-ffffffffffff/manage')
+        .set('Authorization', `Bearer ${token(TEST_ORGANIZER_ID, 'ORGANIZER')}`)
+        .expect(404);
+    });
+  });
 
   describe('GET /api/events — Get Published Events', () => {
     beforeEach(async () => {

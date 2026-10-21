@@ -241,6 +241,24 @@ async function run(): Promise<void> {
           ],
         );
       }
+      // A private, editable scenario for the organizer workspace. Re-running the
+      // seed preserves edits and any later publication made through the API.
+      const draftStart = new Date(now.getTime() + 52 * 86400000);
+      draftStart.setUTCHours(18, 0, 0, 0);
+      await manager.query(
+        `INSERT INTO events.events
+          (id,organizer_id,title,description,category,status,location_address,
+           location_city,location_country,start_date,end_date,total_capacity,
+           sold_tickets,revenue_amount,revenue_currency,commission_rate_override)
+         VALUES ($1,$2,$3,$4,$5,'DRAFT',$6,$7,$8,$9,$10,0,0,0,'TND',0)
+         ON CONFLICT DO NOTHING`,
+        [
+          '20000000-0000-4000-8000-000000000007', users[1][0],
+          'La prochaine scène', 'Un brouillon de démonstration à préparer dans votre espace organisateur.',
+          'CONCERT', 'Le Studio · Lieu de démonstration', 'Tunis', 'Tunisia',
+          draftStart, new Date(draftStart.getTime() + 3 * 3600000),
+        ],
+      );
     });
     logger.log(
       'Demo records ready (idempotent). Participant: participant@demo.tickr.local. Password: TickrDemo2026!',

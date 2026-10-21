@@ -77,7 +77,7 @@ Ouvrir `http://localhost:3001`. Le backend utilise le port 3000, PostgreSQL le p
 55433 et Redis le port 56380. `API_INTERNAL_URL` peut remplacer l’origine backend
 côté serveur (défaut : `http://localhost:3000`).
 
-Le seed applique les migrations, puis insère 3 comptes vérifiés, 6 événements,
+Le seed applique les migrations, puis insère 3 comptes vérifiés, 6 événements publiés et un brouillon privé,
 leurs tarifs, 3 commandes et 3 billets (confirmé, réservé et utilisé) dans une
 transaction. Il peut être relancé sans doublon et conserve les données déjà
 présentes, notamment les mots de passe modifiés et les échéances. Les dates des
@@ -101,8 +101,62 @@ vérifier la présentation des billets. La réception des e-mails nécessite la
 configuration SES/LocalStack existante ; le seed fournit des comptes déjà vérifiés
 pour tester sans service mail. Le PDF dépend de sa génération backend ; la page
 l’indique lorsqu’il manque. Le règlement en ligne, le remboursement, le transfert,
-le cache hors ligne persistant et les consoles organisateur/admin restent hors de ce lot.
+le cache hors ligne persistant et la console admin restent hors de ce lot.
+L’espace organisateur couvre les brouillons, tarifs et publications ; l’upload de
+photos, le contrôle d’entrée, l’encaissement et les rapports ne sont pas encore exposés dans cette interface.
 Le site reste `noindex` pendant cette phase de développement.
+
+### Organisateur et préférences
+
+- `/organizer` : vue d’ensemble et dernières créations, total fourni par l’API.
+- `/organizer/events` : liste paginée des événements du compte.
+- `/organizer/events/new` : création d’un brouillon avec horaires de Tunis.
+- `/organizer/events/[id]` : lecture privée, modification du brouillon, ajout de
+  tarifs en TND, publication avec confirmation. Les données proviennent de
+  `GET /events/:id/manage`, protégé par JWT, rôle et propriété dans NestJS.
+- `/account/notifications` : lecture et enregistrement des préférences réelles.
+- `/help` et `/programme/concerts`, `/programme/festivals`,
+  `/programme/spectacles`, `/programme/ateliers` : aide et découvertes publiques.
+  Les textes éditoriaux sont fixes ; les événements restent fournis par l’API.
+
+Le brouillon du seed (`…0007`, « La prochaine scène ») n’a aucun tarif et reste
+privé. Le seed ne réinitialise pas les changements effectués dans cet espace.
+Les événements publiés sont consultables ; l’édition complète respecte la règle
+backend réservée aux brouillons. Aucun chiffre de revenu n’est fabriqué.
+
+### Performance et référencement
+
+Le programme, ses filtres et sa pagination sont rendus côté serveur, avec liens
+explorables et formulaire GET utilisable sans JavaScript. La saisie d’une ville
+ne lance aucune requête avant soumission. Les résultats sont inclus dans le HTML. Le préchargement automatique des liens
+qui lisent le catalogue est désactivé pour éviter les rafales de requêtes ; les
+métadonnées restent dans le head initial pour les navigateurs et les robots.
+Les métadonnées et la fiche événement partagent une lecture API par rendu React ;
+les prix, disponibilités et paramètres de paiement restent sans cache persistant.
+Seul l’inventaire des sitemaps est revalidé toutes les cinq minutes. Les polices
+locales utilisent `next/font`, avec préchargement et ajustement du repli ; les
+images conservent leurs dimensions et des tailles adaptées à la grille.
+
+Par défaut, la démo et les previews sont `noindex`, robots interdit l’exploration,
+et les sitemaps sont vides. **Pour le site public, configurer ces variables au
+build et au démarrage**, avec le vrai domaine HTTPS :
+
+```dotenv
+SITE_URL=https://votre-domaine-public.example
+SITE_INDEXABLE=true
+```
+
+Les pages publiques disposent de titres, descriptions, URL canoniques et cartes
+Open Graph/Twitter. Les fiches exposent un `Event` JSON-LD échappé, sans inventer
+d’offre achetable lorsque le paiement est indisponible. Les filtres et recherches
+restent `noindex,follow`. Les espaces compte, billets, commandes, organisateur et
+authentification restent toujours `noindex,nofollow`, même en production.
+
+`/sitemap.xml` contient les pages publiques principales ; les événements publiés
+sont paginés dans `/events/sitemap/0.xml`, `/events/sitemap/1.xml`, etc. `robots.txt`
+référence ces fichiers. Les brouillons et données personnelles n’y figurent pas.
+Un échec API de l’inventaire produit une erreur serveur plutôt qu’un faux sitemap
+incomplet. La présence de données structurées ne garantit pas un résultat enrichi.
 
 ### Direction et actifs
 

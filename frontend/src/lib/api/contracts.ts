@@ -54,6 +54,20 @@ export const eventDetailSchema = eventBase.extend({
   }),
   ticketTypes: z.array(tierSchema),
 })
+export const managedEventSchema = eventDetailSchema.extend({
+  hasStarted: z.boolean(),
+  totalCapacity: z.number(),
+  soldTickets: z.number(),
+  availableCapacity: z.number(),
+  updatedAt: z.string(),
+})
+export const preferencesSchema = z.object({
+  userId: z.string(),
+  emailEnabled: z.boolean(),
+  smsEnabled: z.boolean(),
+  marketingEnabled: z.boolean(),
+  eventRemindersEnabled: z.boolean(),
+})
 export const publicConfigSchema = z.object({
   availablePaymentMethods: z.array(z.string()),
   effectiveCommissionRate: z.number(),
@@ -139,6 +153,8 @@ export function paginated<T extends z.ZodType>(item: T) {
 
 export type EventList = z.infer<typeof eventListSchema>
 export type EventDetail = z.infer<typeof eventDetailSchema>
+export type ManagedEvent = z.infer<typeof managedEventSchema>
+export type NotificationPreferences = z.infer<typeof preferencesSchema>
 export type TicketTier = z.infer<typeof tierSchema>
 export type PublicConfig = z.infer<typeof publicConfigSchema>
 export type User = z.infer<typeof userSchema>

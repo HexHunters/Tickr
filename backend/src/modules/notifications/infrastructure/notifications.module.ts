@@ -1,6 +1,5 @@
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ProcessScheduledNotificationsHandler } from '../application/commands/process-scheduled-notifications/process-scheduled-notifications.handler';
@@ -133,7 +132,6 @@ const rateLimiterProvider: Provider = {
       NotificationPreferenceOrmEntity,
       NotificationTemplateOrmEntity,
     ]),
-    ScheduleModule.forRoot(),
     ConfigModule,
   ],
   controllers: [NotificationsController],

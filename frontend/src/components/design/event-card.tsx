@@ -9,9 +9,11 @@ import type { EventView } from '@/lib/api/contracts'
 export function EventPoster({
   event,
   priority = false,
+  sizes = '(max-width: 600px) 100vw, (max-width: 900px) 50vw, (max-width: 1240px) 33vw, 400px',
 }: {
   event: EventView
   priority?: boolean
+  sizes?: string
 }) {
   return (
     <div
@@ -23,8 +25,9 @@ export function EventPoster({
           src={event.image}
           alt=""
           fill
-          sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 600px"
+          sizes={sizes}
           priority={priority}
+          fetchPriority={priority ? 'high' : undefined}
           unoptimized={!event.image.startsWith('/')}
         />
       ) : (
@@ -46,7 +49,11 @@ export function EventCard({
 }) {
   return (
     <article className="event-card">
-      <Link href={`/events/${event.id}`} className="event-card-link">
+      <Link
+        href={`/events/${event.id}`}
+        prefetch={false}
+        className="event-card-link"
+      >
         <div className="card-art">
           <EventPoster event={event} priority={priority} />
           <span className="category-tag">{event.category}</span>

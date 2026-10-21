@@ -18,11 +18,12 @@ export function backendUrl(path: string): string {
 export async function serverApi<T>(
   path: string,
   schema: z.ZodType<T>,
+  revalidate?: number,
 ): Promise<T> {
   let response: Response
   try {
     response = await fetch(backendUrl(path), {
-      cache: 'no-store',
+      ...(revalidate ? { next: { revalidate } } : { cache: 'no-store' }),
       signal: AbortSignal.timeout(10000),
     })
   } catch {
