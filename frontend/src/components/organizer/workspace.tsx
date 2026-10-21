@@ -70,6 +70,10 @@ export function OrganizerWorkspace({
             <PlusIcon />
             Créer un événement
           </Link>
+          <Link prefetch={false} href="/check-in">
+            <ArrowUpRightIcon />
+            Contrôle d’entrée
+          </Link>
         </nav>
         <Link prefetch={false} className="workspace-exit" href="/events">
           Voir le programme

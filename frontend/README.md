@@ -8,7 +8,7 @@ Plateforme de billetterie en ligne - Interface utilisateur moderne construite av
 - **UI Library**: React 19
 - **Language**: TypeScript 5
 - **Styling**: TailwindCSS 4
-- **State Management**: 
+- **State Management**:
   - React Query (TanStack Query) - Server state
   - Zustand - Client state
 - **Forms**: React Hook Form + Zod
@@ -77,8 +77,8 @@ Ouvrir `http://localhost:3001`. Le backend utilise le port 3000, PostgreSQL le p
 55433 et Redis le port 56380. `API_INTERNAL_URL` peut remplacer l’origine backend
 côté serveur (défaut : `http://localhost:3000`).
 
-Le seed applique les migrations, puis insère 3 comptes vérifiés, 6 événements publiés et un brouillon privé,
-leurs tarifs, 3 commandes et 3 billets (confirmé, réservé et utilisé) dans une
+Le seed applique les migrations, puis insère 3 comptes vérifiés, 7 événements publiés et un brouillon privé,
+leurs tarifs, 6 commandes et 6 billets (confirmé, réservé et utilisé) dans une
 transaction. Il peut être relancé sans doublon et conserve les données déjà
 présentes, notamment les mots de passe modifiés et les échéances. Les dates des
 nouveaux événements sont relatives au premier lancement. Seule une base loopback
@@ -86,8 +86,8 @@ nommée `tickr_demo`, avec `NODE_ENV=development` et sans `DATABASE_URL`, est au
 Le démarrage démo utilise `NODE_ENV=test` pour lire le schéma migré sans synchronisation
 TypeORM automatique. Les horodatages sont traités en UTC et affichés en heure de Tunis.
 
-Compte participant : `participant@demo.tickr.local` ; compte vide pour vérifier
-l’isolation : `other@demo.tickr.local` ; organisateur : `organizer@demo.tickr.local`.
+Compte participant : `participant@demo.tickr.local` ; équipier à l’entrée sans billets
+ni messages : `other@demo.tickr.local` ; organisateur : `organizer@demo.tickr.local`.
 Mot de passe local commun : `TickrDemo2026!`. Ces comptes n’existent que dans le seed
 local, jamais dans une migration de déploiement. Les QR ne correspondent qu’à cette
 base de test et à des événements fictifs.
@@ -103,7 +103,8 @@ pour tester sans service mail. Le PDF dépend de sa génération backend ; la pa
 l’indique lorsqu’il manque. Le règlement en ligne, le remboursement, le transfert,
 le cache hors ligne persistant et la console admin restent hors de ce lot.
 L’espace organisateur couvre les brouillons, tarifs et publications ; l’upload de
-photos, le contrôle d’entrée, l’encaissement et les rapports ne sont pas encore exposés dans cette interface.
+photos, l’encaissement et les rapports financiers ne sont pas encore exposés dans cette interface.
+Le contrôle d’entrée accepte un code collé ou un lecteur externe ; la caméra n’est pas intégrée.
 Le site reste `noindex` pendant cette phase de développement.
 
 ### Organisateur et préférences
@@ -116,13 +117,31 @@ Le site reste `noindex` pendant cette phase de développement.
   `GET /events/:id/manage`, protégé par JWT, rôle et propriété dans NestJS.
 - `/account/notifications` : lecture et enregistrement des préférences réelles.
 - `/help` et `/programme/concerts`, `/programme/festivals`,
-  `/programme/spectacles`, `/programme/ateliers` : aide et découvertes publiques.
+  `/programme/spectacles`, `/programme/ateliers`, `/programme/comedies` : aide et découvertes publiques.
   Les textes éditoriaux sont fixes ; les événements restent fournis par l’API.
 
 Le brouillon du seed (`…0007`, « La prochaine scène ») n’a aucun tarif et reste
 privé. Le seed ne réinitialise pas les changements effectués dans cet espace.
 Les événements publiés sont consultables ; l’édition complète respecte la règle
 backend réservée aux brouillons. Aucun chiffre de revenu n’est fabriqué.
+
+### Entrée, équipe et historique
+
+- `/check-in` : événements accessibles au propriétaire, administrateur ou équipier actif.
+- `/check-in/[eventId]` : code du billet et point d’entrée, validation réelle et
+  confirmation horodatée par le serveur. Aucun nouvel essai automatique d’une mutation.
+- `/organizer/events/[id]/team` : ajout par e-mail et retrait confirmé des accès.
+- `/organizer/events/[id]/attendance` : totaux et détail par tarif, actualisation manuelle.
+- `/account/messages` : historique privé des sujets, canaux et statuts fournis par l’API.
+
+Le seed ajoute « [Démo] Les portes sont ouvertes » (`…0008`), dans la fenêtre
+réelle de contrôle lors du premier lancement : début à +15 minutes, fin à +3 heures.
+Trois billets couvrent les états confirmé, utilisé et réservé ; Sami possède un
+accès à cet événement. Deux historiques participant et un organisateur sont déjà
+terminaux, avec zéro relance possible : aucun e-mail n’est envoyé par ce seed.
+Les QR, horaires, passages et révocations sont conservés à chaque relance.
+Après fermeture de l’événement, créez un nouveau scénario local ou réinitialisez
+explicitement la base démo pour retrouver une fenêtre de contrôle ouverte.
 
 ### Performance et référencement
 
@@ -149,7 +168,7 @@ SITE_INDEXABLE=true
 Les pages publiques disposent de titres, descriptions, URL canoniques et cartes
 Open Graph/Twitter. Les fiches exposent un `Event` JSON-LD échappé, sans inventer
 d’offre achetable lorsque le paiement est indisponible. Les filtres et recherches
-restent `noindex,follow`. Les espaces compte, billets, commandes, organisateur et
+restent `noindex,follow`. Les espaces compte, billets, commandes, organisateur, contrôle d’entrée et
 authentification restent toujours `noindex,nofollow`, même en production.
 
 `/sitemap.xml` contient les pages publiques principales ; les événements publiés
@@ -260,4 +279,3 @@ Please read the main project README for contribution guidelines.
 ## 📄 License
 
 This project is proprietary and confidential.
-

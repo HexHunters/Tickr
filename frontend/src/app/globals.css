@@ -3827,7 +3827,7 @@ main:focus {
 }
 .collection-explore {
   display: grid;
-  grid-template-columns: 1.2fr repeat(3, 1fr);
+  grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr));
   align-items: center;
   border-top: 1px solid var(--line);
   padding-block: 32px 64px;
@@ -4616,5 +4616,423 @@ main:focus {
   }
   .collection-copy h1 {
     font-size: 42px;
+  }
+}
+
+/* Quiet, readable tools for the team at the entrance. */
+.event-tools-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.entrance-main {
+  max-width: 1120px;
+  padding-block: 48px 80px;
+  min-height: 65vh;
+}
+.entrance-heading {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+.entrance-heading > svg {
+  width: 56px;
+  flex-shrink: 0;
+  padding: 12px;
+  background: var(--electric);
+  border-radius: 8px;
+}
+.entrance-heading h1,
+.validation-event h1 {
+  font-size: clamp(32px, 4.5vw, 52px);
+  margin-block: 8px 16px;
+  overflow-wrap: anywhere;
+}
+.entrance-heading p:last-child,
+.validation-event > p {
+  color: var(--muted);
+}
+.entrance-access-list {
+  border-top: 1px solid var(--line);
+}
+.entrance-access-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--line);
+}
+.entrance-access-row:hover h2 {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.entrance-access-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.entrance-access-icon svg {
+  width: 24px;
+}
+.entrance-access-row h2 {
+  font-size: 24px;
+  margin-block: 4px 12px;
+  overflow-wrap: anywhere;
+}
+.entrance-access-row p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.entrance-access-row div > span,
+.entrance-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.entrance-access-row div > span {
+  color: var(--muted);
+}
+.entrance-access-row span > svg {
+  width: 20px;
+  flex-shrink: 0;
+}
+.entrance-open {
+  font-weight: 700;
+}
+.validation-event {
+  margin-block: 28px 32px;
+}
+.validation-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.validation-form {
+  padding: 32px;
+  background: var(--surface);
+}
+.validation-form fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.validation-form legend {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  margin-bottom: 28px;
+}
+.validation-form label,
+.team-invite label {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.validation-form label {
+  margin-bottom: 24px;
+}
+.validation-form input,
+.validation-form textarea,
+.team-invite input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid var(--control);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 12px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 400;
+}
+.validation-form textarea {
+  resize: vertical;
+}
+.validation-form .field-help {
+  margin-bottom: 24px;
+}
+.validation-form .button {
+  width: 100%;
+}
+.validation-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
+  background: var(--sage);
+  border-left: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.validation-result > svg {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 8px;
+}
+.validation-result h2 {
+  font-size: 28px;
+  line-height: 1.25;
+}
+.validation-result p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.validation-result .button {
+  margin-top: 8px;
+}
+.entry-accepted {
+  background: var(--sage);
+  color: var(--success);
+}
+.entry-refused {
+  background: var(--shell);
+  color: var(--error);
+}
+.team-invite {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  padding: 28px;
+  background: var(--sage);
+  border-radius: 8px;
+}
+.team-invite .button {
+  min-height: 48px;
+}
+.team-invite .field-help {
+  grid-column: 1 / -1;
+}
+.team-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+.team-notice svg {
+  width: 20px;
+  flex-shrink: 0;
+}
+.team-list,
+.message-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.team-list > li,
+.message-list > li {
+  padding-block: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.team-member {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+.team-avatar,
+.message-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--lilac);
+  font-weight: 700;
+}
+.team-member h3 {
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+.team-member p,
+.team-member h3,
+.message-list h2 {
+  overflow-wrap: anywhere;
+}
+.team-member p,
+.team-member span,
+.message-list p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.team-revoke {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px;
+  background: var(--shell);
+  margin-top: 20px;
+  border-radius: 4px;
+}
+.team-revoke p {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+.attendance-progress {
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.attendance-progress h2 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+.attendance-progress p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.attendance-progress meter {
+  display: block;
+  width: 100%;
+  height: 18px;
+  margin-block: 24px;
+  accent-color: var(--action);
+}
+.attendance-progress meter::-webkit-meter-bar {
+  background: var(--sage);
+  border: 0;
+  border-radius: 3px;
+}
+.attendance-progress meter::-webkit-meter-optimum-value {
+  background: var(--action);
+}
+.attendance-progress meter::-moz-meter-bar {
+  background: var(--action);
+}
+.attendance-breakdown > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-block: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.attendance-breakdown h3 {
+  font-size: 17px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.attendance-breakdown p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.attendance-breakdown strong {
+  white-space: nowrap;
+}
+.message-list > li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+}
+.message-icon {
+  background: var(--sage);
+}
+.message-icon svg {
+  width: 22px;
+}
+.message-list h2 {
+  font-size: 19px;
+  margin-bottom: 8px;
+}
+@media (max-width: 1000px) {
+  .collection-explore {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .collection-explore h2 {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .entrance-main {
+    padding-block: 32px 56px;
+  }
+  .entrance-heading {
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .entrance-heading > svg {
+    width: 44px;
+    padding: 10px;
+  }
+  .entrance-access-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 12px;
+    padding-block: 24px;
+  }
+  .entrance-access-icon {
+    width: 36px;
+    height: 40px;
+  }
+  .entrance-access-row h2 {
+    font-size: 21px;
+  }
+  .entrance-open {
+    grid-column: 2;
+  }
+  .validation-layout {
+    grid-template-columns: 1fr;
+  }
+  .validation-form,
+  .validation-result,
+  .attendance-progress {
+    padding: 24px 20px;
+  }
+  .validation-result {
+    min-height: 260px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .validation-result h2 {
+    font-size: 24px;
+  }
+  .team-invite {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  .team-member,
+  .message-list > li {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .team-avatar,
+  .message-icon {
+    width: 36px;
+    height: 40px;
+  }
+  .team-member .button,
+  .message-list .status-pill {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .team-revoke {
+    padding: 16px;
+  }
+  .team-revoke .button {
+    width: 100%;
+  }
+  .attendance-totals {
+    grid-template-columns: 1fr;
+  }
+  .collection-explore {
+    grid-template-columns: 1fr;
+  }
+  .event-tools-nav .button {
+    width: 100%;
   }
 }

@@ -215,6 +215,16 @@ export function OrganizerEventManager({ id }: { id: string }) {
           </Link>
         )}
       </div>
+      <nav className="event-tools-nav" aria-label="Gestion de l’événement">
+        <Link prefetch={false} href={`/organizer/events/${id}/team`}>
+          L’équipe d’entrée
+          <ArrowUpRightIcon />
+        </Link>
+        <Link prefetch={false} href={`/organizer/events/${id}/attendance`}>
+          Suivi des entrées
+          <ArrowUpRightIcon />
+        </Link>
+      </nav>
       <dl className="event-management-stats">
         <div>
           <dt>Capacité</dt>

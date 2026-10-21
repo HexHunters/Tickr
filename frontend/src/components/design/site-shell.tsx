@@ -109,6 +109,9 @@ export function SiteHeader() {
               ...navigation,
               { href: '/tickets', label: 'Mes billets' },
               { href: '/orders', label: 'Mes commandes' },
+              ...(user
+                ? [{ href: '/check-in', label: 'Contrôle d’entrée' }]
+                : []),
               {
                 href: user ? '/account' : '/auth/login',
                 label: user ? 'Mon compte' : 'Se connecter',

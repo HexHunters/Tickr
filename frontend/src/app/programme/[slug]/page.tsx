@@ -56,6 +56,8 @@ export default async function CollectionPage({
             fill
             sizes="(max-width: 760px) 100vw, 48vw"
             priority
+            fetchPriority="high"
+            quality={65}
           />
           <span>Ça se vit dehors.</span>
         </div>

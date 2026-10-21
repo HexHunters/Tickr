@@ -167,6 +167,14 @@ function AccountForm() {
             <p>Modifiez votre mot de passe.</p>
           </div>
           <form className="account-form" onSubmit={updatePassword}>
+            <input
+              type="email"
+              hidden
+              name="username"
+              autoComplete="username"
+              value={user.email}
+              readOnly
+            />
             <label>
               Mot de passe actuel
               <input

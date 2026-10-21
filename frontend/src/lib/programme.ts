@@ -1,5 +1,17 @@
 export const collections = [
   {
+    slug: 'comedies',
+    category: 'COMEDY',
+    label: 'Comédie',
+    title: 'Ce soir, on en rit.',
+    description:
+      'Comédie et stand-up en Tunisie : découvrez les prochaines scènes, les dates, les lieux et les informations de billetterie.',
+    introduction:
+      'Une scène, des regards qui se croisent et ce rire qui emporte toute la salle. On y va ensemble.',
+    photo: '/images/stage.jpg',
+    tone: 'shell',
+  },
+  {
     slug: 'concerts',
     category: 'CONCERT',
     label: 'Concerts',

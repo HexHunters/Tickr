@@ -3,7 +3,7 @@ import Link from 'next/link'
 export function AccountNavigation({
   active,
 }: {
-  active: 'orders' | 'tickets' | 'account' | 'notifications'
+  active: 'orders' | 'tickets' | 'account' | 'notifications' | 'messages'
 }) {
   return (
     <nav className="account-navigation" aria-label="Mon espace">
@@ -30,6 +30,16 @@ export function AccountNavigation({
         aria-current={active === 'notifications' ? 'page' : undefined}
       >
         Mes notifications
+      </Link>
+      <Link
+        href="/account/messages"
+        prefetch={false}
+        aria-current={active === 'messages' ? 'page' : undefined}
+      >
+        Mes messages
+      </Link>
+      <Link href="/check-in" prefetch={false}>
+        Contrôle d’entrée
       </Link>
     </nav>
   )

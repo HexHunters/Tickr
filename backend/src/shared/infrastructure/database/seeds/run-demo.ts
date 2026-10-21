@@ -6,10 +6,10 @@ import { hash } from 'bcrypt';
 import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 
-
 import { AppDataSource } from '../data-source';
 
 import { assertDemoTarget } from './demo-target';
+import { seedEntranceScenarios } from './entrance-scenarios';
 
 const logger = new Logger('DemoSeed');
 
@@ -253,12 +253,19 @@ async function run(): Promise<void> {
          VALUES ($1,$2,$3,$4,$5,'DRAFT',$6,$7,$8,$9,$10,0,0,0,'TND',0)
          ON CONFLICT DO NOTHING`,
         [
-          '20000000-0000-4000-8000-000000000007', users[1][0],
-          'La prochaine scène', 'Un brouillon de démonstration à préparer dans votre espace organisateur.',
-          'CONCERT', 'Le Studio · Lieu de démonstration', 'Tunis', 'Tunisia',
-          draftStart, new Date(draftStart.getTime() + 3 * 3600000),
+          '20000000-0000-4000-8000-000000000007',
+          users[1][0],
+          'La prochaine scène',
+          'Un brouillon de démonstration à préparer dans votre espace organisateur.',
+          'CONCERT',
+          'Le Studio · Lieu de démonstration',
+          'Tunis',
+          'Tunisia',
+          draftStart,
+          new Date(draftStart.getTime() + 3 * 3600000),
         ],
       );
+      await seedEntranceScenarios(manager, now);
     });
     logger.log(
       'Demo records ready (idempotent). Participant: participant@demo.tickr.local. Password: TickrDemo2026!',

@@ -44,3 +44,4 @@ fixes, and [10 — Visual direction](10-global-design-direction-visual.md) for t
 
 - [Anomalies de la démo et suivi](11-demo-runtime-findings.md)
 - [Espaces organisateur, SEO et performance](12-next-pages-seo-performance.md)
+- [Entrance pages, mobile, SEO and performance](13-entrance-mobile-seo-performance.md)
