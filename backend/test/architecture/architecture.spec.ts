@@ -17,6 +17,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+import * as ts from 'typescript';
+
 describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
   // Auto-detect modules from src/modules directory
   const SRC_MODULES_PATH = path.join(__dirname, '../../src/modules');
@@ -118,6 +120,30 @@ describe('🏛️ Architecture Hexagonale - Fitness Functions', () => {
     }
     return null;
   }
+
+  it('registers the scheduler exactly once, in AppModule', () => {
+    const sourcePath = path.join(__dirname, '../../src');
+    const registrations: string[] = [];
+    for (const filePath of getTypeScriptFiles(sourcePath)) {
+      const source = ts.createSourceFile(
+        filePath, fs.readFileSync(filePath, 'utf-8'), ts.ScriptTarget.Latest, true,
+      );
+      const visit = (node: ts.Node): void => {
+        if (
+          ts.isCallExpression(node) &&
+          ts.isPropertyAccessExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) &&
+          node.expression.expression.text === 'ScheduleModule' &&
+          node.expression.name.text === 'forRoot'
+        ) {
+          registrations.push(path.relative(sourcePath, filePath));
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+    }
+    expect(registrations).toEqual(['app.module.ts']);
+  });
 
   describe('📦 1. Isolation des Modules', () => {
     it('Chaque module doit avoir sa structure hexagonale', () => {

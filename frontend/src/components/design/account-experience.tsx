@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 import { DataState, SessionGate } from '@/components/design/data-state'
-import { AccountNavigation } from '@/components/design/order-experience'
+import { AccountNavigation } from '@/components/design/account-navigation'
 import { useSession } from '@/components/session-provider'
 import { userSchema } from '@/lib/api/contracts'
 import { friendlyError, requestApi } from '@/lib/api/request'
@@ -167,6 +167,14 @@ function AccountForm() {
             <p>Modifiez votre mot de passe.</p>
           </div>
           <form className="account-form" onSubmit={updatePassword}>
+            <input
+              type="email"
+              hidden
+              name="username"
+              autoComplete="username"
+              value={user.email}
+              readOnly
+            />
             <label>
               Mot de passe actuel
               <input

@@ -20,7 +20,10 @@ export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navigation = [
     { href: '/events', label: 'Découvrir' },
-    { href: '/events?category=FESTIVAL', label: 'Les festivals' },
+    { href: '/programme/festivals', label: 'Les festivals' },
+    ...(user?.role === 'ORGANIZER'
+      ? [{ href: '/organizer', label: 'Organiser' }]
+      : []),
   ]
   return (
     <>
@@ -32,7 +35,12 @@ export function SiteHeader() {
         Tunisie.
       </div>
       <header className="site-header container">
-        <Link href="/" aria-label="Tickr, accueil" className="brand-link">
+        <Link
+          prefetch={false}
+          href="/"
+          aria-label="Tickr, accueil"
+          className="brand-link"
+        >
           <Image
             src="/brand/wordmark.svg"
             width={125}
@@ -44,6 +52,7 @@ export function SiteHeader() {
         <nav className="desktop-nav" aria-label="Navigation principale">
           {navigation.map((item) => (
             <Link
+              prefetch={false}
               key={item.href}
               href={item.href}
               aria-current={item.href === pathname ? 'page' : undefined}
@@ -53,6 +62,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <Link
+          prefetch={false}
           href="/tickets"
           className="button button-outline header-tickets"
           aria-current={pathname === '/tickets' ? 'page' : undefined}
@@ -61,6 +71,7 @@ export function SiteHeader() {
           Mes billets
         </Link>
         <Link
+          prefetch={false}
           className="account-avatar"
           href={user ? '/account' : '/auth/login'}
           aria-label={user ? 'Mon compte' : 'Se connecter'}
@@ -98,12 +109,16 @@ export function SiteHeader() {
               ...navigation,
               { href: '/tickets', label: 'Mes billets' },
               { href: '/orders', label: 'Mes commandes' },
+              ...(user
+                ? [{ href: '/check-in', label: 'Contrôle d’entrée' }]
+                : []),
               {
                 href: user ? '/account' : '/auth/login',
                 label: user ? 'Mon compte' : 'Se connecter',
               },
             ].map((item) => (
               <Link
+                prefetch={false}
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsMenuOpen(false)}
@@ -117,37 +132,5 @@ export function SiteHeader() {
         </DialogPanel>
       </Dialog>
     </>
-  )
-}
-
-export function SiteFooter() {
-  return (
-    <footer className="site-footer">
-      <div className="container footer-main">
-        <div>
-          <Link href="/" aria-label="Tickr, accueil">
-            <Image
-              src="/brand/wordmark.svg"
-              alt="Tickr"
-              width={125}
-              height={36}
-            />
-          </Link>
-          <p>On se retrouve dehors.</p>
-        </div>
-        <nav aria-label="Navigation de pied de page">
-          <Link href="/events">
-            Trouver une sortie <ArrowUpRightIcon />
-          </Link>
-          <Link href="/tickets">
-            Retrouver mes billets <ArrowUpRightIcon />
-          </Link>
-        </nav>
-      </div>
-      <div className="container footer-bottom">
-        <span>Fait pour les moments qu’on vit ensemble.</span>
-        <span>Tunisie · Français · TND</span>
-      </div>
-    </footer>
   )
 }

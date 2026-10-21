@@ -12,18 +12,42 @@ import {
 import { DataState } from '@/components/design/data-state'
 import { EventPoster } from '@/components/design/event-card'
 import { TicketSelector } from '@/components/design/ticket-selector'
-import {
-  eventDetailSchema,
-  publicConfigSchema,
-  toEventView,
-} from '@/lib/api/contracts'
+import { publicConfigSchema, toEventView } from '@/lib/api/contracts'
+import { getPublicEvent } from '@/lib/api/catalog'
+import { publicMetadata, eventStructuredData, serializeJsonLd } from '@/lib/seo'
+
 import { ApiError } from '@/lib/api/request'
 import { serverApi } from '@/lib/api/server'
 import { formatEventDate, formatEventTime, formatMoney } from '@/lib/format'
 
-import type { EventDetail, PublicConfig } from '@/lib/api/contracts'
+import type { EventDetail } from '@/lib/api/contracts'
 
-export const metadata = { title: 'L’événement' }
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  try {
+    const event = await getPublicEvent(id)
+    return publicMetadata(
+      `${event.title} à ${event.location.city}`,
+      (
+        event.description ||
+        `${event.title} à ${event.location.city}. Dates, lieu et informations de billetterie sur Tickr.`
+      ).slice(0, 160),
+      `/events/${encodeURIComponent(id)}`,
+      event.imageUrl || '/images/social-card.png',
+    )
+  } catch (error) {
+    if (error instanceof ApiError && [400, 403, 404].includes(error.status))
+      notFound()
+    return {
+      title: 'Événement indisponible',
+      robots: { index: false, follow: false },
+    }
+  }
+}
 export default async function EventDetailPage({
   params,
 }: {
@@ -31,14 +55,14 @@ export default async function EventDetailPage({
 }) {
   const { id } = await params
   let detail: EventDetail
-  let config: PublicConfig | null = null
+  const configRequest = serverApi(
+    `config/public?eventId=${encodeURIComponent(id)}`,
+    publicConfigSchema,
+  ).catch(() => null)
   try {
-    detail = await serverApi(
-      `events/${encodeURIComponent(id)}`,
-      eventDetailSchema,
-    )
+    detail = await getPublicEvent(id)
   } catch (error) {
-    if (error instanceof ApiError && [400, 404].includes(error.status))
+    if (error instanceof ApiError && [400, 403, 404].includes(error.status))
       notFound()
     return (
       <main id="contenu" className="container" tabIndex={-1}>
@@ -46,29 +70,32 @@ export default async function EventDetailPage({
       </main>
     )
   }
-  try {
-    config = await serverApi(
-      `config/public?eventId=${encodeURIComponent(id)}`,
-      publicConfigSchema,
-    )
-  } catch {
-    /* Availability is withheld when configuration cannot be verified. */
-  }
+  const config = await configRequest
   const event = toEventView(detail)
   const organizer =
     detail.organizer.displayName ||
     `${detail.organizer.firstName} ${detail.organizer.lastName}`
   return (
     <main id="contenu" tabIndex={-1}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(eventStructuredData(detail)),
+        }}
+      />
       <div className="container">
-        <Link className="back-link" href="/events">
+        <Link prefetch={false} className="back-link" href="/events">
           <ArrowLeftIcon />
           Retour au programme
         </Link>
       </div>
       <section className="container event-detail-hero">
         <div className="detail-poster">
-          <EventPoster event={event} priority />
+          <EventPoster
+            event={event}
+            priority
+            sizes="(max-width: 760px) 100vw, (max-width: 1100px) 45vw, 480px"
+          />
         </div>
         <div className="detail-overview">
           <p className="detail-category">

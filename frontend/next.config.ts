@@ -3,9 +3,13 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   output: 'standalone', // Enable standalone build for Docker
   reactCompiler: true,
+  // Keep canonical, social and error metadata in the initial head for every
+  // crawler. The event detail read is memoized with the page's data request.
+  htmlLimitedBots: /.*/,
 
   // Image optimization
   images: {
+    qualities: [65, 75],
     remotePatterns: [
       {
         protocol: 'http',

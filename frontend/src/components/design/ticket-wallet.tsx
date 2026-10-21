@@ -18,7 +18,7 @@ import {
   SessionGate,
 } from '@/components/design/data-state'
 import { EventPoster } from '@/components/design/event-card'
-import { AccountNavigation } from '@/components/design/order-experience'
+import { AccountNavigation } from '@/components/design/account-navigation'
 import {
   eventDetailSchema,
   paginated,

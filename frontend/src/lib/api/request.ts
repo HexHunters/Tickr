@@ -18,7 +18,10 @@ export async function parseResponse<T>(
   response: Response,
   schema: z.ZodType<T>,
 ): Promise<T> {
-  const body: unknown = await response.json().catch(() => null)
+  const body: unknown =
+    response.status === 204
+      ? undefined
+      : await response.json().catch(() => null)
   if (!response.ok) {
     const error = errorSchema.safeParse(body)
     throw new ApiError(

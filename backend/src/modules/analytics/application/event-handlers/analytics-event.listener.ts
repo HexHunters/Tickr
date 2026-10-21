@@ -86,16 +86,16 @@ export class AnalyticsEventListener {
    */
   @OnEvent('EventPublishedEvent')
   async onEventPublished(payload: {
-    eventId: string;
+    aggregateId: string;
     organizerId: string;
     title: string;
   }): Promise<void> {
-    this.logger.debug(`Event published: ${payload.eventId}, recording metric`);
+    this.logger.debug(`Event published: ${payload.aggregateId}, recording metric`);
 
     const result = await this.recordMetricHandler.execute(
       new RecordMetricCommand(
         MetricType.EVENT_CREATED,
-        payload.eventId,
+        payload.aggregateId,
         EntityType.EVENT,
         1,
         'count',

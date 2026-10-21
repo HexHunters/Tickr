@@ -17,6 +17,7 @@ import {
   LoadingState,
   SessionGate,
 } from '@/components/design/data-state'
+import { AccountNavigation } from '@/components/design/account-navigation'
 import { EventPoster } from '@/components/design/event-card'
 import {
   eventDetailSchema,
@@ -191,34 +192,6 @@ export function OrdersPageContent() {
         <OrdersContent />
       </SessionGate>
     </main>
-  )
-}
-export function AccountNavigation({
-  active,
-}: {
-  active: 'orders' | 'tickets' | 'account'
-}) {
-  return (
-    <nav className="account-navigation" aria-label="Mon espace">
-      <Link
-        href="/tickets"
-        aria-current={active === 'tickets' ? 'page' : undefined}
-      >
-        Mes billets
-      </Link>
-      <Link
-        href="/orders"
-        aria-current={active === 'orders' ? 'page' : undefined}
-      >
-        Mes commandes
-      </Link>
-      <Link
-        href="/account"
-        aria-current={active === 'account' ? 'page' : undefined}
-      >
-        Mon compte
-      </Link>
-    </nav>
   )
 }
 

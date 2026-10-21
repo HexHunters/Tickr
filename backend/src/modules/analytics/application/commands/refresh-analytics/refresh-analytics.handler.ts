@@ -198,22 +198,24 @@ export class RefreshAnalyticsHandler {
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1); // First of month
     const periodEnd = now;
 
-    const totalRevenue = await this.metricRepository.sumByEntityAndType(
-      'PLATFORM',
+    const revenueMetrics = (await this.metricRepository.findByType(
       MetricType.REVENUE,
       periodStart,
       periodEnd,
-    );
+    )).filter((metric) => metric.entityType === EntityType.EVENT);
+    const totalRevenue = revenueMetrics.reduce((total, metric) => total + metric.value, 0);
+    const platformCommission = revenueMetrics.reduce((total, metric) => {
+      const fee = metric.dimensions?.platformFeeAmount;
+      return total + (typeof fee === 'number' && Number.isFinite(fee) && fee >= 0 ? fee : 0);
+    }, 0);
 
-    const totalTicketsSold = await this.metricRepository.countByEntityAndType(
-      'PLATFORM',
+    const totalTicketsSold = await this.sumAcrossEvents(
       MetricType.TICKET_SOLD,
       periodStart,
       periodEnd,
     );
 
-    const totalEvents = await this.metricRepository.countByEntityAndType(
-      'PLATFORM',
+    const totalEvents = await this.sumAcrossEvents(
       MetricType.EVENT_CREATED,
       periodStart,
       periodEnd,
@@ -225,7 +227,7 @@ export class RefreshAnalyticsHandler {
       periodEnd,
       totalRevenue,
       currency: 'TND',
-      platformCommission: totalRevenue * 0.06,
+      platformCommission,
       totalEvents,
       totalTicketsSold,
       activeUsers: 0,
@@ -241,6 +243,20 @@ export class RefreshAnalyticsHandler {
     }
 
     return false;
+  }
+
+  private async sumAcrossEvents(
+    metricType: MetricType,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const aggregates = await this.metricRepository.aggregate({
+      metricType,
+      entityType: EntityType.EVENT,
+      startDate,
+      endDate,
+    });
+    return aggregates.reduce((total, aggregate) => total + aggregate.sum, 0);
   }
 
   private groupByDay(

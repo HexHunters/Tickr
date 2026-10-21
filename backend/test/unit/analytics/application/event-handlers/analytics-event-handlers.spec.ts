@@ -2,6 +2,7 @@ import { RecordMetricHandler } from '@modules/analytics/application/commands/rec
 import { AnalyticsEventListener } from '@modules/analytics/application/event-handlers/analytics-event.listener';
 import { EntityType } from '@modules/analytics/domain/value-objects/entity-type.vo';
 import { MetricType } from '@modules/analytics/domain/value-objects/metric-type.vo';
+import { EventPublishedEvent } from '@modules/events/domain/events/event-published.event';
 import { Logger } from '@nestjs/common';
 import { Result } from '@shared/domain/result';
 
@@ -68,19 +69,28 @@ describe('AnalyticsEventListener', () => {
   });
 
   describe('onEventPublished', () => {
-    const payload = {
-      eventId: '550e8400-e29b-41d4-a716-446655440001',
-      organizerId: '550e8400-e29b-41d4-a716-446655440002',
-      title: 'Concert Test',
-    };
+    const payload = new EventPublishedEvent(
+      '550e8400-e29b-41d4-a716-446655440001',
+      '550e8400-e29b-41d4-a716-446655440002',
+      'Concert Test',
+      new Date('2026-10-21T12:00:00Z'),
+      1,
+      100,
+    );
 
-    it('should record EVENT_CREATED metric', async () => {
+    it('should record EVENT_CREATED against the aggregate UUID, not the message ID', async () => {
       await handlers.onEventPublished(payload);
 
       expect(mockRecordMetricHandler.execute).toHaveBeenCalledTimes(1);
       const call = mockRecordMetricHandler.execute.mock.calls[0][0];
       expect(call.metricType).toBe(MetricType.EVENT_CREATED);
-      expect(call.entityId).toBe(payload.eventId);
+      expect(call.entityId).toBe(payload.aggregateId);
+      expect(call.entityId).not.toBe(payload.eventId);
+      expect(call.entityType).toBe(EntityType.EVENT);
+      expect(call.dimensions).toEqual({
+        organizerId: payload.organizerId,
+        title: payload.title,
+      });
       expect(call.value).toBe(1);
     });
   });

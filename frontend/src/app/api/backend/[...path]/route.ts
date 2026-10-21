@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+import { forwardApiResponse } from '@/lib/api/forward-response'
 import { backendUrl } from '@/lib/api/server'
 import {
   isSameOrigin,
@@ -17,7 +18,7 @@ async function proxy(
   const { path: segments } = await context.params
   const path = segments.join('/')
   const allowed =
-    /^(events(?:\/[\w-]+)*|config\/public|users\/me(?:\/password)?|orders(?:\/[\w-]+)*|tickets(?:\/[\w-]+)*)$/.test(
+    /^(events(?:\/[\w-]+)*|config\/public|notifications\/(?:preferences\/me|me|[\w-]+)|users\/me(?:\/password)?|orders(?:\/[\w-]+)*|tickets(?:\/[\w-]+)*)$/.test(
       path,
     )
   if (!allowed)
@@ -51,13 +52,7 @@ async function proxy(
         jar.delete('tickr_refresh')
       }
     }
-    return new NextResponse(await response.text(), {
-      status: response.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-      },
-    })
+    return await forwardApiResponse(response)
   } catch {
     return NextResponse.json(
       { message: 'Le service est momentanément indisponible.' },
@@ -65,4 +60,10 @@ async function proxy(
     )
   }
 }
-export { proxy as GET, proxy as POST, proxy as PUT, proxy as PATCH }
+export {
+  proxy as GET,
+  proxy as POST,
+  proxy as PUT,
+  proxy as PATCH,
+  proxy as DELETE,
+}

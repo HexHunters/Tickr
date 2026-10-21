@@ -483,6 +483,29 @@ export class EventsController {
   // Protected Endpoints - Organizer Events
   // ============================================
 
+  @Get(':id/manage')
+  @UseGuards(JwtAuthGuard, RolesGuard, IsEventOwnerGuard)
+  @Roles('ORGANIZER')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get own event details, including unpublished drafts' })
+  @ApiResponse({ status: 200, type: EventDto })
+  @ApiResponse({ status: 403, description: 'Organizer ownership required' })
+  async getManagedEvent(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ): Promise<EventDto> {
+    const result = await this.getEventByIdHandler.execute(
+      new GetEventByIdQuery(id, user.userId),
+    );
+    if (result.isFailure) {
+      if (result.error.type === 'EVENT_NOT_FOUND') {
+        throw new NotFoundException(result.error.message);
+      }
+      throw new ForbiddenException(result.error.message);
+    }
+    return result.value;
+  }
+
   /**
    * Get organizer's events
    *

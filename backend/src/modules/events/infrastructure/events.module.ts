@@ -2,7 +2,6 @@ import { UsersModule } from '@modules/users/infrastructure/users.module';
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
-import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@shared/infrastructure/cache/cache.module';
 
@@ -157,7 +156,6 @@ const eventStaffUserDirectoryProvider: Provider = {
     ConfigModule,
 
     // Schedule module for cron jobs (event completion)
-    ScheduleModule.forRoot(),
 
     // Cache module for Redis caching
     CacheModule,
