@@ -11,6 +11,7 @@ Navigation manuelle sur http://localhost:3001 et lecture des logs `make demo-log
 | 3 | Faible | Frontend / Découverte | 429 pendant la saisie de ville | Corrigé par soumission du formulaire GET |
 | 4 | Info | Frontend / Hydratation | Attributs ajoutés par une extension Chrome | Vérification sans extension restante |
 | 5 | Moyenne | Backend / Analytics | Métrique de publication rejetée pour UUID invalide | Corrigé et testé ; recette Docker restante |
+| 6 | Faible | Frontend / Découverte | Suggestions natives en boîte noire sur macOS (recherche et ville) | Ouvert ; PR suivante |
 
 ---
 
@@ -135,6 +136,20 @@ de données sans importer le domaine Events. Seul le test utilise un véritable
 **Vérification restante** — Après reconstruction, publier un nouvel événement de
 test et vérifier une métrique `EVENT_CREATED` associée à son UUID. Les publications
 anciennement rejetées ne sont pas réparées automatiquement par ce correctif.
+
+---
+
+## 6. Suggestions natives en boîte noire sur macOS (ouvert)
+
+**Symptôme** — Sur Mac, la liste de suggestions des champs « Un événement, une envie… »
+et « Ville, ex. Tunis » s'affiche en boîte noire, avec des entrées issues de
+l'historique du navigateur (par exemple « jaz », « souss »).
+
+**Cause probable** — Autocomplétion native du navigateur sur les champs du formulaire GET
+dans [event-discovery.tsx](../../frontend/src/components/design/event-discovery.tsx).
+
+**Décision** — Hors périmètre de la PR en cours. À traiter dans une PR suivante :
+style dédié ou `autoComplete="off"` selon le comportement souhaité.
 
 ---
 
