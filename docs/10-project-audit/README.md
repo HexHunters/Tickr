@@ -39,3 +39,9 @@ fixes, and [10 — Visual direction](10-global-design-direction-visual.md) for t
 - Supersedes nothing. The [08-frontend deliverables](../08-frontend/README.md) remain the frontend specification; two stale statements in them were corrected in this pass ([07](07-gaps-documentation.md)).
 - Confirms and sharpens the [product handoff's](../09-product-and-growth/01-executive-product-growth-handoff.md) §8.2 blocker list.
 - The [global design direction](08-global-design-direction.md) extends [Phase 1](../08-frontend/02-product-design-brief.md) and follows its §A.5 market-by-market roadmap.
+
+## Recettes d’implémentation
+
+- [Anomalies de la démo et suivi](11-demo-runtime-findings.md)
+- [Espaces organisateur, SEO et performance](12-next-pages-seo-performance.md)
+- [Entrance pages, mobile, SEO and performance](13-entrance-mobile-seo-performance.md)

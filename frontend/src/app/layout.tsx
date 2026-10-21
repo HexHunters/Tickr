@@ -1,44 +1,52 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Providers } from "@/components/providers";
+import localFont from 'next/font/local'
 
-const inter = Inter({ subsets: ["latin"] });
+import { siteDescription, siteUrl, isIndexable } from '@/lib/seo'
+
+import { Providers } from '@/components/providers'
+import { SiteHeader } from '@/components/design/site-shell'
+import { SiteFooter } from '@/components/design/site-footer'
+
+import type { Metadata } from 'next'
+
+import './globals.css'
+
+const manrope = localFont({
+  src: '../../public/brand/fonts/manrope-latin.woff2',
+  weight: '400 800',
+  display: 'swap',
+  variable: '--font-manrope',
+})
+const readex = localFont({
+  src: '../../public/brand/fonts/readex-latin.woff2',
+  weight: '400 700',
+  display: 'swap',
+  variable: '--font-readex',
+})
 
 export const metadata: Metadata = {
-  title: "Tickr - Billetterie en Ligne",
-  description: "Réservez vos billets pour les meilleurs événements en Tunisie",
-  keywords: ["billetterie", "événements", "tickets", "concerts", "spectacles", "Tunisie"],
-  authors: [{ name: "Tickr Team" }],
-  openGraph: {
-    title: "Tickr - Billetterie en Ligne",
-    description: "Réservez vos billets pour les meilleurs événements en Tunisie",
-    url: "https://tickr.tn",
-    siteName: "Tickr",
-    locale: "fr_TN",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Tickr - Billetterie en Ligne",
-    description: "Réservez vos billets pour les meilleurs événements en Tunisie",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+  metadataBase: siteUrl(),
+  icons: { icon: '/brand/symbol.svg' },
+  title: { default: 'Tickr · Ça se vit dehors.', template: '%s · Tickr' },
+  description: siteDescription,
+  robots: { index: isIndexable(), follow: true },
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" suppressHydrationWarning>
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+    <html
+      lang="fr-TN"
+      dir="ltr"
+      className={`${manrope.variable} ${readex.variable}`}
+    >
+      <body>
+        <Providers>
+          <SiteHeader />
+          {children}
+          <SiteFooter />
+        </Providers>
       </body>
     </html>
-  );
+  )
 }

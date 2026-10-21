@@ -1,3 +1,4 @@
+import { EVENT_STAFF_USER_DIRECTORY } from '@modules/events/application/ports/event-staff-user-directory.port';
 import { INestApplication, ValidationPipe, HttpStatus } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
@@ -49,7 +50,11 @@ const mockUserValidationService = {
     lastName: 'Organizer',
   }),
   userExists: jest.fn().mockResolvedValue(true),
-  isEventOwner: jest.fn().mockImplementation((userId: string, organizerId: string) => userId === organizerId),
+  isEventOwner: jest
+    .fn()
+    .mockImplementation(
+      (userId: string, organizerId: string) => userId === organizerId,
+    ),
   hasRole: jest.fn().mockResolvedValue(true),
   isAdmin: jest.fn().mockResolvedValue(false),
 };
@@ -120,7 +125,9 @@ class MockEventRepository {
   }
 
   async save(event: any) {
-    const id = event.id || `evt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id =
+      event.id ||
+      `evt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const savedEvent = { ...event, id };
     this.events.set(id, savedEvent);
     return savedEvent;
@@ -284,7 +291,9 @@ describe.skip('Events Module - Integration Tests', () => {
         {
           provide: S3StorageService,
           useValue: {
-            uploadImage: jest.fn().mockResolvedValue('https://example.com/image.jpg'),
+            uploadImage: jest
+              .fn()
+              .mockResolvedValue('https://example.com/image.jpg'),
             deleteImage: jest.fn().mockResolvedValue(undefined),
           },
         },
@@ -302,6 +311,16 @@ describe.skip('Events Module - Integration Tests', () => {
         SetEventCommissionOverrideHandler,
 
         // Query Handlers
+        {
+          provide: EVENT_STAFF_USER_DIRECTORY,
+          useValue: {
+            getUserById: jest
+              .fn()
+              .mockResolvedValue({ firstName: 'Test', lastName: 'Organizer' }),
+            getUserByEmail: jest.fn(),
+            getUsersByIds: jest.fn(),
+          },
+        },
         GetEventByIdHandler,
         GetPublishedEventsHandler,
         GetEventsByCategoryHandler,
@@ -514,7 +533,9 @@ describe.skip('Events Module - Integration Tests', () => {
         .expect(HttpStatus.OK);
 
       expect(response.body.data).toHaveLength(2);
-      expect(response.body.data.every((e: any) => e.status === 'PUBLISHED')).toBe(true);
+      expect(
+        response.body.data.every((e: any) => e.status === 'PUBLISHED'),
+      ).toBe(true);
     });
 
     it('should support pagination', async () => {
@@ -594,7 +615,12 @@ describe.skip('Events Module - Integration Tests', () => {
         category: EventCategory.CONCERT,
         startDate: futureDate(48),
         endDate: futureDate(52),
-        location: { city: 'Tunis', country: 'Tunisia', address: '123 St', postalCode: '1000' },
+        location: {
+          city: 'Tunis',
+          country: 'Tunisia',
+          address: '123 St',
+          postalCode: '1000',
+        },
         ticketTypes: [
           {
             id: 'tkt-1',
@@ -878,7 +904,9 @@ describe.skip('Events Module - Integration Tests', () => {
         .expect(HttpStatus.OK);
 
       expect(response.body.data).toHaveLength(2);
-      expect(response.body.data.every((e: any) => e.organizerId === organizerId)).toBe(true);
+      expect(
+        response.body.data.every((e: any) => e.organizerId === organizerId),
+      ).toBe(true);
     });
   });
 });

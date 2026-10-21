@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import * as Joi from 'joi';
 
@@ -78,6 +79,9 @@ import { EventBusModule } from './shared/infrastructure/events/event-bus.module'
       { name: 'medium', ttl: 10000, limit: 20 },
       { name: 'long', ttl: 60000, limit: 100 },
     ]),
+
+    // Register the scheduler once for the entire application.
+    ScheduleModule.forRoot(),
 
     // Shared Infrastructure
     DatabaseModule,

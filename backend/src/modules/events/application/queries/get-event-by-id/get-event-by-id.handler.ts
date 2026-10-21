@@ -1,12 +1,20 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Result } from '@shared/domain/result';
 
-
 import type { EventEntity } from '../../../domain/entities/event.entity';
 import type { TicketTypeEntity } from '../../../domain/entities/ticket-type.entity';
 import { EventStatus } from '../../../domain/value-objects/event-status.vo';
-import type { EventDto, EventLocationDto, EventOrganizerDto } from '../../dtos/event.dto';
+import type {
+  EventDto,
+  EventLocationDto,
+  EventOrganizerDto,
+} from '../../dtos/event.dto';
 import type { TicketTypeDto } from '../../dtos/ticket-type.dto';
+import { EVENT_STAFF_USER_DIRECTORY } from '../../ports/event-staff-user-directory.port';
+import type {
+  EventStaffUserDirectoryPort,
+  EventStaffUserInterface,
+} from '../../ports/event-staff-user-directory.port';
 import type { EventRepositoryPort } from '../../ports/event.repository.port';
 import { EVENT_REPOSITORY } from '../../ports/event.repository.port';
 
@@ -15,6 +23,7 @@ import {
   type GetEventByIdResultQuery,
   type GetEventByIdErrorQuery,
 } from './get-event-by-id.query';
+
 
 // Re-export types for external use
 export type GetEventByIdResult = GetEventByIdResultQuery;
@@ -42,6 +51,8 @@ export class GetEventByIdHandler {
   constructor(
     @Inject(EVENT_REPOSITORY)
     private readonly eventRepository: EventRepositoryPort,
+    @Inject(EVENT_STAFF_USER_DIRECTORY)
+    private readonly userDirectory: EventStaffUserDirectoryPort,
   ) {}
 
   /**
@@ -56,7 +67,7 @@ export class GetEventByIdHandler {
     // 1. Find the event
     // ============================================
     const event = await this.eventRepository.findById(query.eventId);
-    
+
     if (!event) {
       return Result.fail({
         type: 'EVENT_NOT_FOUND',
@@ -81,7 +92,8 @@ export class GetEventByIdHandler {
     // ============================================
     // 3. Map to EventDto
     // ============================================
-    const eventDto = this.mapToEventDto(event);
+    const organizer = await this.userDirectory.getUserById(event.organizerId);
+    const eventDto = this.mapToEventDto(event, organizer);
 
     this.logger.debug(`Event retrieved successfully: ${event.id}`);
 
@@ -91,18 +103,24 @@ export class GetEventByIdHandler {
   /**
    * Map EventEntity to EventDto
    */
-  private mapToEventDto(event: EventEntity): EventDto {
+  private mapToEventDto(
+    event: EventEntity,
+    organizer: EventStaffUserInterface | null,
+  ): EventDto {
     const now = new Date();
     const availableCapacity = event.totalCapacity - event.soldTickets;
-    const salesProgress = event.totalCapacity > 0 
-      ? Math.round((event.soldTickets / event.totalCapacity) * 100) 
-      : 0;
+    const salesProgress =
+      event.totalCapacity > 0
+        ? Math.round((event.soldTickets / event.totalCapacity) * 100)
+        : 0;
 
     // Check if any tickets are on sale
-    const isOnSale = event.ticketTypes.some(tt => {
+    const isOnSale = event.ticketTypes.some((tt) => {
       const salesStart = tt.salesPeriod.startDate;
       const salesEnd = tt.salesPeriod.endDate;
-      return tt.isActive && now >= salesStart && now <= salesEnd && !tt.isSoldOut;
+      return (
+        tt.isActive && now >= salesStart && now <= salesEnd && !tt.isSoldOut()
+      );
     });
 
     return {
@@ -115,8 +133,8 @@ export class GetEventByIdHandler {
       endDate: event.dateRange.endDate,
       imageUrl: event.imageUrl,
       status: event.status,
-      organizer: this.mapToOrganizerDto(event),
-      ticketTypes: event.ticketTypes.map(tt => this.mapToTicketTypeDto(tt)),
+      organizer: this.mapToOrganizerDto(event, organizer),
+      ticketTypes: event.ticketTypes.map((tt) => this.mapToTicketTypeDto(tt)),
       totalCapacity: event.totalCapacity,
       soldTickets: event.soldTickets,
       availableCapacity,
@@ -149,18 +167,17 @@ export class GetEventByIdHandler {
     };
   }
 
-  /**
-   * Map organizer to OrganizerDto
-   * Note: In a real implementation, this would fetch from Users module
-   */
-  private mapToOrganizerDto(event: EventEntity): EventOrganizerDto {
-    // TODO: Fetch actual organizer info from Users module
-    // For now, return placeholder with organizerId
+  private mapToOrganizerDto(
+    event: EventEntity,
+    organizer: EventStaffUserInterface | null,
+  ): EventOrganizerDto {
     return {
       id: event.organizerId,
-      firstName: 'Organizer',
-      lastName: '',
-      displayName: 'Event Organizer',
+      firstName: organizer?.firstName ?? '',
+      lastName: organizer?.lastName ?? '',
+      displayName: organizer
+        ? `${organizer.firstName} ${organizer.lastName}`.trim()
+        : undefined,
     };
   }
 
@@ -170,13 +187,18 @@ export class GetEventByIdHandler {
   private mapToTicketTypeDto(ticketType: TicketTypeEntity): TicketTypeDto {
     const now = new Date();
     const availableQuantity = ticketType.quantity - ticketType.soldQuantity;
-    const salesProgress = ticketType.quantity > 0 
-      ? Math.round((ticketType.soldQuantity / ticketType.quantity) * 100) 
-      : 0;
+    const salesProgress =
+      ticketType.quantity > 0
+        ? Math.round((ticketType.soldQuantity / ticketType.quantity) * 100)
+        : 0;
 
     const salesStart = ticketType.salesPeriod.startDate;
     const salesEnd = ticketType.salesPeriod.endDate;
-    const isOnSale = ticketType.isActive && now >= salesStart && now <= salesEnd && !ticketType.isSoldOut;
+    const isOnSale =
+      ticketType.isActive &&
+      now >= salesStart &&
+      now <= salesEnd &&
+      !ticketType.isSoldOut();
 
     return {
       id: ticketType.id,

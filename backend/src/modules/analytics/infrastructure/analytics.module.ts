@@ -1,7 +1,6 @@
 import { EventsModule } from '@modules/events/infrastructure/events.module';
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { GenerateReportHandler } from '../application/commands/generate-report/generate-report.handler';
@@ -121,7 +120,6 @@ const reportStorageProvider: Provider = {
       EventAnalyticsOrmEntity,
       PlatformAnalyticsOrmEntity,
     ]),
-    ScheduleModule.forRoot(),
     ConfigModule,
   ],
   controllers: [AnalyticsController],
