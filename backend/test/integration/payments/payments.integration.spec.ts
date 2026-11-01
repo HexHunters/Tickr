@@ -81,6 +81,24 @@ class InMemoryOrderRepository implements OrderRepositoryPort {
     return this.orders.find((o) => o.gatewayPaymentRef === ref) || null;
   }
 
+  async findAll(
+    filters: { status?: string; eventId?: string; userId?: string },
+    page: number,
+    limit: number,
+  ): Promise<{ data: OrderEntity[]; total: number }> {
+    const matches = this.orders.filter(
+      (o) =>
+        (!filters.status || o.status === filters.status) &&
+        (!filters.eventId || o.eventId === filters.eventId) &&
+        (!filters.userId || o.userId === filters.userId),
+    );
+    return { data: matches.slice((page - 1) * limit, page * limit), total: matches.length };
+  }
+
+  async getStatusSummary(): Promise<[]> {
+    return [];
+  }
+
   getAll(): OrderEntity[] {
     return this.orders;
   }

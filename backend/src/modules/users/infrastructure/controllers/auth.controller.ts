@@ -464,11 +464,18 @@ export class AuthController {
       // Verify refresh token
       const payload = await this.jwtService.verifyRefreshToken(dto.refreshToken);
 
+      // Re-read the account so suspensions and role changes made by an
+      // administrator take effect at the next refresh.
+      const user = await this.userRepository.findById(payload.userId);
+      if (!user?.isActive) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
       // Generate new access token
       const accessToken = this.jwtService.signAccessToken({
-        userId: payload.userId,
-        email: payload.email,
-        role: payload.role,
+        userId: user.id,
+        email: user.email,
+        role: user.role,
       });
 
       return {

@@ -18,6 +18,8 @@ export class RequestRefundCommand extends BaseCommand {
     public readonly orderId: string,
     public readonly userId: string,
     public readonly reason: string,
+    /** Back-office refund: skip the buyer ownership check (role enforced by the controller) */
+    public readonly asAdmin: boolean = false,
   ) {
     super();
     Object.freeze(this);

@@ -42,3 +42,36 @@ export interface PaginatedOrdersDto {
   readonly limit: number;
   readonly totalPages: number;
 }
+
+// ============================================
+// Back-office DTOs
+// ============================================
+
+export interface AdminOrderDto {
+  readonly id: string;
+  readonly userId: string;
+  readonly eventId: string;
+  readonly eventTitle: string | null;
+  readonly buyerName: string | null;
+  readonly buyerEmail: string | null;
+  readonly status: OrderStatus;
+  readonly ticketCount: number;
+  readonly subtotal: number;
+  readonly platformFee: number;
+  readonly paymentFees: number;
+  readonly total: number;
+  readonly currency: string;
+  readonly paymentMethod: PaymentMethod | null;
+  readonly paidAt: Date | null;
+  readonly refundedAt: Date | null;
+  readonly refundReason: string | null;
+  readonly createdAt: Date;
+}
+
+export interface PaginatedAdminOrdersDto {
+  readonly data: AdminOrderDto[];
+  readonly total: number;
+  readonly page: number;
+  readonly limit: number;
+  readonly totalPages: number;
+}

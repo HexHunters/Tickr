@@ -24,6 +24,9 @@ export function SiteHeader() {
     ...(user?.role === 'ORGANIZER'
       ? [{ href: '/organizer', label: 'Organiser' }]
       : []),
+    ...(user?.role === 'ADMIN'
+      ? [{ href: '/admin', label: 'Administration' }]
+      : []),
   ]
   return (
     <>

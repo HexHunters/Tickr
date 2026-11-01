@@ -7,7 +7,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Application Layer - Command Handlers
 import { ChangePasswordHandler } from '../application/commands/change-password.handler';
+import { ChangeUserRoleHandler } from '../application/commands/change-user-role.handler';
 import { DeactivateUserHandler } from '../application/commands/deactivate-user.handler';
+import { SetUserActiveStatusHandler } from '../application/commands/set-user-active-status.handler';
 import { UpdateProfileHandler } from '../application/commands/update-profile.handler';
 // Application Layer - Event Handlers
 import { EmailVerifiedEventHandler } from '../application/event-handlers/email-verified.handler';
@@ -18,8 +20,11 @@ import { UserMapper } from '../application/mappers/user.mapper';
 import { USER_REPOSITORY } from '../application/ports/user.repository.port';
 import { GetUserByEmailHandler } from '../application/queries/get-user-by-email.handler';
 import { GetUserByIdHandler } from '../application/queries/get-user-by-id.handler';
+import { GetUserStatsHandler } from '../application/queries/get-user-stats.handler';
 import { GetUsersByRoleHandler } from '../application/queries/get-users-by-role.handler';
+import { SearchUsersHandler } from '../application/queries/search-users.handler';
 
+import { AdminUsersController } from './controllers/admin-users.controller';
 import { AuthController } from './controllers/auth.controller';
 import { UsersController } from './controllers/users.controller';
 import { EmailVerifiedGuard } from './guards/email-verified.guard';
@@ -45,6 +50,8 @@ const CommandHandlers = [
   ChangePasswordHandler,
   UpdateProfileHandler,
   DeactivateUserHandler,
+  ChangeUserRoleHandler,
+  SetUserActiveStatusHandler,
 ];
 
 /**
@@ -54,6 +61,8 @@ const QueryHandlers = [
   GetUserByIdHandler,
   GetUserByEmailHandler,
   GetUsersByRoleHandler,
+  SearchUsersHandler,
+  GetUserStatsHandler,
 ];
 
 /**
@@ -130,6 +139,7 @@ const repositoryProvider: Provider = {
   controllers: [
     AuthController,
     UsersController,
+    AdminUsersController,
   ],
   providers: [
     // Mappers

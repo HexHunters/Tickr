@@ -58,7 +58,7 @@ export class RequestRefundHandler {
     }
 
     // 2. Ownership check — return ORDER_NOT_FOUND to avoid leaking order existence
-    if (order.userId !== command.userId) {
+    if (!command.asAdmin && order.userId !== command.userId) {
       return Result.fail({
         type: 'ORDER_NOT_FOUND',
         message: `Order ${command.orderId} not found`,

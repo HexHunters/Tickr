@@ -1,8 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { FindOptionsWhere, LessThan, Repository } from 'typeorm';
 
-import { OrderRepositoryPort } from '../../application/ports/order.repository.port';
+import {
+  OrderRepositoryPort,
+  OrderSearchFilters,
+  OrderStatusSummary,
+} from '../../application/ports/order.repository.port';
 import { OrderEntity } from '../../domain/entities/order.entity';
 import { OrderStatus } from '../../domain/value-objects/order-status.vo';
 import { OrderOrmEntity } from '../persistence/entities/order.orm-entity';
@@ -132,5 +136,55 @@ export class OrderTypeOrmRepository implements OrderRepositoryPort {
     }
 
     return this.mapper.toDomain(entity);
+  }
+
+  async findAll(
+    filters: OrderSearchFilters,
+    page: number,
+    limit: number,
+  ): Promise<{ data: OrderEntity[]; total: number }> {
+    const where: FindOptionsWhere<OrderOrmEntity> = {};
+    if (filters.status) where.status = filters.status;
+    if (filters.eventId) where.eventId = filters.eventId;
+    if (filters.userId) where.userId = filters.userId;
+
+    const [entities, total] = await this.repository.findAndCount({
+      where,
+      relations: ['items'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data: this.mapper.toDomainArray(entities),
+      total,
+    };
+  }
+
+  async getStatusSummary(): Promise<OrderStatusSummary[]> {
+    const rows = await this.repository
+      .createQueryBuilder('order')
+      .select('order.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .addSelect('COALESCE(SUM(order.totalAmount), 0)', 'totalAmount')
+      .addSelect('COALESCE(SUM(order.platformFeeAmount), 0)', 'platformFeeAmount')
+      .groupBy('order.status')
+      .getRawMany<{
+        status: OrderStatus;
+        count: string;
+        totalAmount: string;
+        platformFeeAmount: string;
+      }>();
+
+    return Object.values(OrderStatus).map((status) => {
+      const row = rows.find((candidate) => candidate.status === status);
+      return {
+        status,
+        count: Number(row?.count ?? 0),
+        totalAmount: Number(row?.totalAmount ?? 0),
+        platformFeeAmount: Number(row?.platformFeeAmount ?? 0),
+      };
+    });
   }
 }
