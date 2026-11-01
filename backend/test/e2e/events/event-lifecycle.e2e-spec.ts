@@ -18,6 +18,7 @@ import {
   CompleteEventHandler,
   UploadEventImageHandler,
   SetEventCommissionOverrideHandler,
+  SetEventFreeTicketsOverrideHandler,
   GetEventByIdHandler,
   GetPublishedEventsHandler,
   GetEventsByCategoryHandler,
@@ -145,6 +146,7 @@ describe('E2E: Event Lifecycle', () => {
         CompleteEventHandler,
         UploadEventImageHandler,
         SetEventCommissionOverrideHandler,
+        SetEventFreeTicketsOverrideHandler,
 
         // Query Handlers
         GetEventByIdHandler,

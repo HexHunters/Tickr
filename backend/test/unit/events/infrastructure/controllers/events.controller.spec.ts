@@ -15,6 +15,7 @@ import {
   RemoveTicketTypeHandler,
   UploadEventImageHandler,
   SetEventCommissionOverrideHandler,
+  SetEventFreeTicketsOverrideHandler,
   AssignEventCheckInStaffHandler,
   RevokeEventCheckInStaffHandler,
   GetEventByIdHandler,
@@ -142,6 +143,7 @@ describe('EventsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EventsController],
       providers: [
+        { provide: SetEventFreeTicketsOverrideHandler, useValue: createMockHandler() },
         { provide: CreateEventHandler, useValue: createEventHandler },
         { provide: UpdateEventHandler, useValue: updateEventHandler },
         { provide: PublishEventHandler, useValue: publishEventHandler },

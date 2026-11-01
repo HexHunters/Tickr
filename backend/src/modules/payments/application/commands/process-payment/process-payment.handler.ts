@@ -65,6 +65,10 @@ export class ProcessPaymentHandler {
       });
     }
 
+    if (order.totalAmount === 0) {
+      return Result.fail({ type: 'INVALID_STATUS', message: 'Free orders do not accept gateway payments' });
+    }
+
     // 3. Check expiration
     if (order.isExpired()) {
       return Result.fail({

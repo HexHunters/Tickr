@@ -19,7 +19,7 @@ interface TicketPriceProps {
  * Specialized version of Money for event tickets with additional validation.
  *
  * Validation rules:
- * - Amount must be greater than 0
+ * - Amount must be finite and non-negative
  * - Currency must be a supported currency
  * - Amount is rounded to currency's decimal places
  */
@@ -56,6 +56,9 @@ export class TicketPriceVO extends ValueObject<TicketPriceProps> {
    * Create a new TicketPriceVO value object
    */
   static create(amount: number, currency: Currency = Currency.TND): TicketPriceVO {
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new InvalidPriceException('Ticket price must be finite and non-negative');
+    }
     // Validate currency first
     if (!CurrencyVO.isValidCurrency(currency)) {
       throw new InvalidPriceException(
@@ -186,13 +189,12 @@ export class TicketPriceVO extends ValueObject<TicketPriceProps> {
 
   protected validate(props: TicketPriceProps): void {
     // Validate amount is a number
-    if (typeof props.amount !== 'number' || isNaN(props.amount)) {
+    if (!Number.isFinite(props.amount)) {
       throw new InvalidPriceException('Price amount must be a valid number');
     }
 
-    // Amount must be positive for ticket prices
-    if (props.amount <= 0) {
-      throw new InvalidPriceException('Ticket price must be greater than 0');
+    if (props.amount < 0) {
+      throw new InvalidPriceException('Ticket price must be non-negative');
     }
 
     // Validate currency

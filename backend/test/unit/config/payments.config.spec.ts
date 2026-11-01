@@ -24,6 +24,7 @@ describe('Payment launch configuration', () => {
       gateways: { enabled: false }, offline: { enabled: false },
     });
     expect(schema.validate({}).value).toEqual({
+      FREE_TICKETS_ENABLED: 'false',
       PAYMENT_GATEWAYS_ENABLED: 'false', OFFLINE_PAYMENT_ENABLED: 'false',
     });
   });

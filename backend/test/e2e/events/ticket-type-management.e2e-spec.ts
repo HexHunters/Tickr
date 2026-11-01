@@ -18,6 +18,7 @@ import {
   CompleteEventHandler,
   UploadEventImageHandler,
   SetEventCommissionOverrideHandler,
+  SetEventFreeTicketsOverrideHandler,
   GetEventByIdHandler,
   GetPublishedEventsHandler,
   GetEventsByCategoryHandler,
@@ -123,6 +124,7 @@ describe('E2E: Ticket Type Management', () => {
         CompleteEventHandler,
         UploadEventImageHandler,
         SetEventCommissionOverrideHandler,
+        SetEventFreeTicketsOverrideHandler,
         GetEventByIdHandler,
         GetPublishedEventsHandler,
         GetEventsByCategoryHandler,
@@ -230,6 +232,34 @@ describe('E2E: Ticket Type Management', () => {
     });
 
     it('should add a ticket type to a draft event', async () => {
+      const dto = createTestTicketTypeDto();
+      await request(app.getHttpServer()).post(`/api/events/${eventId}/ticket-types`)
+        .set('Authorization', `Bearer ${organizerToken}`).send(dto).expect(HttpStatus.CREATED);
+    });
+
+    it('allows an admin to enable mixed free and paid ticket types', async () => {
+      const adminToken = generateTestToken(jwtService, { sub: organizerId, email: 'admin@test.com', role: 'ADMIN' });
+      await request(app.getHttpServer()).patch(`/api/events/${eventId}/free-tickets`)
+        .set('Authorization', `Bearer ${organizerToken}`).send({ enabled: true }).expect(HttpStatus.FORBIDDEN);
+      const policy = await request(app.getHttpServer()).patch(`/api/events/${eventId}/free-tickets`)
+        .set('Authorization', `Bearer ${adminToken}`).send({ enabled: true }).expect(HttpStatus.OK);
+      expect(policy.body).toMatchObject({ freeTicketsEnabledOverride: true, effectiveFreeTicketsEnabled: true });
+      await request(app.getHttpServer()).post(`/api/events/${eventId}/ticket-types`)
+        .set('Authorization', `Bearer ${organizerToken}`).send(createTestTicketTypeDto({ name: 'Basic', price: 0 })).expect(HttpStatus.CREATED);
+      await request(app.getHttpServer()).post(`/api/events/${eventId}/ticket-types`)
+        .set('Authorization', `Bearer ${organizerToken}`).send(createTestTicketTypeDto({ name: 'VIP', price: 50 })).expect(HttpStatus.CREATED);
+      const cleared = await request(app.getHttpServer()).patch(`/api/events/${eventId}/free-tickets`)
+        .set('Authorization', `Bearer ${adminToken}`).send({ enabled: null }).expect(HttpStatus.OK);
+      expect(cleared.body.freeTicketsEnabledOverride).toBeNull();
+    });
+
+    it.each([{}, { enabled: 'false' }, { enabled: 1 }])('rejects invalid free-ticket policy %p', async (body) => {
+      const adminToken = generateTestToken(jwtService, { sub: organizerId, email: 'admin@test.com', role: 'ADMIN' });
+      await request(app.getHttpServer()).patch(`/api/events/${eventId}/free-tickets`)
+        .set('Authorization', `Bearer ${adminToken}`).send(body).expect(HttpStatus.BAD_REQUEST);
+    });
+
+    it('returns the ticket type ID after creation', async () => {
       const dto = createTestTicketTypeDto();
 
       const response = await request(app.getHttpServer())

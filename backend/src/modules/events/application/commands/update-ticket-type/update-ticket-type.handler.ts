@@ -1,4 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DOMAIN_EVENT_PUBLISHER } from '@shared/application/interfaces/domain-event-publisher.port';
 import type { DomainEventPublisherPort } from '@shared/application/interfaces/domain-event-publisher.port';
 import { Result } from '@shared/domain/result';
@@ -48,6 +49,7 @@ export class UpdateTicketTypeHandler {
     @Inject(USER_VALIDATION_SERVICE)
     private readonly userValidationService: UserValidationServicePort,
     @Inject(DOMAIN_EVENT_PUBLISHER) private readonly eventPublisher: DomainEventPublisherPort,
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -133,6 +135,10 @@ export class UpdateTicketTypeHandler {
           message: error instanceof Error ? error.message : 'Invalid price',
         });
       }
+    }
+
+    if (updateProps.price?.amount === 0 && !(event.freeTicketsEnabledOverride ?? this.config.get<boolean>('payments.freeTickets.enabled', false))) {
+      return Result.fail({ type: 'INVALID_PRICE', message: 'Free tickets are disabled for this event' });
     }
 
     // Quantity update

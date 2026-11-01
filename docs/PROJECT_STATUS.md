@@ -1,971 +1,285 @@
 # 📊 Tickr Project Status Report
 
-**Date:** June 16, 2026  
-**Version:** 2.1  
-**Phase:** V1 MVP Development
+**Date:** November 1, 2026
+
+**Version:** 3.0
+
+**Phase:** V1 MVP — backend hardening + frontend build-out
+
+**Branch analysed:** `develop` (last merge: PR #82, 2026-10-22)
+
+### Free tickets: implementation update (November 1, 2026)
+
+- Backend: zero-price tiers, mixed free/paid events, `FREE_TICKETS_ENABLED=false`
+  default, and nullable admin event overrides are implemented in the working tree.
+  `PATCH /events/:id/free-tickets` changes the override at runtime; event policy wins.
+- Wholly free orders are fulfilled without a gateway; mixed baskets retain normal
+  payment. Existing booking thresholds apply to the whole basket. No frontend files
+  have been changed; the [frontend handoff](08-frontend/11-frontend-architecture.md#free-ticket-handoff-2026-11-01)
+  and [API contract](02-technique/02-api-contract.md) describe required UI changes.
+- Rollout: run migration `1793491200000-add-event-free-tickets-override` before
+  deploying the backend. It adds the nullable policy column and permits zero in
+  the database price constraint. Rollback refuses while free ticket types exist.
+  The migration was tested in an isolated PostgreSQL database, not applied to the
+  running application database.
+- Remaining release checks: frontend booking/admin UI, real purchase-to-check-in
+  journey, and failure/concurrency hardening. Fulfillment uses compensating steps,
+  not an atomic cross-module transaction; Redis abuse counters remain best-effort.
+- Verification: 221 backend suites passed (2,989 tests passed, 2 existing skips),
+  35 architecture checks passed, and 35 event ticket-type HTTP tests passed.
+  Free-order HTTP coverage uses mocked ticket ports; a full database-backed
+  free-booking-to-check-in journey has not been run. Type-check and changed-file
+  lint checks passed; the PostgreSQL migration check covered up/down constraints.
+
+The inventory and estimates below describe the earlier review snapshot, not a
+production-readiness measurement for these uncommitted changes.
+
+> This revision replaces the June 2026 report (v2.1). Figures below come from a
+> direct scan of the repository and a fresh test run, cross-checked against the
+> [project audit](10-project-audit/00-executive-report.md) and its
+> [remediation plan](10-project-audit/09-remediation-plan.md) (2026-09-15).
 
 ---
 
-## 🎯 Overall Project Completion: **70%**
+## 🎯 Overall Project Completion: **~72%**
 
 ```
-██████████████████████████████░░░░░░ 70%
+█████████████████████████░░░░░░░░░░░ 72%
 
-Documentation:  ████████████████████████████████████ 100% ✅
-Backend:        ████████████████████████████████████  98%
-Frontend:       ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   5%
-Infrastructure: ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  10%
-Testing:        █████████████████████████████████████ 100% ✅
+Documentation:  ██████████████████████████████████░░  95%
+Backend:        █████████████████████████████████░░░  92%
+Frontend:       ████████████████████░░░░░░░░░░░░░░░░  55%
+Infrastructure: ████████████░░░░░░░░░░░░░░░░░░░░░░░░  35%
+Testing:        ████████████████████████░░░░░░░░░░░░  65%
+Product/Legal:  ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  15%
 ```
 
----
+**Verdict:** the backend reserves real tickets and takes payments; the frontend
+covers discovery → reservation → orders → tickets → check-in and the organizer
+workspace. **Top blockers:** no online payment in the UI, CD cannot run, no
+legal/refund policy. Strengths: 35 architecture fitness functions and 2,945
+backend unit tests green; reproducible Docker demo stack.
 
-## 📚 1. Documentation - 100% ✅ COMPLETE
+### What changed since v2.1 (June 16 → October 22, 2026)
 
-### ✅ Completed (48 documents)
-
-**Functional Specs (3/3):**
-- ✅ `01-vue-ensemble.md` - Vision, actors, workflows
-- ✅ `02-specifications-detaillees.md` - User stories, features
-- ✅ `03-regles-metier.md` - Business rules Tunisia
-
-**Technical Specs (5/5):**
-- ✅ `01-stack-technique.md` - Tech stack
-- ✅ `02-api-contract.md` - REST API endpoints (863 lines)
-- ✅ `03-database-schema.md` - PostgreSQL schemas
-- ✅ `04-modele-economique.md` - 6% commission model
-- ✅ `05-configuration-management.md` - ⭐ NEW (500+ lines)
-
-**Architecture (15/15):**
-- ✅ `00-architecture-governance-summary.md`
-- ✅ `01-principes-hexagonaux.md` - Ports & Adapters
-- ✅ `02-structure-modules.md` - 6 bounded contexts
-- ✅ `03-event-driven.md` - Event bus pattern
-- ✅ `04-migration-microservices.md` - V1→V2→V3 plan
-- ✅ `05-fitness-functions.md` - 30 architecture tests
-- ✅ `06-architecture-quick-ref.md` - Quick reference
-- ✅ `07-tests-verification.md` - CI/CD integration
-- ✅ `08-ci-integration-complete.md` - Complete CI summary
-- ✅ `09-backend-setup-guide.md` - NestJS setup
-- ✅ `10-development-cicd-alignment.md` - Dev/CI alignment
-- ✅ `11-database-testing-strategy.md` - DB testing strategy
-- ✅ `12-events-module-architecture.md` - Events module
-- ✅ `13-users-module-architecture.md` - Users module
-- ✅ `14-tickets-module-architecture.md` - Tickets module
-- ✅ `15-payments-module-architecture.md` - Payments module ⭐ NEW
-- ✅ `17-analytics-module-architecture.md` - Analytics module ⭐ NEW
-
-**Infrastructure (4/4):**
-- ✅ `01-aws-architecture.md` - ECS, RDS, S3
-- ✅ `02-terraform-setup.md` - IaC
-- ✅ `03-cicd-pipeline.md` - GitHub Actions
-- ✅ `04-monitoring.md` - CloudWatch
-
-**Git Workflow (4/4):**
-- ✅ Branching strategy
-- ✅ Architecture tests in CI/CD
-- ✅ Error handling guide
-
-**Testing (4/4):**
-- ✅ Frontend testing architecture
-- ✅ Backend testing guide
-- ✅ E2E testing strategy
-
-**Project Documentation:**
-- ✅ `README.md` - Main project documentation
-- ✅ `AGENTS.md` - AI development guide
-- ✅ `COMMISSION_RATE_UPDATE.md` - ⭐ NEW commission update summary
-- ✅ `PROJECT_STATUS.md` - This document
+| Date | PR | Delivered |
+|------|----|-----------|
+| 2026-07/08 | #65, #66 | Frontend plan + 12 design deliverables; per-event commission rates; locked V1 face-price contract |
+| 2026-09-01 | #67–#69 | Staff check-in assignments; backend unit test stabilisation |
+| 2026-09-15 | #70 | Full project audit (15 docs), remediation plan, design direction |
+| 2026-10-07 | #71 | Offline payment logic |
+| 2026-10-10 | #72–#75 | Real ticket reservation adapter (R-01/R-02); security fixes S-02, S-04, S-09, C-02; gateway kill switch; test DB guards |
+| 2026-10-18 | #77, #79 | "En scène" brand charter; payments + analytics migrations, all entities registered; password-reset link + password-changed alert; ticket/notification/analytics authorization |
+| 2026-10-20 | #81 | Participant pages on real API data; demo seed; full demo stack via `make demo-*` |
+| 2026-10-22 | #82 | Organizer pages, check-in tools, team access, message history; discovery SEO/performance; analytics identifier fixes |
 
 ---
 
-## ⚙️ 2. Backend (NestJS) - 98% 🚧 IN PROGRESS
+## 📚 1. Documentation — 95%
 
-### Overall Backend Structure
+**84 Markdown files** across 11 sections plus Postman collections.
 
-```
-Total Files: 365+ TypeScript files
-Test Files:  192 test files (2310+ tests passing)
-Modules:     6/6 (100%) - All feature modules complete
-```
+| Section | Content | Status |
+|---------|---------|--------|
+| `01-fonctionnel/` | Vision, user stories, Tunisian business rules | ✅ |
+| `02-technique/` | Stack, API contract, DB schema, economic model, config, Users API/security/DB/deploy, commission update | 🟡 Economic model outdated |
+| `03-architecture/` | Hexagonal principles, modules, events, fitness functions, CI, per-module architecture | ✅ |
+| `04-infrastructure/` | AWS, Terraform, CI/CD, monitoring | 🟡 Target state, not implemented |
+| `05-git-workflow/`, `06-testing/` | Branching, CI arch tests, error handling, test strategies | ✅ |
+| `07-copilot-agents/` | AI agent guides | ✅ |
+| `08-frontend/` | Backend-aligned frontend plan + phase deliverables | ✅ |
+| `09-product-and-growth/` | Executive product & growth handoff | ✅ |
+| `10-project-audit/` | Executive report, 7 gap analyses, remediation plan, design direction, demo runtime findings, SEO/perf | ✅ Item status tracked in §6 |
+| `11-brand-charter/` | "En scène" visual & verbal identity | ✅ |
+| `collections/` | Postman collections | ✅ |
 
-### ✅ Completed Modules (6/6 = 100%)
-
-#### 🟢 **Users Module - 95% Complete**
-
-**Files:** 63 TypeScript files
-
-**Domain Layer (100%):**
-```
-✅ Entities:
-   - User.entity.ts (with UserRole enum)
-   - VerificationToken.entity.ts
-   
-✅ Value Objects:
-   - UserId.vo.ts
-   - Email.vo.ts
-   - Password.vo.ts
-   - PhoneNumber.vo.ts
-   
-✅ Domain Events:
-   - UserRegistered.event.ts
-   - UserDeactivated.event.ts
-   - PasswordChanged.event.ts
-   - PasswordResetRequested.event.ts
-   - ProfileUpdated.event.ts
-   
-✅ Exceptions:
-   - UserAlreadyExists.exception.ts
-   - InvalidCredentials.exception.ts
-   - UserNotFound.exception.ts
-   - EmailAlreadyVerified.exception.ts
-```
-
-**Application Layer (100%):**
-```
-✅ Commands & Handlers (5):
-   - RegisterUserCommand/Handler
-   - ChangePasswordCommand/Handler
-   - UpdateProfileCommand/Handler
-   - DeactivateUserCommand/Handler
-   - (Login via controller)
-   
-✅ Queries & Handlers (3):
-   - GetUserByIdQuery/Handler
-   - GetUserByEmailQuery/Handler
-   - GetUsersByRoleQuery/Handler
-   
-✅ DTOs (7):
-   - RegisterUserDto
-   - LoginDto
-   - ChangePasswordDto
-   - UpdateProfileDto
-   - UserDto
-   - UserProfileDto
-   - JwtPayloadDto
-   
-✅ Ports (Interfaces):
-   - UserRepositoryPort
-   
-✅ Event Handlers (2):
-   - UserRegisteredHandler
-   - PasswordResetRequestedHandler
-   
-✅ Mappers:
-   - UserMapper
-```
-
-**Infrastructure Layer (100%):**
-```
-✅ Persistence:
-   - UserTypeOrmRepository (implements UserRepositoryPort)
-   - UserSchema (TypeORM entity)
-   - VerificationTokenRepository
-   - VerificationTokenSchema
-   
-✅ Controllers (2):
-   - AuthController (register, login, logout)
-   - UsersController (profile, update, deactivate)
-   
-✅ Guards (4):
-   - JwtAuthGuard
-   - LocalAuthGuard
-   - RolesGuard
-   - EmailVerifiedGuard
-   
-✅ Strategies (3):
-   - JwtStrategy
-   - LocalStrategy
-   - RefreshTokenStrategy
-   
-✅ Services (4):
-   - HashingService (bcrypt)
-   - TokenService (JWT)
-   - EmailVerificationService
-   - PasswordResetService
-   
-✅ Decorators (3):
-   - @CurrentUser
-   - @Roles
-   - @Public
-```
-
-**Module Configuration:**
-```
-✅ users.module.ts - Fully configured with:
-   - CQRS (CommandBus, QueryBus, EventBus)
-   - TypeORM repositories
-   - Passport authentication
-   - JWT strategy
-   - All providers registered
-```
-
-**Testing (100%):**
-```
-✅ Unit tests - Complete
-✅ Integration tests - Complete
-✅ E2E tests:
-   - registration-flow.e2e-spec.ts
-   - authentication-flow.e2e-spec.ts
-   - password-reset-flow.e2e-spec.ts
-```
+**Doc debt:**
+- `02-technique/04-modele-economique.md` — align with the face-price contract (R-15).
+- `04-infrastructure/` — mark as target state until Terraform exists.
+- Finished plans still at top level — archive or move under `03-architecture/`:
+  `backend-plan.md`, `ANALYTICS_MODULE_PLAN.md`,
+  `NOTIFICATIONS_MODULE_SUB_ISSUES.md`, `03-architecture/16-payments-module-plan.md`.
+- No Notifications module architecture doc.
+- `AGENTS.md` frontend examples import `@/components/ui/*`, which does not
+  exist; the UI lives in `components/design`, `organizer`, `entrance`.
 
 ---
 
-#### 🟢 **Events Module - 100% Complete** ✅
+## ⚙️ 2. Backend (NestJS 11) — 92%
 
-**Files:** 124 TypeScript files (source) + 40 test files
+### Inventory
 
-**Domain Layer (100%):**
 ```
-✅ Entities:
-   - event.entity.ts (1097 lines - Aggregate Root)
-   - ticket-type.entity.ts (525 lines)
-   
-✅ Value Objects (7):
-   - event-category.vo.ts
-   - event-status.vo.ts
-   - location.vo.ts
-   - event-date-range.vo.ts
-   - sales-period.vo.ts
-   - ticket-price.vo.ts
-   - currency.vo.ts
-   
-✅ Domain Events (7):
-   - EventCreatedEvent
-   - EventPublishedEvent
-   - EventUpdatedEvent
-   - EventCancelledEvent
-   - TicketTypeAddedEvent
-   - TicketTypeUpdatedEvent
-   - TicketTypeSoldOutEvent
-   
-✅ Exceptions (14):
-   - All domain exceptions implemented
+Module source files:   543 (6 bounded contexts)
+Controllers:           9  (~65 endpoints)
+Migrations:            10 (all modules covered)
+Backend spec files:    227
+TODO/FIXME:            45 occurrences in 22 files (mostly cross-module notifications)
 ```
 
-**Application Layer (100%):**
-```
-✅ Commands & Handlers (9):
-   - CreateEventCommand/Handler
-   - UpdateEventCommand/Handler
-   - PublishEventCommand/Handler
-   - CancelEventCommand/Handler
-   - CompleteEventCommand/Handler
-   - AddTicketTypeCommand/Handler
-   - UpdateTicketTypeCommand/Handler
-   - RemoveTicketTypeCommand/Handler
-   - UploadEventImageCommand/Handler
-   
-✅ Queries & Handlers (6):
-   - GetEventByIdQuery/Handler
-   - GetPublishedEventsQuery/Handler
-   - GetEventsByCategoryQuery/Handler
-   - GetOrganizerEventsQuery/Handler
-   - GetUpcomingEventsQuery/Handler
-   - SearchEventsQuery/Handler
-   
-✅ Event Handlers (3):
-   - EventPublishedEventHandler
-   - EventCancelledEventHandler
-   - TicketTypeSoldOutEventHandler
-   
-✅ DTOs (Complete):
-   - All request/response DTOs
-   - EventFilterDto, EventListDto
-   
-✅ Ports (Interfaces):
-   - EventRepositoryPort
-   - UserValidationServicePort
-   - EventCapacityServicePort
-   
-✅ Services:
-   - EventSchedulerService (auto-complete events)
-```
+| Module | Src files | Controllers | Status | Remaining |
+|--------|-----------|-------------|--------|-----------|
+| **Users** | 63 | Auth, Users | 🟢 97% | Refresh-token rotation/revocation (R-14) |
+| **Events** | 149 | Events (+ staff assignments, commission override) | 🟢 98% | Cancellation → bulk refund wiring (TODO) |
+| **Tickets** | 105 | Tickets (reserve, confirm, cancel, transfer, check-in, PDF, me) | 🟢 95% | PDF generation, duplicate check-in alert (TODOs) |
+| **Payments** | 85 | Orders, Webhooks, Public config | 🟡 88% | R-10, R-12, R-13 (§6); confirmation email/SMS TODOs; no E2E |
+| **Analytics** | 66 | Analytics | 🟢 95% | Currency grouping (R-20) |
+| **Notifications** | 75 | Notifications | 🟢 95% | Not yet triggered by every domain event (TODOs in other modules) |
 
-**Infrastructure Layer (100%):**
-```
-✅ Persistence:
-   - EventOrmEntity (TypeORM entity)
-   - TicketTypeOrmEntity (TypeORM entity)
-   - EventTypeOrmRepository (full implementation)
-   - TicketTypeTypeOrmRepository
-   - EventMapper (Domain ↔ ORM)
-   - TicketTypeMapper
-   
-✅ Controllers:
-   - EventsController (all REST endpoints)
-   
-✅ Services:
-   - EventCacheService (Redis caching)
-   - S3StorageService (AWS S3 image upload)
-   
-✅ Adapters:
-   - UserValidationServiceAdapter (cross-module)
-   
-✅ Guards:
-   - IsEventOwnerGuard
-   
-✅ Exceptions:
-   - S3 storage exceptions
-```
+### Shared kernel & config — 90%
 
-**Module Configuration:**
-```
-✅ events.module.ts - Fully configured with:
-   - CQRS (CommandBus, QueryBus, EventBus)
-   - TypeORM repositories
-   - All providers registered
-   - Redis caching enabled
-   - S3 storage configured
-   - Cross-module integration with UsersModule
-```
-
-**Testing (100%):**
-```
-✅ Unit Tests: 40 test files
-✅ Integration Tests: events.integration.spec.ts
-✅ Total Tests: 1805+ passing
-```
+- ✅ Domain base classes, `Result<T,E>`, value-object base
+- ✅ Redis cache module/service/interceptor
+- ✅ Domain event publisher, event bus module, event store
+- ✅ TypeORM data source, base repository, migrations, seeds
+- ✅ Email (SES/SMTP via MailDev in dev) and SMS (SNS) providers in Notifications
+- ✅ Config: app, AWS, database, JWT, notifications, **payments (6% default + per-event override, kill switch, offline payments)**, Redis
+- 🟡 Cron jobs and webhook dedupe are single-instance only (R-13)
 
 ---
 
-### ✅ Completed Modules (continued)
+## 🎨 3. Frontend (Next.js 16 + React 19) — 55%
 
-#### 🟢 **Tickets Module - 100% Complete** ✅
+### Inventory
+
 ```
-Status: COMPLETE (as of April 13, 2026)
-
-Implementation:
-✅ Domain: 2 entities, 3 VOs, 7 events, 12 exceptions
-✅ Application: 6 commands, 5 queries, 4 event handlers, 9 DTOs
-✅ Infrastructure: Controller (8 endpoints), repos, mappers, 4 services
-✅ Testing: 19 unit suites (217 tests), 1 integration (14), 3 E2E (28)
-✅ Documentation: Architecture doc, Swagger decorators, Postman collection
-
-Source files: 99 | Test files: 24 | Total tests: 259+
+TS/TSX files:   89  (~7,000 lines)
+Routes:         26 pages + BFF route handlers (api/auth/[action], api/backend/[...path])
+Components:     design/ (15), organizer/ (4), entrance/ (5), providers, session
+Stack:          TanStack Query, Zustand, React Hook Form + Zod, TailwindCSS 4
+Language:       French only (no i18n)
 ```
 
-#### 🟢 **Payments Module - 100% Complete** ✅
-```
-Status: COMPLETE (as of June 7, 2026)
+| Area | Routes | Status |
+|------|--------|--------|
+| Discovery & SEO | `/`, `/events`, `/events/[id]`, `/programme/[slug]`, `/help`, sitemap, robots | ✅ |
+| Auth | `/auth/login`, `/auth/register`, `/auth/forgot-password`, `/reset-password`, `/verify-email` | ✅ (session via BFF cookies) |
+| Purchase | ticket selector → `/checkout/[orderId]` | 🟡 Reservation works; **online payment button disabled** — `POST /orders/:id/pay` and gateway redirect not wired |
+| Participant | `/orders`, `/orders/[id]`, `/tickets`, `/tickets/[id]`, `/account`, `/account/notifications`, `/account/messages` | ✅ |
+| Organizer | `/organizer`, `/organizer/events`, `/organizer/events/new`, `/organizer/events/[id]`, `.../team`, `.../attendance` | 🟡 No analytics dashboard page |
+| Check-in | `/check-in`, `/check-in/[eventId]` | ✅ |
+| Legal | `/legal/*` | ❌ Not created (R-17) |
+| i18n | `next-intl`, `[locale]` routing | ❌ (R-22) |
 
-Implementation:
-✅ Domain: 4 entities (Order, OrderItem, Payment, Refund)
-         4 VOs (OrderStatus, PaymentStatus, PaymentMethod, RefundStatus)
-         7 domain events, 4 exceptions
-         1 domain service (CommissionCalculator)
-✅ Application: 6 commands (CreateOrder, ProcessPayment, ConfirmPayment,
-              FailPayment, RequestRefund, ExpireOrders)
-             3 queries (GetOrderById, GetOrdersByUser, GetOrdersByEvent)
-             8 ports, 2 app event handlers, 3 type definitions
-✅ Infrastructure: 2 controllers (Orders, Webhooks)
-                 3 repositories, 3 mappers, 4 ORM entities
-                 6 adapters (Stripe, Konnect, Paymee, PaymentProviderFactory,
-                           EventQuery, TicketReservation)
-                 3 services (FraudDetection, OrderExpiration, WebhookEventStore)
-                 4 infra event handlers
-✅ Testing: 28 unit suites (257 tests), 1 integration
-✅ Features: Multi-gateway payments (Stripe, Konnect, Paymee)
-           Configurable commission (default 6%, env-driven)
-           Fraud detection, order expiration cron, refunds
-✅ Safety: Idempotency keys, intent-first recording,
-         webhook deduplication, timing-safe signatures,
-         immutable order status history (audit ledger)
-
-Source files: 81 | Test files: 29 | Total tests: 257+
-```
+**Open item from audit:** macOS native suggestions dropdown on search input
+(recorded 2026-10-22).
 
 ---
 
-### ✅ Completed Modules (continued)
+## 🏗️ 4. Infrastructure — 35%
 
-#### 🟢 **Notifications Module - 100% Complete** ✅
-```
-Status: COMPLETE
-
-Implementation:
-✅ Application: 6 commands (SendNotification, SendBulkNotifications,
-              ProcessScheduledNotifications, RetryFailedNotification,
-              UpdatePreferences, Unsubscribe)
-             3 queries (GetNotificationById, GetUserNotifications,
-                        GetUserPreferences)
-✅ Infrastructure: NotificationsController (6 endpoints), repositories,
-                 mappers, event-driven triggers
-✅ Channels: Email + SMS with per-user preferences & unsubscribe
-✅ Features: Templates, scheduling, retry on failure, bulk sending
-
-Source files: 75 | Test files: 23
-```
-
-### ✅ Recently Completed
-
-#### **Analytics Module - 100%** ⭐ NEW
-```
-Status: COMPLETE (June 16, 2026)
-Branch: 11-backendanalytics-implement-analytics-module-with-real-time-metrics
-
-Implemented Features:
-- Real-time metric recording via domain events
-- Materialized analytics views (event + platform level)
-- Cron-based refresh (every 10 minutes)
-- Redis cache-aside pattern (5-15 min TTL)
-- Sales time-series with hourly/daily granularity
-- CSV/PDF export report generation (S3 storage)
-- Full Swagger documentation
-- 13 test suites, 90 unit tests, 34 architecture tests passing
-```
+| Item | Status |
+|------|--------|
+| `docker-compose.yml` (Postgres 15, Redis 7, pgAdmin, MailDev, LocalStack) | ✅ |
+| `docker-compose.dev.yml` / `.prod.yml` / `.demo.yml` + `make demo-*` | ✅ |
+| Nginx reverse proxy config | ✅ |
+| Prometheus + Grafana config (`infrastructure/monitoring`) | 🟡 Local only, no alerting |
+| Makefile (setup, dev, db, test, docker, demo) | ✅ |
+| **CI** `ci.yml`: lint, architecture, unit, integration (runs migrations), E2E | ✅ |
+| **CD** `cd-staging.yml`, `cd-production.yml` (ECR → ECS) | ❌ Cannot run — `ci.yml` has no `workflow_call` trigger (R-09); migrations not run on deploy |
+| Terraform / AWS (VPC, ECS, RDS, ElastiCache, S3, CloudFront, Route53) | ❌ No `.tf` files |
+| Error tracking (Sentry), log aggregation, backups | ❌ |
 
 ---
 
-### 🔧 Shared Infrastructure - 40%
+## 🧪 5. Testing — 65%
 
-**Domain Layer (100%):**
-```
-✅ Base Classes:
-   - BaseEntity
-   - ValueObject
-   - DomainEvent
-   - DomainException
-   
-✅ Result Pattern:
-   - Result<T, E>
-   - Success/Failure factories
-   
-✅ UUID Utils:
-   - UUID generation
-   - Validation
-```
+**Fresh run (2026-11-01):**
 
-**Infrastructure Layer (30%):**
-```
-🟡 Database:
-   - TypeORM configuration
-   - Data source setup
-   - ❌ Migrations (not run)
-   
-🟡 Events:
-   - DomainEventPublisher
-   - ❌ Event bus integration incomplete
-   
-❌ Not Started:
-   - AWS S3 service
-   - Email service
-   - SMS service
-   - Queue service (Bull/Redis)
-   - Cache service
-   - Logging service
-```
+| Suite | Result |
+|-------|--------|
+| Backend unit (`npx jest`) | **221 suites, 2,945 / 2,947 passing**, 2 skipped (`password.service.spec.ts` bcrypt tests) |
+| Architecture fitness functions | **35 / 35 passing** |
+| Frontend unit (Vitest) | **4 files, 28 / 28 passing** |
+| Backend integration | 5 specs (users, events, tickets, payments, notifications) — not run in this review |
+| Backend E2E | 12 specs: users (3), events (4), tickets (3), notifications (1), infrastructure (1) — **no payments E2E** |
+| Frontend E2E (Playwright) | ❌ Only `example.spec.ts` template |
 
-**Configuration (80%):**
-```
-✅ Environment validation (Joi)
-✅ Database config
-✅ JWT config
-✅ Redis config
-🟡 AWS config (partial)
-❌ Business config (commission rate service) - Documented but not implemented
-```
+**Missing:** analytics E2E, frontend component tests, and the audit's "one
+journey test" (register → buy → receive ticket → check in).
 
 ---
 
-## 🎨 3. Frontend (Next.js 16) - 5% 🔴 BARELY STARTED
+## 🛠️ 6. Remediation Plan Tracker
 
-### Current State
+Status of [09-remediation-plan.md](10-project-audit/09-remediation-plan.md)
+items, verified against code:
 
-**Total Files:** ~15 files
+| ID | Item | Status |
+|----|------|--------|
+| R-01 | Replace reservation stub with real adapter | ✅ PR #74 |
+| R-02 | Carry real ticket ids through confirm/fail/expire/refund | ✅ PR #74 |
+| R-03 | Stripe webhook raw body | ✅ `main.ts` `rawBody: true` |
+| R-04 | Resolve Konnect/Paymee orders by gateway reference | ✅ `findByGatewayPaymentRef` |
+| R-05 | Parse `ORDER_EXPIRATION_MINUTES` as number | ✅ `parseInt` in `payments.config.ts` |
+| R-06 | Production DB can take an order (migrations + entities) | ✅ PR #79 (deploy-time run still pending → R-09) |
+| R-07 | Close the four IDORs | ✅ PRs #74, #79 |
+| R-08 | Mint/send verification token + resend endpoint | ✅ `POST /auth/resend-verification` |
+| R-09 | Runnable CD, aligned health checks, frontend API URL | ❌ No `workflow_call` in `ci.yml` |
+| R-10 | Refund correctness | ⚪ Not verified |
+| R-11 | Scoping leaks in notifications/analytics | ✅ PR #79 |
+| R-12 | Authenticate Konnect webhook | 🟡 Mitigated by server-side `confirmPayment`, no signature |
+| R-13 | Redis-backed webhook dedupe + cron locks | ❌ In-memory `Map` |
+| R-14 | Refresh-token rotation & revocation | ❌ |
+| R-15 | Organizer payout model / ledger | ❌ Economic model doc not updated |
+| R-16 | Refund & cancellation policy | ❌ |
+| R-17 | Legal set + consent capture | ❌ |
+| R-18 | `timestamptz` + event IANA timezone | 🟡 Crons run in UTC; schema not migrated |
+| R-19 | libphonenumber + E.164 | ❌ |
+| R-20 | Currency guards (provider + analytics) | ❌ |
+| R-21 | Reserve tax/locale/terms columns | ❌ |
+| R-22 | `next-intl` + `[locale]` routing | ❌ |
 
-**✅ Scaffolding Complete:**
-```
-✅ Next.js 16 + React 19 setup
-✅ TailwindCSS 4 configured
-✅ TypeScript configured
-✅ App Router structure
-✅ Package.json dependencies
-```
-
-**🟡 Basic Structure:**
-```
-src/
-├── app/
-│   ├── layout.tsx       ✅ Root layout
-│   ├── page.tsx         ✅ Home page (basic)
-│   └── globals.css      ✅ Global styles
-│
-├── components/
-│   └── ui/              ❌ Empty (needs shadcn/ui)
-│
-├── lib/
-│   ├── api/             ❌ Not created
-│   ├── hooks/           ❌ Not created
-│   └── utils.ts         ❌ Not created
-│
-└── types/               ❌ Not created
-```
-
-**❌ Not Implemented (95%):**
-```
-Missing Core Features:
-- API client (axios setup)
-- React Query configuration
-- Zustand store setup
-- Authentication context
-- Protected routes
-- UI components library
-- Forms with React Hook Form
-- All pages (events, tickets, checkout, dashboard)
-- All components
-- All hooks
-- All utilities
-```
-
-**Required Pages (0/12):**
-```
-❌ Public:
-   - /events (search/browse)
-   - /events/[id] (event details)
-   - /auth/login
-   - /auth/register
-   
-❌ Participant:
-   - /tickets (my tickets)
-   - /checkout
-   - /profile
-   
-❌ Organizer:
-   - /dashboard
-   - /dashboard/events
-   - /dashboard/events/new
-   - /dashboard/events/[id]/edit
-   - /dashboard/analytics
-```
-
-**Estimated Completion:** 8-10 weeks
+**Sprint 1 (make one purchase real): 8/8 done. Sprint 2 (make it safe): 1/6
+done, 1 partial.**
 
 ---
 
-## 🏗️ 4. Infrastructure - 10% 🔴 MINIMAL SETUP
+## 🎯 Next Steps (Priority Order)
 
-### ✅ Completed (10%)
+### P0 — first real online sale
 
-**Docker Setup:**
-```
-✅ docker-compose.yml (base services)
-   - PostgreSQL 15.4
-   - Redis 7.x
-   - Backend service config
-   - Frontend service config
-   
-✅ docker-compose.dev.yml (development overrides)
-✅ docker-compose.prod.yml (production config)
+1. **Wire online payment in the frontend** — call `POST /orders/:id/pay`,
+   redirect to Stripe/Konnect/Paymee, handle return URL and poll order status.
+2. **Payments E2E** — order → pay → webhook → tickets issued → refund.
+3. **Send order confirmation email/SMS** — resolve payments/tickets
+   notification TODOs.
+4. **R-10 refund correctness** — verify and test.
 
-✅ Backend Dockerfile.dev
-✅ Frontend Dockerfile.dev
-```
+### P1 — make it deployable and safe
 
-**Local Development:**
-```
-✅ Makefile with commands:
-   - make dev
-   - make dev-backend
-   - make dev-frontend
-   - make stop
-   - make logs
-   - make test
-   - make lint
-   
-✅ Scripts:
-   - localstack-init.sh
-   - init-db.sql
-```
+5. **R-09** — add `workflow_call` to `ci.yml`, run `migration:run` in CD,
+   align health checks, configure frontend API URL per environment.
+6. **R-13** — Redis `SET NX EX` for webhook dedupe; Redis locks for crons.
+7. **R-12** — Konnect webhook authentication.
+8. **R-14** — refresh-token rotation and revocation.
+9. **Terraform** — staging environment (VPC, ECS, RDS, ElastiCache, S3).
 
-**Environment Variables:**
-```
-✅ backend/.env.example (109 lines)
-   ✅ Database config
-   ✅ Redis config
-   ✅ JWT secrets
-   ✅ AWS config (LocalStack)
-   ✅ Stripe config
-   ✅ PLATFORM_COMMISSION_RATE=0.06 ⭐ NEW
-   
-✅ frontend/.env.example (basic)
-```
+### P2 — launch readiness
 
-### ❌ Not Implemented (90%)
+10. **R-15 → R-17** — payout model, refund/cancellation policy, legal pages
+    and consent capture (`/legal/*`, `terms_accepted_version/at`).
+11. **Organizer analytics dashboard** page on the existing analytics API.
+12. **Frontend tests** — component tests for `design/`, `organizer/`,
+    `entrance/`; Playwright journey test (the audit's "proof").
+13. Ticket PDF generation; Sentry + alerting; backups.
 
-**AWS Infrastructure (0%):**
-```
-❌ Terraform modules
-❌ VPC setup
-❌ ECS Fargate clusters
-❌ RDS PostgreSQL (production)
-❌ ElastiCache Redis
-❌ S3 buckets
-❌ CloudFront CDN
-❌ Route53 DNS
-❌ ACM certificates
-❌ IAM roles/policies
-❌ Systems Manager (Parameter Store)
-❌ CloudWatch dashboards
-❌ X-Ray tracing
-```
+### P3 — before a second market
 
-**CI/CD (0%):**
-```
-❌ .github/workflows/ci.yml
-❌ .github/workflows/cd-staging.yml
-❌ .github/workflows/cd-production.yml
-❌ .github/workflows/migrations.yml
-```
-
-**Monitoring (0%):**
-```
-❌ CloudWatch alarms
-❌ Prometheus metrics
-❌ Grafana dashboards
-❌ Error tracking (Sentry)
-❌ Log aggregation
-```
+14. R-18 → R-22 (timezones, phone numbers, currency, tax columns, i18n).
 
 ---
 
-## 🧪 5. Testing - 85% ✅ BACKEND COMPLETE
+## � Timeline
 
-### Backend Tests
-
-```
-✅ Unit Tests (100%)
-   - Domain entities
-   - Value objects  
-   - Command handlers
-   - Query handlers
-   - Services
-   - 192 test files, 2310+ tests passing
-   
-✅ Integration Tests (100%)
-   - Repository tests (with test DB)
-   - Controller tests
-   - End-to-end flows
-   - events.integration.spec.ts
-   - users.integration.spec.ts
-   - tickets.integration.spec.ts
-   - payments.integration.spec.ts
-   
-✅ Architecture Tests (100%)
-   - Hexagonal boundaries
-   - Dependency rules
-   - 34 fitness functions passing
-   
-✅ E2E Tests (100%)
-   - Infrastructure E2E tests
-   - Users module E2E tests (3 test files)
-     - registration-flow.e2e-spec.ts
-     - authentication-flow.e2e-spec.ts
-     - password-reset-flow.e2e-spec.ts
-   - Events module E2E tests (4 test files)
-     - event-lifecycle.e2e-spec.ts
-     - event-queries.e2e-spec.ts
-     - event-image-upload.e2e-spec.ts
-     - ticket-type-management.e2e-spec.ts
-   - Tickets module E2E tests (3 test files)
-     - ticket-reservation.e2e-spec.ts
-     - ticket-check-in.e2e-spec.ts
-     - ticket-transfer.e2e-spec.ts
-   - 80+ E2E tests passing
-```
-
-**Target Coverage:** >80% (Currently: ~85% ✅)
-
-### Frontend Tests
-
-```
-❌ Unit Tests (0%)
-   - Components (Vitest + Testing Library)
-   - Hooks
-   - Utils
-   
-❌ E2E Tests (0%)
-   - User flows (Playwright)
-   - Checkout process
-   - Event creation
-```
-
-**Target Coverage:** >70% (Currently: 0%)
+- **Original MVP target:** Q2 2026 — missed.
+- **Revised MVP target:** **Q1 2027**, assuming P0 and P1 complete in
+  November–December 2026.
+- **Structural risk:** small team (bus factor); no staging environment to
+  rehearse a release.
 
 ---
 
-## 📈 Detailed Module Breakdown
+**Last Updated:** November 1, 2026
 
-### Backend Modules Progress
-
-| Module | Domain | Application | Infrastructure | Tests | Total |
-|--------|--------|-------------|----------------|-------|-------|
-| **Users** | 100% ✅ | 100% ✅ | 100% ✅ | 100% ✅ | **100%** 🟢 |
-| **Events** | 100% ✅ | 100% ✅ | 100% ✅ | 100% ✅ | **100%** 🟢 |
-| **Tickets** | 100% ✅ | 100% ✅ | 100% ✅ | 100% ✅ | **100%** 🟢 |
-| **Payments** | 100% ✅ | 100% ✅ | 100% ✅ | 100% ✅ | **100%** 🟢 |
-| **Analytics** | 100% ✅ | 100% ✅ | 100% ✅ | 100% ✅ | **100%** 🟢 |
-| **Notifications** | 100% ✅ | 100% ✅ | 100% ✅ | 100% ✅ | **100%** 🟢 |
-| **Shared** | 100% ✅ | 50% 🟡 | 30% 🟡 | 0% ❌ | **40%** 🟡 |
-
-**Overall Backend:** **98%** (6/6 feature modules functional, fully tested)
-
----
-
-## 🎯 V1 MVP Roadmap Progress
-
-### ✅ Completed Tasks
-
-```yaml
-✅ Phase 0: Planning & Documentation (100%)
-   - Architecture design
-   - Database schemas
-   - API contracts
-   - Business rules
-   - Economic model
-   - Configuration management NEW
-   - Commission rate updated to 6% NEW
-
-✅ Phase 1: Backend Foundation (100%)
-   - NestJS setup
-   - Hexagonal architecture
-   - Users module (100%)
-   - Events module (100%)
-   - CQRS implementation
-   - Authentication (JWT)
-   - Authorization (Guards, Roles)
-```
-
-### 🚧 In Progress
-
-```yaml
-✅ Phase 2: Core Backend Modules (100%)
-   - Tickets module (100%) ✅
-   - Payments module (100%) ✅
-   - Multi-gateway payments (Stripe, Konnect, Paymee)
-   - Commission calculation (configurable)
-   - Database migrations
-```
-
-### ❌ Remaining Tasks
-
-```yaml
-❌ Phase 3: Frontend Development (95%)
-   Sprint 5-8 (8-10 weeks):
-   - UI component library
-   - All pages (12 pages)
-   - Authentication flow
-   - Event browsing & search
-   - Checkout process
-   - Organizer dashboard
-   - Ticket display with QR
-
-✅ Phase 4: Notifications & Analytics (100%)
-   Sprint 9-10 (3-4 weeks):
-   - Notifications module
-   - Email templates
-   - SMS integration
-   - Analytics module
-   - Dashboard metrics
-
-❌ Phase 5: Testing & Quality (Frontend) (0%)
-   Sprint 11-12 (3-4 weeks):
-   - Frontend unit tests (>70% coverage)
-   - Frontend E2E tests (Playwright)
-   - Performance testing
-   - Security audit
-
-❌ Phase 6: Infrastructure & Deployment (90%)
-   Sprint 13-14 (2-3 weeks):
-   - Terraform AWS setup
-   - CI/CD pipelines
-   - Staging environment
-   - Production deployment
-   - Monitoring & alerting
-   - Backup strategy
-
-❌ Phase 7: Beta Testing & Launch (0%)
-   Sprint 15-16 (2-3 weeks):
-   - Beta user testing
-   - Bug fixes
-   - Performance optimization
-   - Production launch
-   - Marketing materials
-```
-
----
-
-## ⏱️ Time Estimates
-
-### Work Completed
-- **Documentation:** ~40 hours ✅
-- **Backend (Users + Events + Tickets + Payments + Analytics + Notifications):** ~220 hours ✅
-- **Infrastructure Setup:** ~10 hours ✅
-- **Total:** ~270 hours
-
-### Work Remaining
-- **Frontend (complete):** ~200 hours
-- **Testing (frontend):** ~60 hours
-- **Infrastructure (AWS + CI/CD):** ~40 hours
-- **Beta & Polish:** ~50 hours
-- **Total:** ~350 hours
-
-**Total Project:** ~620 hours (~70% complete)
-
-**At 40h/week:** ~10 weeks remaining (~2.5 months)  
-**At 20h/week:** ~20 weeks remaining (~5 months)
-
----
-
-## 🎯 Next Immediate Steps (Priority Order)
-
-### Sprint N (Current - Next 2 weeks)
-
-**1. Payments Module E2E Tests (3-4 days)**
-```
-Priority: HIGH
-Tasks:
-- [ ] Payment flow E2E tests
-- [ ] Webhook handling E2E tests
-- [ ] Order lifecycle E2E tests
-```
-
-**2. Database Migrations (2 days)**
-```
-Priority: HIGH
-Tasks:
-- [ ] Generate payments migration
-- [ ] Run migrations locally
-- [ ] Seed test data
-- [ ] Document migration process
-```
-
-**3. Frontend Foundation (2 weeks)**
-```
-Priority: HIGH
-Tasks:
-- [ ] API client setup (axios)
-- [ ] React Query configuration
-- [ ] Zustand store (auth)
-- [ ] shadcn/ui components
-- [ ] Authentication flow
-- [ ] Layout components
-```
-
-### Sprint N+1 (Weeks 3-4)
-
-**4. Notifications Module (2 weeks)**
-```
-Priority: MEDIUM
-Tasks:
-- [ ] Domain entities (Notification, Template)
-- [ ] Email service (AWS SES)
-- [ ] Event-driven triggers (order confirmation, etc.)
-- [ ] Template management
-```
-
-**5. Frontend Core Pages (2 weeks)**
-```
-Priority: HIGH
-Tasks:
-- [ ] Event browsing & search pages
-- [ ] Event details page
-- [ ] Authentication pages (login/register)
-- [ ] User profile page
-- [ ] Checkout flow
-```
-
-### Sprint N+2 (Weeks 5-6)
-
-**6. Organizer Dashboard & Analytics Module (2 weeks)**
-```
-Priority: MEDIUM
-Tasks:
-- [ ] Dashboard layout & event management
-- [ ] Analytics module (domain + application + infrastructure)
-- [ ] Sales statistics & revenue reports
-```
-
----
-
-## 📊 Summary Statistics
-
-```yaml
-Lines of Code:
-  Backend:      ~12,000 lines (TypeScript)
-  Frontend:     ~200 lines (TypeScript/TSX)
-  Tests:        ~8,000 lines (TypeScript)
-  Docs:         ~28,000 lines (Markdown)
-  Config:       ~500 lines (YAML/ENV)
-  Total:        ~48,700 lines
-
-Files:
-  Backend:      365+ TypeScript files
-  Frontend:     15 TypeScript/TSX files
-  Tests:        192 test files
-  Docs:         50+ Markdown files
-  Config:       12 configuration files
-
-Test Results:
-  Total Suites: 164 passing (1 skipped)
-  Total Tests:  2310 (2287 passing, 23 skipped)
-  Coverage:     ~85%
-  
-Repository Size:
-  Code:         ~4 MB
-  node_modules: ~800 MB
-  Docs:         ~1.5 MB
-```
-
----
-
-## 🎉 Key Achievements
-
-✅ **Comprehensive Documentation** - 100% complete, production-ready  
-✅ **Solid Architecture** - Hexagonal pattern correctly implemented  
-✅ **Users Module** - Fully functional authentication & authorization  
-✅ **Events Module** - 75% complete, domain layer perfect  
-✅ **Commission Rate** - Updated to 6%, fully configurable design  
-✅ **Local Development** - Docker Compose setup working  
-✅ **Code Quality** - Following NestJS & React best practices
-
----
-
-## ⚠️ Risks & Blockers
-
-```yaml
-🔴 HIGH RISK:
-   - No tests written yet (technical debt accumulating)
-   - Frontend barely started (8-10 weeks behind)
-   - Payment gateway integration not tested
-   
-🟡 MEDIUM RISK:
-   - No CI/CD pipeline (manual testing only)
-   - No production infrastructure
-   - Single developer (bus factor = 1)
-   
-🟢 LOW RISK:
-   - Documentation complete
-   - Architecture solid
-   - Tech stack proven
-```
-
----
-
-## 📅 Updated Timeline
-
-**Original Estimate:** 3 months (MVP)  
-**Current Progress:** 35% after ~130 hours  
-**Remaining Work:** ~510 hours
-
-**Realistic Timeline:**
-- **40h/week:** 3-4 more months → Total: 4-5 months
-- **20h/week:** 6-7 more months → Total: 7-8 months
-
-**Target MVP Launch:** **Q2 2026** (April-June)
-
----
-
-**Last Updated:** April 13, 2026  
-**Next Review:** April 27, 2026
+**Next Review:** November 15, 2026

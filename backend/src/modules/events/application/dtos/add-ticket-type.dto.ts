@@ -9,6 +9,7 @@ import {
   MaxLength,
   MinLength,
   IsNumber,
+  Min,
   IsPositive,
   IsInt,
   IsBoolean,
@@ -45,13 +46,13 @@ export class AddTicketTypeDto {
 
   @ApiProperty({
     description:
-      'Organizer-defined face price, excluding Tickr service fees. This is not a target buyer total.',
+      'Face price excluding fees. Zero is allowed only when the event free-ticket policy permits it.',
     example: 150.0,
-    minimum: 0.01,
+    minimum: 0,
   })
   @IsNotEmpty()
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   price!: number;
 
   @ApiProperty({

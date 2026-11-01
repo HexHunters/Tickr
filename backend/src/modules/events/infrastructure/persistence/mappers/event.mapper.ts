@@ -46,6 +46,7 @@ export class EventMapper {
     entity.status = domain.status;
     entity.imageUrl = domain.imageUrl;
     entity.commissionRateOverride = domain.commissionRateOverride;
+    entity.freeTicketsEnabledOverride = domain.freeTicketsEnabledOverride;
 
     // Location fields (embedded value object)
     entity.locationAddress = domain.location.address ?? null;
@@ -120,6 +121,7 @@ export class EventMapper {
       location,
       dateRange,
       imageUrl: raw.imageUrl,
+      freeTicketsEnabledOverride: raw.freeTicketsEnabledOverride ?? null,
       commissionRateOverride:
         raw.commissionRateOverride === null
           ? null
@@ -183,6 +185,7 @@ export class EventMapper {
       location,
       dateRange,
       imageUrl: raw.imageUrl,
+      freeTicketsEnabledOverride: raw.freeTicketsEnabledOverride ?? null,
       commissionRateOverride:
         raw.commissionRateOverride === null
           ? null
@@ -217,6 +220,7 @@ export class EventMapper {
     target.status = source.status;
     target.imageUrl = source.imageUrl;
     target.commissionRateOverride = source.commissionRateOverride;
+    target.freeTicketsEnabledOverride = source.freeTicketsEnabledOverride;
 
     // Location fields
     target.locationAddress = source.location.address ?? null;

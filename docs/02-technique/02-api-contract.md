@@ -94,6 +94,10 @@ GET /events?page=1&limit=12
 ```json
 {
   "globalCommissionRate": 0.06,
+  "availablePaymentMethods": [],
+  "globalFreeTicketsEnabled": false,
+  "freeTicketsEnabledOverride": true,
+  "effectiveFreeTicketsEnabled": true,
   "commissionRateOverride": 0.03,
   "effectiveCommissionRate": 0.03,
   "currency": "TND",
@@ -114,6 +118,34 @@ GET /events?page=1&limit=12
 - ✅ Permet changement commission sans redéployer frontend
 
 **Query optionnelle:** `eventId` (UUID). Un événement inconnu retourne `404`.
+
+Free-ticket permission is independent of commission and payment-method availability.
+The event override wins over `FREE_TICKETS_ENABLED`, including explicit `false`.
+Without `eventId`, the override is `null` and the effective value is the global default.
+
+### PATCH /events/:id/free-tickets
+
+**Auth:** `ADMIN`. Body must contain `enabled`: `true`, `false`, or `null` (inherit).
+Missing values, strings, and numbers are rejected. Organizers cannot change this policy.
+
+```json
+{ "enabled": true }
+```
+
+**Response 200:**
+
+```json
+{
+  "eventId": "550e8400-e29b-41d4-a716-446655440001",
+  "freeTicketsEnabledOverride": true,
+  "effectiveFreeTicketsEnabled": true
+}
+```
+
+Errors: `400` invalid input, `401` unauthenticated, `403` non-admin,
+`404` unknown event, `500` persistence failure. Changes apply to new free ticket
+types, zero-price updates, and new bookings; already issued tickets remain valid.
+Paid ticket types remain available when free tickets are disabled.
 
 ### PATCH /events/:id/commission
 
@@ -611,27 +643,55 @@ Le backend V1 n'accepte ni `pricingMode` ni `targetBuyerTotal`.
 ### POST /orders
 
 **Auth:** Required  
-**Description:** Créer commande (avant paiement)
+**Description:** Reserve a paid/mixed basket, or fulfill a wholly free basket without a gateway.
+Prices come from the server, never the request. All types must belong to the event,
+use one currency, be distinct, and have positive integer quantities matching holder counts.
 
 **Body:**
 
 ```json
 {
-  "paymentMethod": "KONNECT"
+  "eventId": "550e8400-e29b-41d4-a716-446655440001",
+  "items": [{
+    "ticketTypeId": "550e8400-e29b-41d4-a716-446655440002",
+    "quantity": 1,
+    "holders": [{ "name": "Ahmed", "email": "ahmed@example.com" }]
+  }],
+  "holder": { "firstName": "Ahmed", "lastName": "Ben Ali", "email": "ahmed@example.com" }
 }
 ```
 
-**Response 201:**
+**Response 201 (free):**
 
 ```json
 {
-  "orderId": "uuid",
-  "amount": 104.0,
-  "status": "PENDING",
-  "paymentUrl": "https://gateway.konnect.network/pay/abc123",
-  "expiresAt": "2024-01-15T10:45:00Z"
+  "orderId": "550e8400-e29b-41d4-a716-446655440003",
+  "subtotal": 0,
+  "platformFee": 0,
+  "total": 0,
+  "currency": "TND",
+  "status": "PAID",
+  "requiresPayment": false,
+  "expiresAt": "2026-11-01T10:45:00Z"
 }
 ```
+
+`PAID` also means fulfilled free admission, not evidence of a financial transaction.
+Free orders have no payment record, payment method, gateway fees, or transaction ID.
+Their reservation deadline does not expire issued tickets. Do not call `/pay` or
+`/refund`; use the existing ticket cancellation flow when applicable.
+
+Paid/mixed responses use the same fields with `status: "PENDING"`,
+`requiresPayment: true`, and server-calculated totals. Continue with
+`POST /orders/:id/pay`. Free lines in a mixed basket are confirmed only when the
+whole order is paid. A zero commission rate does not make a paid ticket free.
+
+Errors include `403` with `code: "FREE_TICKETS_DISABLED"` when any free line is
+disallowed, `403 PAYMENT_METHOD_DISABLED` for a paid/mixed basket with gateways
+off, `400` invalid basket/availability/limit, `404` unknown event or mismatched
+ticket type, `429` rate limit, and `500` fulfillment/persistence failure.
+On a timeout or failure, inspect orders/tickets before retrying: order creation
+does not yet provide idempotent replay. No auto-confirmation occurs for paid lines.
 
 ---
 

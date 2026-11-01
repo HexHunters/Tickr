@@ -134,7 +134,7 @@ Livrer plateforme fonctionnelle permettant de:
   - Prix facial organisateur en TND, hors frais de service
   - Quantité disponible
   - Description courte (optionnel)
-- [ ] Validation: prix > 0, quantité > 0
+- [ ] Validation: prix >= 0, quantité > 0; prix nul soumis à la politique gratuite globale/surcharge administrateur par événement. Types gratuits et VIP payants peuvent coexister.
 - [ ] Aperçu immédiat du taux effectif, des frais de service et du total participant
 - [ ] **Un seul mode V1:** l'organisateur fixe le prix facial; il ne saisit pas un total participant cible
 - [ ] Possibilité modifier/supprimer types (si 0 ventes)

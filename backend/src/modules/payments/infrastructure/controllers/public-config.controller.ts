@@ -24,6 +24,15 @@ import { PaymentMethod } from '../../domain/value-objects/payment-method.vo';
 import { PublicConfigQueryDto } from './dtos/public-config-query.dto';
 
 class PublicConfigResponse {
+  @ApiProperty({ description: 'Deployment default for free-ticket permission', example: false })
+  globalFreeTicketsEnabled!: boolean;
+
+  @ApiProperty({ type: Boolean, nullable: true, description: 'Event override; null inherits the global default' })
+  freeTicketsEnabledOverride!: boolean | null;
+
+  @ApiProperty({ description: 'Whether new free bookings are allowed, independent of payment gateways' })
+  effectiveFreeTicketsEnabled!: boolean;
+
   @ApiProperty({
     description: 'Implemented payment methods enabled for this deployment. Offline is not yet exposed.',
     enum: PaymentMethod,
@@ -98,15 +107,21 @@ export class PublicConfigController {
       this.configService.get<number>('ORDER_EXPIRATION_MINUTES', 15);
 
     let commissionRateOverride: number | null = null;
+    const globalFreeTicketsEnabled = this.configService.get<boolean>('payments.freeTickets.enabled', false) === true;
+    let freeTicketsEnabledOverride: boolean | null = null;
     if (query.eventId) {
       const event = await this.eventQuery.getEventById(query.eventId);
       if (!event) {
         throw new NotFoundException(`Event ${query.eventId} not found`);
       }
       commissionRateOverride = event.commissionRateOverride;
+      freeTicketsEnabledOverride = event.freeTicketsEnabledOverride ?? null;
     }
 
     return {
+      globalFreeTicketsEnabled,
+      freeTicketsEnabledOverride,
+      effectiveFreeTicketsEnabled: freeTicketsEnabledOverride ?? globalFreeTicketsEnabled,
       availablePaymentMethods: this.providerFactory.getSupportedMethods(),
       globalCommissionRate,
       commissionRateOverride,

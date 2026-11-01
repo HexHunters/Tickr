@@ -11,6 +11,7 @@ export type OrderItemInput = {
 };
 
 export type CreateOrderError =
+  | { type: 'FREE_TICKETS_DISABLED'; message: string }
   | { type: 'PAYMENT_METHOD_DISABLED'; message: string }
   | { type: 'VALIDATION_ERROR'; message: string }
   | { type: 'EVENT_NOT_FOUND'; message: string }
@@ -28,6 +29,8 @@ export type CreateOrderResult = {
   readonly total: number;
   readonly currency: string;
   readonly expiresAt: Date;
+  readonly status: string;
+  readonly requiresPayment: boolean;
 };
 
 // ============================================

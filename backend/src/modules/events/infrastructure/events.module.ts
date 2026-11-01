@@ -14,6 +14,7 @@ import { PublishEventHandler } from '../application/commands/publish-event/publi
 import { RemoveTicketTypeHandler } from '../application/commands/remove-ticket-type/remove-ticket-type.handler';
 import { RevokeEventCheckInStaffHandler } from '../application/commands/revoke-event-check-in-staff/revoke-event-check-in-staff.handler';
 import { SetEventCommissionOverrideHandler } from '../application/commands/set-event-commission-override/set-event-commission-override.handler';
+import { SetEventFreeTicketsOverrideHandler } from '../application/commands/set-event-free-tickets-override/set-event-free-tickets-override.handler';
 import { UpdateEventHandler } from '../application/commands/update-event/update-event.handler';
 import { UpdateTicketTypeHandler } from '../application/commands/update-ticket-type/update-ticket-type.handler';
 import { UploadEventImageHandler } from '../application/commands/upload-event-image/upload-event-image.handler';
@@ -66,6 +67,7 @@ const CommandHandlers = [
   RemoveTicketTypeHandler,
   RevokeEventCheckInStaffHandler,
   SetEventCommissionOverrideHandler,
+  SetEventFreeTicketsOverrideHandler,
   UploadEventImageHandler,
   CompleteEventHandler,
 ];

@@ -8,6 +8,7 @@ import {
   MaxLength,
   MinLength,
   IsNumber,
+  Min,
   IsPositive,
   IsInt,
   IsBoolean,
@@ -49,13 +50,13 @@ export class UpdateTicketTypeDto {
 
   @ApiPropertyOptional({
     description:
-      'Updated organizer face price excluding service fees; cannot modify after first sale',
+      'Face price excluding fees; zero requires free-ticket permission. Cannot modify after first sale.',
     example: 175.0,
-    minimum: 0.01,
+    minimum: 0,
   })
   @IsOptional()
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   price?: number;
 
   @ApiPropertyOptional({
