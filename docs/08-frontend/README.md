@@ -1,5 +1,10 @@
 # 📚 Frontend Design & Architecture — Deliverables Index
 
+> **Backend handoff, November 1, 2026:** Free-ticket policy, mixed baskets, and
+> gateway-free fulfillment are implemented. Frontend/admin UI work remains open;
+> use the [free-ticket handoff](11-frontend-architecture.md#free-ticket-handoff-2026-11-01)
+> and [API contract](../02-technique/02-api-contract.md) for current behavior.
+
 > **Visual proposal — 17 October 2026:** [Porcelaine](../11-brand-charter/README.md)
 > provides a new 24-page graphic charter, PDF, assets and responsive launch concept.
 > It proposes updated color and typography choices; the product requirements and

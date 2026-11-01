@@ -62,6 +62,7 @@ import {
   UploadEventImageHandler,
   SetEventCommissionOverrideCommand,
   SetEventCommissionOverrideHandler,
+  SetEventFreeTicketsOverrideHandler,
   AssignEventCheckInStaffCommand,
   AssignEventCheckInStaffHandler,
   RevokeEventCheckInStaffCommand,
@@ -99,6 +100,7 @@ import {
   PaginatedEventCheckInAccessDto,
   PaginationDto,
 } from '../../application';
+import { SetEventFreeTicketsOverrideDto, EventFreeTicketsPolicyDto } from '../../application/dtos/set-event-free-tickets.dto';
 import { EventCategory } from '../../domain/value-objects/event-category.vo';
 import { EventStatus } from '../../domain/value-objects/event-status.vo';
 import { IsEventOwnerGuard } from '../guards/is-event-owner.guard';
@@ -238,6 +240,7 @@ export class EventsController {
     private readonly removeTicketTypeHandler: RemoveTicketTypeHandler,
     private readonly uploadEventImageHandler: UploadEventImageHandler,
     private readonly setEventCommissionOverrideHandler: SetEventCommissionOverrideHandler,
+    private readonly setEventFreeTicketsOverrideHandler: SetEventFreeTicketsOverrideHandler,
     private readonly assignEventCheckInStaffHandler: AssignEventCheckInStaffHandler,
     private readonly revokeEventCheckInStaffHandler: RevokeEventCheckInStaffHandler,
     // Query Handlers
@@ -678,6 +681,35 @@ export class EventsController {
   // ============================================
   // Protected Endpoints - Event CRUD
   // ============================================
+
+  @Patch(':id/free-tickets')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Allow, block, or inherit free-ticket permission for an event' })
+  @ApiParam({ name: 'id', description: 'Event UUID' })
+  @ApiResponse({ status: 200, type: EventFreeTicketsPolicyDto })
+  @ApiResponse({ status: 400, description: 'enabled must be boolean or null' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Event not found' })
+  @ApiResponse({ status: 500, description: 'Policy could not be persisted' })
+  async setEventFreeTicketsOverride(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+    @Body() dto: SetEventFreeTicketsOverrideDto,
+  ): Promise<EventFreeTicketsPolicyDto> {
+    const result = await this.setEventFreeTicketsOverrideHandler.execute({ eventId: id, adminId: user.userId, enabled: dto.enabled });
+    if (result.isFailure) {
+      switch (result.error.type) {
+        case 'ACCESS_DENIED': throw new ForbiddenException(result.error.message);
+        case 'EVENT_NOT_FOUND': throw new NotFoundException(result.error.message);
+        case 'INVALID_POLICY': throw new BadRequestException(result.error.message);
+        case 'PERSISTENCE_ERROR': throw new InternalServerErrorException(result.error.message);
+      }
+    }
+    return result.value;
+  }
 
   @Patch(':id/commission')
   @UseGuards(JwtAuthGuard, RolesGuard)

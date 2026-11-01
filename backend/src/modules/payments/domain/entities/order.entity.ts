@@ -357,7 +357,7 @@ export class OrderEntity extends BaseEntity<OrderEntity> {
   }
 
   canBeRefunded(): boolean {
-    return this._status === OrderStatus.PAID;
+    return this._status === OrderStatus.PAID && this._totalAmount > 0;
   }
 
   isExpired(): boolean {
@@ -393,6 +393,22 @@ export class OrderEntity extends BaseEntity<OrderEntity> {
       timestamp: new Date(),
       reason,
     });
+  }
+
+  fulfillFree(): Result<void, InvalidOrderStatusException> {
+    if (!this.isPending() || this.isExpired() || this._totalAmount !== 0 ||
+        this._items.some((item) => item.priceAmount !== 0) || this._paymentMethod !== null) {
+      return Result.fail(InvalidOrderStatusException.invalidTransition(this._status, OrderStatus.PAID));
+    }
+    this._status = OrderStatus.PAID;
+    this._paidAt = new Date();
+    this.recordTransition(OrderStatus.PAID, 'Free admission fulfilled without payment');
+    this.touch();
+    this.addDomainEvent(new OrderPaidEvent(
+      this.id, this._userId, this._eventId, null, 0, this._currency, 0, 0,
+      this._items.reduce((count, item) => count + item.quantity, 0),
+    ));
+    return Result.okVoid();
   }
 
   /**

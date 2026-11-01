@@ -45,6 +45,33 @@ function createPendingOrder(): OrderEntity {
 // ============================================
 
 describe('OrderEntity', () => {
+  describe('free fulfillment', () => {
+    it('fulfills a zero-total order once without inventing a payment', () => {
+      const props = createValidOrderProps();
+      const order = OrderEntity.create({ ...props, items: props.items.map((item) => ({ ...item, price: Money.zero('TND') })) }).value;
+      expect(order.fulfillFree().isSuccess).toBe(true);
+      expect(order.status).toBe(OrderStatus.PAID);
+      expect(order.totalAmount).toBe(0);
+      expect(order.paymentMethod).toBeNull();
+      expect(order.transactionId).toBeNull();
+      expect(order.canBeRefunded()).toBe(false);
+      expect(order.fulfillFree().isFailure).toBe(true);
+      expect(order.pullDomainEvents().filter((event) => event.eventName === 'OrderPaidEvent')).toHaveLength(1);
+    });
+
+    it('does not fulfill priced orders for free', () => {
+      const order = createPendingOrder();
+      expect(order.fulfillFree().isFailure).toBe(true);
+      expect(order.status).toBe(OrderStatus.PENDING);
+    });
+
+    it('does not fulfill expired free reservations', () => {
+      const props = createValidOrderProps();
+      const order = OrderEntity.create({ ...props, expirationMinutes: -1, items: props.items.map((item) => ({ ...item, price: Money.zero('TND') })) }).value;
+      expect(order.fulfillFree().isFailure).toBe(true);
+    });
+  });
+
   describe('create', () => {
     it('should create a valid order', () => {
       const result = OrderEntity.create(createValidOrderProps());

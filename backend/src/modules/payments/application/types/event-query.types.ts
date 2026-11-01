@@ -11,10 +11,12 @@ export interface PaymentEventInfo {
   readonly startDate: Date;
   readonly organizerId: string;
   readonly commissionRateOverride: number | null;
+  readonly freeTicketsEnabledOverride?: boolean | null;
 }
 
 export interface PaymentTicketTypeInfo {
   readonly id: string;
+  readonly eventId: string;
   readonly name: string;
   readonly price: number;
   readonly currency: string;

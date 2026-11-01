@@ -15,6 +15,7 @@ import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
 import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 describe('AddTicketTypeHandler', () => {
@@ -46,6 +47,7 @@ describe('AddTicketTypeHandler', () => {
       mockEventRepository,
       mockUserValidationService,
       mockEventPublisher,
+      new ConfigService(),
     );
 
     jest.spyOn(Logger.prototype, 'debug').mockImplementation();
@@ -97,6 +99,16 @@ describe('AddTicketTypeHandler', () => {
   };
 
   describe('Success Cases', () => {
+    it.each([true, false, null])('enforces the event free-ticket override %s', async (enabled) => {
+      const event = createDraftEvent();
+      event.setFreeTicketsEnabledOverride(enabled, userId);
+      mockEventRepository.findById.mockResolvedValue(event);
+      mockUserValidationService.isEventOwner.mockReturnValue(true);
+      const result = await handler.execute(createValidCommand({ price: 0 }));
+      expect(result.isSuccess).toBe(enabled === true);
+      expect(mockEventRepository.save).toHaveBeenCalledTimes(enabled === true ? 1 : 0);
+    });
+
     it('should add ticket type successfully', async () => {
       const event = createDraftEvent();
       const command = createValidCommand();

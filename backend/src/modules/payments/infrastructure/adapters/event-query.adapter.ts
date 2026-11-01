@@ -44,6 +44,7 @@ export class PaymentEventQueryAdapter implements PaymentEventQueryPort {
       startDate: event.dateRange.startDate,
       organizerId: event.organizerId,
       commissionRateOverride: event.commissionRateOverride,
+      freeTicketsEnabledOverride: event.freeTicketsEnabledOverride,
     };
   }
 
@@ -57,6 +58,7 @@ export class PaymentEventQueryAdapter implements PaymentEventQueryPort {
 
     return {
       id: ticketType.id,
+      eventId: ticketType.eventId,
       name: ticketType.name,
       price: ticketType.price.amount,
       currency: ticketType.price.currency,

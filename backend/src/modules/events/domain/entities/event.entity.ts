@@ -5,6 +5,7 @@ import { isUUID, generateUUID } from '@shared/domain/utils';
 import { EventCancelledEvent } from '../events/event-cancelled.event';
 import { EventCommissionOverrideUpdatedEvent } from '../events/event-commission-override-updated.event';
 import { EventCreatedEvent } from '../events/event-created.event';
+import { EventFreeTicketsOverrideUpdatedEvent } from '../events/event-free-tickets-override-updated.event';
 import { EventPublishedEvent } from '../events/event-published.event';
 import { EventUpdatedEvent } from '../events/event-updated.event';
 import { TicketTypeAddedEvent } from '../events/ticket-type-added.event';
@@ -52,6 +53,7 @@ interface EventProps {
   id: string;
   organizerId: string;
   commissionRateOverride?: number | null;
+  freeTicketsEnabledOverride?: boolean | null;
   title: string;
   description: string | null;
   category: EventCategory;
@@ -134,6 +136,7 @@ export class EventEntity extends BaseEntity<EventEntity> {
 
   private _organizerId: string;
   private _commissionRateOverride: number | null;
+  private _freeTicketsEnabledOverride: boolean | null;
   private _title: string;
   private _description: string | null;
   private _category: EventCategory;
@@ -158,6 +161,7 @@ export class EventEntity extends BaseEntity<EventEntity> {
     super(props.id, props.createdAt);
     this._organizerId = props.organizerId;
     this._commissionRateOverride = props.commissionRateOverride ?? null;
+    this._freeTicketsEnabledOverride = props.freeTicketsEnabledOverride ?? null;
     this._title = props.title;
     this._description = props.description;
     this._category = props.category;
@@ -186,6 +190,29 @@ export class EventEntity extends BaseEntity<EventEntity> {
 
   get commissionRateOverride(): number | null {
     return this._commissionRateOverride;
+  }
+
+  get freeTicketsEnabledOverride(): boolean | null {
+    return this._freeTicketsEnabledOverride;
+  }
+
+  setFreeTicketsEnabledOverride(
+    enabled: boolean | null,
+    adminId: string,
+  ): Result<void, InvalidEventException> {
+    if (enabled !== null && typeof enabled !== 'boolean') {
+      return Result.fail(new InvalidEventException('Free tickets override must be boolean or null'));
+    }
+    if (enabled === this._freeTicketsEnabledOverride) {
+      return Result.okVoid();
+    }
+    const previousValue = this._freeTicketsEnabledOverride;
+    this._freeTicketsEnabledOverride = enabled;
+    this.touch();
+    this.addDomainEvent(new EventFreeTicketsOverrideUpdatedEvent(
+      this.id, adminId, previousValue, enabled, this.updatedAt,
+    ));
+    return Result.okVoid();
   }
 
   setCommissionRateOverride(
@@ -275,11 +302,6 @@ export class EventEntity extends BaseEntity<EventEntity> {
    * Get total revenue for the event
    */
   getTotalRevenue(): TicketPriceVO {
-    if (this._revenueAmount <= 0) {
-      // Return minimal value as TicketPriceVO requires amount > 0
-      // Use getTotalRevenueAmount() for true zero value
-      return TicketPriceVO.create(0.001, this._revenueCurrency);
-    }
     return TicketPriceVO.create(this._revenueAmount, this._revenueCurrency);
   }
 
@@ -1020,6 +1042,7 @@ export class EventEntity extends BaseEntity<EventEntity> {
       id: this._id,
       organizerId: this._organizerId,
       commissionRateOverride: this._commissionRateOverride,
+      freeTicketsEnabledOverride: this._freeTicketsEnabledOverride,
       title: this._title,
       description: this._description,
       category: this._category,
@@ -1068,6 +1091,7 @@ export class EventEntity extends BaseEntity<EventEntity> {
     id: string;
     organizerId: string;
     commissionRateOverride: number | null;
+    freeTicketsEnabledOverride: boolean | null;
     title: string;
     description: string | null;
     category: string;
@@ -1100,6 +1124,7 @@ export class EventEntity extends BaseEntity<EventEntity> {
       id: this._id,
       organizerId: this._organizerId,
       commissionRateOverride: this._commissionRateOverride,
+      freeTicketsEnabledOverride: this._freeTicketsEnabledOverride,
       title: this._title,
       description: this._description,
       category: this._category,

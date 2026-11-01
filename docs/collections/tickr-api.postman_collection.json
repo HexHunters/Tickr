@@ -79,6 +79,32 @@
   ],
   "item": [
     {
+      "name": "Free Ticket Policy",
+      "description": "Admin event overrides take precedence over FREE_TICKETS_ENABLED. Enable a policy before creating a zero-price tier. Existing order creation supports free and mixed baskets; free responses have status PAID and requiresPayment false, with no gateway call.",
+      "item": [
+        {
+          "name": "Get Effective Event Policy",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/config/public?eventId={{eventId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Configure Free Tickets (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/events/{{eventId}}/free-tickets",
+            "body": { "mode": "raw", "raw": "{\n  \"enabled\": true\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Requires an ADMIN token. Set enabled to true (allow), false (block), or null (inherit the global default). Disabling prevents new free bookings but does not invalidate existing issued tickets."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Health & Status",
       "description": "Health check and status endpoints",
       "item": [

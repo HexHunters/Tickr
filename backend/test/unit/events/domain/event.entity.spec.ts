@@ -1038,12 +1038,11 @@ describe('EventEntity (Aggregate Root)', () => {
   describe('Query Methods', () => {
     describe('getTotalRevenue()', () => {
       it('should return minimal value for event with no sales', () => {
-        // TicketPriceVO requires amount > 0, so getTotalRevenue returns 0.001 minimum
         // Use getTotalRevenueAmount() for true zero value
         const event = EventEntity.create(createValidEventProps()).value;
         const revenue = event.getTotalRevenue();
 
-        expect(revenue.amount).toBe(0.001); // Minimum value due to TicketPriceVO constraint
+        expect(revenue.amount).toBe(0);
         expect(revenue.currency).toBe(Currency.TND);
       });
 
@@ -1484,6 +1483,18 @@ describe('EventEntity (Aggregate Root)', () => {
   });
 
   describe('setCommissionRateOverride()', () => {
+    it.each([true, false, null])('should preserve free ticket override %s and audit changes', (enabled) => {
+      const event = EventEntity.create(createValidEventProps()).value;
+      event.clearDomainEvents();
+      expect(event.setFreeTicketsEnabledOverride(enabled, event.organizerId).isSuccess).toBe(true);
+      expect(event.clone().freeTicketsEnabledOverride).toBe(enabled);
+      expect(event.toObject().freeTicketsEnabledOverride).toBe(enabled);
+      expect(event.domainEvents).toHaveLength(enabled === null ? 0 : 1);
+      event.clearDomainEvents();
+      event.setFreeTicketsEnabledOverride(enabled, event.organizerId);
+      expect(event.domainEvents).toHaveLength(0);
+    });
+
     it('should set and clear a valid event commission override', () => {
       const event = EventEntity.create(createValidEventProps()).value;
 

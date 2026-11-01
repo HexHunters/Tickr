@@ -2,11 +2,15 @@ import { registerAs } from '@nestjs/config';
 import * as Joi from 'joi';
 
 export const paymentFeatureFlagsSchema = {
+  FREE_TICKETS_ENABLED: Joi.string().valid('true', 'false').default('false'),
   PAYMENT_GATEWAYS_ENABLED: Joi.string().valid('true', 'false').default('false'),
   OFFLINE_PAYMENT_ENABLED: Joi.string().valid('true', 'false').default('false'),
 };
 
 export default registerAs('payments', () => ({
+  freeTickets: {
+    enabled: process.env.FREE_TICKETS_ENABLED === 'true',
+  },
   gateways: {
     enabled: process.env.PAYMENT_GATEWAYS_ENABLED === 'true',
   },

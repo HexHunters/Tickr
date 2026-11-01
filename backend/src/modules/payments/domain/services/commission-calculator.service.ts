@@ -44,7 +44,7 @@ export class CommissionCalculator {
 
     // Apply minimum commission
     const minimumFee = Money.create(this.minimumAmount, subtotal.currency);
-    const platformFee = rawFee.isGreaterThanOrEqual(minimumFee)
+    const platformFee = subtotal.isZero() || rawFee.isGreaterThanOrEqual(minimumFee)
       ? rawFee
       : minimumFee;
 
