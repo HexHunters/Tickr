@@ -20,7 +20,9 @@ import { PAYMENT_REPOSITORY } from '../application/ports/payment.repository.port
 import { REFUND_REPOSITORY } from '../application/ports/refund.repository.port';
 import { TICKET_RESERVATION_PORT } from '../application/ports/ticket-reservation.port';
 import { WEBHOOK_EVENT_STORE } from '../application/ports/webhook-event-store.port';
+import { GetAdminOrdersHandler } from '../application/queries/get-admin-orders/get-admin-orders.handler';
 import { GetOrderByIdHandler } from '../application/queries/get-order-by-id/get-order-by-id.handler';
+import { GetOrderStatusSummaryHandler } from '../application/queries/get-order-status-summary/get-order-status-summary.handler';
 import { GetOrdersByEventHandler } from '../application/queries/get-orders-by-event/get-orders-by-event.handler';
 import { GetOrdersByUserHandler } from '../application/queries/get-orders-by-user/get-orders-by-user.handler';
 
@@ -30,6 +32,7 @@ import { PaymeeAdapter } from './adapters/paymee.adapter';
 import { PaymentProviderFactoryAdapter } from './adapters/payment-provider-factory.adapter';
 import { StripeAdapter } from './adapters/stripe.adapter';
 import { TicketReservationAdapter } from './adapters/ticket-reservation.adapter';
+import { AdminOrdersController } from './controllers/admin-orders.controller';
 import { OrdersController } from './controllers/orders.controller';
 import { PublicConfigController } from './controllers/public-config.controller';
 import { WebhooksController } from './controllers/webhooks.controller';
@@ -70,6 +73,8 @@ const QueryHandlers = [
   GetOrderByIdHandler,
   GetOrdersByUserHandler,
   GetOrdersByEventHandler,
+  GetAdminOrdersHandler,
+  GetOrderStatusSummaryHandler,
 ];
 
 // ============================================
@@ -174,7 +179,12 @@ const webhookEventStoreProvider: Provider = {
     EventsModule,
     TicketsModule,
   ],
-  controllers: [OrdersController, PublicConfigController, WebhooksController],
+  controllers: [
+    OrdersController,
+    AdminOrdersController,
+    PublicConfigController,
+    WebhooksController,
+  ],
   providers: [
     // Mappers
     OrderMapper,

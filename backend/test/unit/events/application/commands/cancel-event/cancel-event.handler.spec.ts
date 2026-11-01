@@ -36,6 +36,7 @@ describe('CancelEventHandler', () => {
 
     mockUserValidationService = {
       isEventOwner: jest.fn(),
+      hasRole: jest.fn(),
     } as any;
 
     mockEventPublisher = {
@@ -328,6 +329,55 @@ describe('CancelEventHandler', () => {
 
       expect(result.isFailure).toBe(true);
       expect(result.error.type).toBe('ALREADY_STARTED');
+    });
+  });
+
+  describe('Back-office cancellation', () => {
+    const adminId = 'c3d4e5f6-a7b8-4c7d-8e1f-2a3b4c5d6e7f';
+
+    it('should let an administrator cancel an event they do not own', async () => {
+      const event = createPublishedEvent();
+      const command = new CancelEventCommand(eventId, adminId, validReason, true);
+
+      mockEventRepository.findById.mockResolvedValue(event);
+      mockUserValidationService.hasRole.mockResolvedValue(true);
+      mockEventRepository.save.mockResolvedValue(event);
+
+      const result = await handler.execute(command);
+
+      expect(result.isSuccess).toBe(true);
+      expect(mockUserValidationService.hasRole).toHaveBeenCalledWith(adminId, 'ADMIN');
+      expect(mockUserValidationService.isEventOwner).not.toHaveBeenCalled();
+      expect(event.status).toBe(EventStatus.CANCELLED);
+      expect(mockEventPublisher.publishFromAggregate).toHaveBeenCalledTimes(1);
+    });
+
+    it('should refuse a back-office cancellation from a non-admin', async () => {
+      const event = createPublishedEvent();
+      const command = new CancelEventCommand(eventId, adminId, validReason, true);
+
+      mockEventRepository.findById.mockResolvedValue(event);
+      mockUserValidationService.hasRole.mockResolvedValue(false);
+
+      const result = await handler.execute(command);
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error.type).toBe('NOT_OWNER');
+      expect(mockEventRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should still apply lifecycle rules to administrators', async () => {
+      const event = createDraftEvent();
+      event.cancel('First cancellation');
+      const command = new CancelEventCommand(eventId, adminId, validReason, true);
+
+      mockEventRepository.findById.mockResolvedValue(event);
+      mockUserValidationService.hasRole.mockResolvedValue(true);
+
+      const result = await handler.execute(command);
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error.type).toBe('ALREADY_CANCELLED');
     });
   });
 

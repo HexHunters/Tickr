@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 import { forwardApiResponse } from '@/lib/api/forward-response'
+import { isProxyPath } from '@/lib/api/proxy-routes'
 import { backendUrl } from '@/lib/api/server'
 import {
   isSameOrigin,
@@ -17,11 +18,7 @@ async function proxy(
 ) {
   const { path: segments } = await context.params
   const path = segments.join('/')
-  const allowed =
-    /^(events(?:\/[\w-]+)*|config\/public|notifications\/(?:preferences\/me|me|[\w-]+)|users\/me(?:\/password)?|orders(?:\/[\w-]+)*|tickets(?:\/[\w-]+)*)$/.test(
-      path,
-    )
-  if (!allowed)
+  if (!isProxyPath(path))
     return NextResponse.json(
       { message: 'Route indisponible.' },
       { status: 404 },

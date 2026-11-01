@@ -77,12 +77,17 @@ export class CancelEventHandler {
     }
 
     // ============================================
-    // 3. Validate ownership
+    // 3. Validate ownership (or administrator access)
     // ============================================
-    if (!this.userValidationService.isEventOwner(command.userId, event.organizerId)) {
+    const isAllowed = command.asAdmin
+      ? await this.userValidationService.hasRole(command.userId, 'ADMIN')
+      : this.userValidationService.isEventOwner(command.userId, event.organizerId);
+    if (!isAllowed) {
       return Result.fail({
         type: 'NOT_OWNER',
-        message: 'Only the event organizer can cancel this event',
+        message: command.asAdmin
+          ? 'Only an administrator can cancel this event from the back office'
+          : 'Only the event organizer can cancel this event',
       });
     }
 

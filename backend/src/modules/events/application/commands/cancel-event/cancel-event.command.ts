@@ -30,7 +30,7 @@ export type CancelEventResultCommand = void;
  *
  * Business Rules:
  * - Event must exist
- * - User must be the organizer
+ * - User must be the organizer, or an administrator when asAdmin is set
  * - Event can be cancelled if:
  *   - Status is DRAFT or PUBLISHED
  *   - Event has not started yet
@@ -47,6 +47,8 @@ export class CancelEventCommand extends BaseCommand {
     public readonly userId: string,
     /** Reason for cancellation */
     public readonly reason: string,
+    /** Back-office cancellation: the user must hold the ADMIN role */
+    public readonly asAdmin: boolean = false,
   ) {
     super();
     Object.freeze(this);
@@ -59,7 +61,8 @@ export class CancelEventCommand extends BaseCommand {
     eventId: string;
     userId: string;
     reason: string;
+    asAdmin?: boolean;
   }): CancelEventCommand {
-    return new CancelEventCommand(data.eventId, data.userId, data.reason);
+    return new CancelEventCommand(data.eventId, data.userId, data.reason, data.asAdmin);
   }
 }

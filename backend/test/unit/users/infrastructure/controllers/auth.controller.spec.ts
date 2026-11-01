@@ -360,6 +360,7 @@ describe('AuthController', () => {
 
     it('should return new access token for valid refresh token', async () => {
       mockJwtService.verifyRefreshToken.mockResolvedValue(refreshPayload);
+      mockUserRepository.findById.mockResolvedValue(mockUser);
 
       const result = await controller.refreshToken({ refreshToken: 'valid-refresh-token' });
 
@@ -373,6 +374,36 @@ describe('AuthController', () => {
         email: refreshPayload.email,
         role: refreshPayload.role,
       });
+    });
+
+    it('should sign the current role when an administrator changed it', async () => {
+      mockJwtService.verifyRefreshToken.mockResolvedValue(refreshPayload);
+      mockUserRepository.findById.mockResolvedValue({ ...mockUser, role: UserRole.ORGANIZER });
+
+      await controller.refreshToken({ refreshToken: 'valid-refresh-token' });
+
+      expect(mockJwtService.signAccessToken).toHaveBeenCalledWith({
+        userId: mockUUID,
+        email: mockUser.email,
+        role: UserRole.ORGANIZER,
+      });
+    });
+
+    it('should reject refresh for a suspended account', async () => {
+      mockJwtService.verifyRefreshToken.mockResolvedValue(refreshPayload);
+      mockUserRepository.findById.mockResolvedValue({ ...mockUser, isActive: false });
+
+      await expect(controller.refreshToken({ refreshToken: 'valid-refresh-token' }))
+        .rejects.toThrow(UnauthorizedException);
+      expect(mockJwtService.signAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('should reject refresh for a deleted account', async () => {
+      mockJwtService.verifyRefreshToken.mockResolvedValue(refreshPayload);
+      mockUserRepository.findById.mockResolvedValue(null);
+
+      await expect(controller.refreshToken({ refreshToken: 'valid-refresh-token' }))
+        .rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException for invalid refresh token', async () => {

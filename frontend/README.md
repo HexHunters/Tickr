@@ -77,7 +77,7 @@ Ouvrir `http://localhost:3001`. Le backend utilise le port 3000, PostgreSQL le p
 55433 et Redis le port 56380. `API_INTERNAL_URL` peut remplacer l’origine backend
 côté serveur (défaut : `http://localhost:3000`).
 
-Le seed applique les migrations, puis insère 3 comptes vérifiés, 7 événements publiés et un brouillon privé,
+Le seed applique les migrations, puis insère 4 comptes vérifiés, 7 événements publiés et un brouillon privé,
 leurs tarifs, 6 commandes et 6 billets (confirmé, réservé et utilisé) dans une
 transaction. Il peut être relancé sans doublon et conserve les données déjà
 présentes, notamment les mots de passe modifiés et les échéances. Les dates des
@@ -87,7 +87,8 @@ Le démarrage démo utilise `NODE_ENV=test` pour lire le schéma migré sans syn
 TypeORM automatique. Les horodatages sont traités en UTC et affichés en heure de Tunis.
 
 Compte participant : `participant@demo.tickr.local` ; équipier à l’entrée sans billets
-ni messages : `other@demo.tickr.local` ; organisateur : `organizer@demo.tickr.local`.
+ni messages : `other@demo.tickr.local` ; organisateur : `organizer@demo.tickr.local` ;
+administrateur (espace `/admin`) : `admin@demo.tickr.local`.
 Mot de passe local commun : `TickrDemo2026!`. Ces comptes n’existent que dans le seed
 local, jamais dans une migration de déploiement. Les QR ne correspondent qu’à cette
 base de test et à des événements fictifs.

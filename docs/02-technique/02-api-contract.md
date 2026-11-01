@@ -967,6 +967,89 @@ inconnu pour l'événement est `404`, et un opérateur non autorisé reçoit `40
 
 ---
 
+## 🛡️ Administration (back-office)
+
+Toutes les routes `/admin/*` exigent un JWT `ADMIN`. Elles vivent dans le module qui possède la
+donnée (users, events, payments). Un administrateur ne peut ni changer son propre rôle ni suspendre
+son propre compte (`403`, code `SELF_MODIFICATION`). Limite de débit élargie : 10 req/s, 300 req/min.
+
+### GET /admin/users/stats
+
+**Response 200:** `{ total, active, inactive, byRole: { ADMIN, ORGANIZER, PARTICIPANT } }`
+
+### GET /admin/users
+
+**Query:** `search` (e-mail, prénom, nom), `role`, `status` (`active` | `inactive`), `page`, `limit` (≤ 100)  
+**Response 200:** profils paginés (`data`, `total`, `page`, `limit`, `totalPages`).
+
+### GET /admin/users/:id
+
+**Response 200:** profil complet (`isActive`, `lastLoginAt`, `createdAt`…).
+
+### PATCH /admin/users/:id/role
+
+```json
+{ "role": "ORGANIZER" }
+```
+
+**Response 200:** profil mis à jour. Le nouveau rôle prend effet au prochain renouvellement de
+session (`/auth/refresh-token` relit désormais le compte).
+
+### PATCH /admin/users/:id/status
+
+```json
+{ "isActive": false }
+```
+
+**Response 200:** profil mis à jour. Un compte suspendu ne peut plus se connecter ni renouveler sa
+session ; son jeton d'accès en cours expire après sa durée de vie (15 min). Opération idempotente.
+
+### GET /admin/events/stats
+
+**Response 200:** `{ DRAFT, PUBLISHED, CANCELLED, COMPLETED }`
+
+### GET /admin/events
+
+**Query:** `search` (titre), `status`, `category`, `organizerId`, `page`, `limit`  
+**Response 200:** événements de tous statuts avec organisateur (`id`, `name`, `email`), billets
+vendus, capacité, ventes, `commissionRateOverride`, `freeTicketsEnabledOverride` et
+`cancellationReason`.
+
+### POST /admin/events/:id/cancel
+
+```json
+{ "reason": "Contenu non conforme" }
+```
+
+**Description:** annule n'importe quel événement `DRAFT` ou `PUBLISHED` non commencé. Mêmes règles
+de cycle de vie que l'annulation organisateur ; `EventCancelledEvent` déclenche les remboursements.  
+**Erreurs:** `400` déjà annulé/terminé/commencé, `404` absent.
+
+La commission et la politique de billets gratuits par événement restent sur
+`PATCH /events/:id/commission` et `PATCH /events/:id/free-tickets`.
+
+### GET /admin/orders/stats
+
+**Response 200:** une entrée par statut : `{ status, count, totalAmount, platformFeeAmount }`.
+
+### GET /admin/orders
+
+**Query:** `status`, `eventId`, `userId`, `page`, `limit`  
+**Response 200:** commandes paginées avec `eventTitle`, acheteur (`buyerName`, `buyerEmail` issus du
+titulaire saisi au paiement), `ticketCount`, montants et dates.
+
+### POST /admin/orders/:id/refund
+
+```json
+{ "reason": "Geste commercial" }
+```
+
+**Description:** rembourse une commande `PAID` quel que soit l'acheteur. Même politique que le
+remboursement client : commission non remboursée, billets annulés, et aucune commande marquée
+remboursée si la passerelle refuse ou est désactivée (`403 PAYMENT_METHOD_DISABLED`).
+
+---
+
 ## 📤 Uploads
 
 ### POST /upload/image

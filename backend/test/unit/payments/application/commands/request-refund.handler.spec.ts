@@ -74,6 +74,8 @@ describe('RequestRefundHandler', () => {
       findExpired: jest.fn(),
       countByUserIdSince: jest.fn(),
       findByGatewayPaymentRef: jest.fn(),
+      findAll: jest.fn(),
+      getStatusSummary: jest.fn(),
     };
 
     mockRefundRepo = {
@@ -262,6 +264,32 @@ describe('RequestRefundHandler', () => {
 
       expect(result.isFailure).toBe(true);
       expect(result.error!.type).toBe('ORDER_NOT_FOUND');
+    });
+
+    it("hides another buyer's order from a regular refund request", async () => {
+      mockOrderRepo.findById.mockResolvedValue(createMockOrder(OrderStatus.PAID));
+
+      const result = await handler.execute(new RequestRefundCommand(
+        validOrderId, '550e8400-e29b-41d4-a716-446655440099', 'Changed my mind',
+      ));
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error!.type).toBe('ORDER_NOT_FOUND');
+      expect(mockProvider.refund).not.toHaveBeenCalled();
+    });
+
+    it("lets the back office refund another buyer's order", async () => {
+      mockOrderRepo.findById.mockResolvedValue(createMockOrder(OrderStatus.PAID));
+
+      const result = await handler.execute(new RequestRefundCommand(
+        validOrderId, '550e8400-e29b-41d4-a716-446655440099', 'Support goodwill', true,
+      ));
+
+      expect(result.isSuccess).toBe(true);
+      expect(mockProvider.refund).toHaveBeenCalledWith('pi_123', Money.create(102, 'TND'));
+      expect(mockOrderRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: OrderStatus.REFUNDED }),
+      );
     });
 
     it('should fail if order is not in PAID status', async () => {
