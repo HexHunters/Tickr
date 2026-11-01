@@ -78,6 +78,8 @@ describe('OrdersController', () => {
         total: 104,
         currency: 'TND',
         expiresAt: new Date(),
+        status: 'PENDING',
+        requiresPayment: true,
       };
       mockCreateOrderHandler.execute.mockResolvedValue(Result.ok(orderResult));
 

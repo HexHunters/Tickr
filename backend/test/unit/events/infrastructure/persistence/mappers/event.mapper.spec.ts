@@ -31,6 +31,13 @@ describe('EventMapper', () => {
     mapper = new EventMapper(ticketTypeMapper);
   });
 
+  it.each([true, false, null])('round-trips free-ticket override %s', (enabled) => {
+    const raw = createOrmEntity({ freeTicketsEnabledOverride: enabled });
+    const domain = mapper.toDomain(raw);
+    expect(domain.freeTicketsEnabledOverride).toBe(enabled);
+    expect(mapper.toPersistence(domain).freeTicketsEnabledOverride).toBe(enabled);
+  });
+
   // Helper to create a test ORM entity
   const createOrmEntity = (overrides: Partial<EventOrmEntity> = {}): EventOrmEntity => {
     const entity = new EventOrmEntity();

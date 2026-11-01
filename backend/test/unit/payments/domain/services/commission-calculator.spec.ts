@@ -72,8 +72,8 @@ describe('CommissionCalculator', () => {
       expect(result.total.amount).toBe(208);
     });
 
-    it('should handle zero subtotal', () => {
-      const calc = new CommissionCalculator(0.04, 0);
+    it.each([0, 0.5])('should waive minimum %s for zero subtotal', (minimum) => {
+      const calc = new CommissionCalculator(0.04, minimum);
       const subtotal = Money.create(0, 'TND');
 
       const result = calc.calculate(subtotal);

@@ -52,22 +52,10 @@ export class CreateOrderHandler {
   ): Promise<Result<CreateOrderResult, CreateOrderError>> {
     this.logger.debug(`Creating order for user ${command.userId}, event ${command.eventId}`);
 
-    // Current order creation supports gateways only. The offline policy flag must
-    // not expose reservations before the atomic offline flow is implemented.
-    if (this.configService.get<boolean>('payments.gateways.enabled', false) !== true) {
-      return Result.fail({
-        type: 'PAYMENT_METHOD_DISABLED',
-        message: PAYMENTS_DISABLED_MESSAGE,
-      });
-    }
-
-    // 1. Fraud check: rate limit
-    const withinRateLimit = await this.fraudDetection.checkRateLimit(command.userId);
-    if (!withinRateLimit) {
-      return Result.fail({
-        type: 'RATE_LIMITED',
-        message: 'Too many orders. Please wait before placing another order.',
-      });
+    if (command.items.length === 0 || command.items.length > OrderEntity.MAX_ITEMS ||
+        new Set(command.items.map((item) => item.ticketTypeId)).size !== command.items.length ||
+        command.items.some((item) => !Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.holders.length !== item.quantity)) {
+      return Result.fail({ type: 'VALIDATION_ERROR', message: 'Use distinct ticket types with positive quantities matching holder counts' });
     }
 
     // 2. Validate event exists and is published
@@ -91,7 +79,7 @@ export class CreateOrderHandler {
 
     for (const item of command.items) {
       const ticketType = await this.eventQuery.getTicketType(item.ticketTypeId);
-      if (!ticketType) {
+      if (!ticketType || ticketType.eventId !== event.id) {
         return Result.fail({
           type: 'TICKET_TYPE_NOT_FOUND',
           message: `Ticket type ${item.ticketTypeId} not found`,
@@ -105,17 +93,9 @@ export class CreateOrderHandler {
         });
       }
 
-      // Fraud check: ticket limit per event
-      const withinTicketLimit = await this.fraudDetection.checkTicketLimit(
-        command.userId,
-        command.eventId,
-        item.quantity,
-      );
-      if (!withinTicketLimit) {
-        return Result.fail({
-          type: 'TICKET_LIMIT_EXCEEDED',
-          message: 'Maximum tickets per event exceeded',
-        });
+      if (!Number.isFinite(ticketType.price) || ticketType.price < 0 ||
+          (orderItems.length > 0 && orderItems[0].price.currency !== ticketType.currency)) {
+        return Result.fail({ type: 'VALIDATION_ERROR', message: 'Order prices must be non-negative and use one currency' });
       }
 
       orderItems.push({
@@ -126,6 +106,23 @@ export class CreateOrderHandler {
       });
 
       allHolders.push({ ticketTypeId: item.ticketTypeId, holders: item.holders });
+    }
+
+    const freeTicketsEnabled = event.freeTicketsEnabledOverride ??
+      (this.configService.get<boolean>('payments.freeTickets.enabled', false) === true);
+    if (orderItems.some((item) => item.price.amount === 0) && !freeTicketsEnabled) {
+      return Result.fail({ type: 'FREE_TICKETS_DISABLED', message: 'Free tickets are disabled for this event' });
+    }
+    const isFree = orderItems.every((item) => item.price.amount === 0);
+    if (!isFree && this.configService.get<boolean>('payments.gateways.enabled', false) !== true) {
+      return Result.fail({ type: 'PAYMENT_METHOD_DISABLED', message: PAYMENTS_DISABLED_MESSAGE });
+    }
+    if (!(await this.fraudDetection.checkRateLimit(command.userId))) {
+      return Result.fail({ type: 'RATE_LIMITED', message: 'Too many orders. Please wait before placing another order.' });
+    }
+    const quantity = command.items.reduce((count, item) => count + item.quantity, 0);
+    if (!(await this.fraudDetection.checkTicketLimit(command.userId, command.eventId, quantity))) {
+      return Result.fail({ type: 'TICKET_LIMIT_EXCEEDED', message: 'Maximum tickets per event exceeded' });
     }
 
     // 4. Create the order aggregate
@@ -189,10 +186,24 @@ export class CreateOrderHandler {
       await this.orderRepository.save(order);
     } catch (error) {
       this.logger.error(`Failed to save order: ${error}`);
+      await this.cancelReservations(allTicketIds);
       return Result.fail({
         type: 'PERSISTENCE_ERROR',
         message: 'Failed to create order. Please try again.',
       });
+    }
+
+    if (isFree) {
+      try {
+        await this.ticketReservation.confirmTickets(allTicketIds, order.id);
+        const fulfilled = order.fulfillFree();
+        if (fulfilled.isFailure) throw new Error(fulfilled.error.message);
+        await this.orderRepository.save(order);
+      } catch (error) {
+        this.logger.error(`Free order ${order.id} fulfillment failed: ${error}`);
+        await this.cancelReservations(allTicketIds);
+        return Result.fail({ type: 'PERSISTENCE_ERROR', message: 'Free booking could not be completed; do not use its tickets' });
+      }
     }
 
     // 7. Publish domain events
@@ -208,6 +219,16 @@ export class CreateOrderHandler {
       total: order.totalAmount,
       currency: order.currency,
       expiresAt: order.expiresAt,
+      status: order.status,
+      requiresPayment: !isFree,
     });
+  }
+
+  private async cancelReservations(ticketIds: string[]): Promise<void> {
+    try {
+      await this.ticketReservation.cancelReservations(ticketIds);
+    } catch (error) {
+      this.logger.error(`Reservation compensation failed for ${ticketIds.join(', ')}: ${error}`);
+    }
   }
 }

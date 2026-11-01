@@ -118,6 +118,7 @@ function createMockEventQuery(): PaymentEventQueryPort {
     }),
     getTicketType: jest.fn().mockResolvedValue({
       id: TEST_TICKET_TYPE_ID,
+      eventId: TEST_EVENT_ID,
       name: 'Standard',
       price: 50,
       currency: 'TND',

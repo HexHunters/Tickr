@@ -19,6 +19,7 @@ import {
   CompleteEventHandler,
   UploadEventImageHandler,
   SetEventCommissionOverrideHandler,
+  SetEventFreeTicketsOverrideHandler,
   GetEventByIdHandler,
   GetPublishedEventsHandler,
   GetEventsByCategoryHandler,
@@ -309,6 +310,7 @@ describe.skip('Events Module - Integration Tests', () => {
         CompleteEventHandler,
         UploadEventImageHandler,
         SetEventCommissionOverrideHandler,
+        SetEventFreeTicketsOverrideHandler,
 
         // Query Handlers
         {

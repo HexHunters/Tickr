@@ -5,7 +5,7 @@ export class OrderPaidEvent extends DomainEvent {
     public readonly orderId: string,
     public readonly userId: string,
     public readonly eventId: string,
-    public readonly transactionId: string,
+    public readonly transactionId: string | null,
     public readonly totalAmount: number,
     public readonly currency: string,
     public readonly platformFeeAmount: number,

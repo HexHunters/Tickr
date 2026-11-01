@@ -14,6 +14,48 @@
 
 ---
 
+## Free-ticket handoff (2026-11-01)
+
+Backend implementation is available; frontend and admin-page implementation are
+deferred to the frontend owner. This section supersedes older positive-price-only
+assumptions. See the [API contract](../02-technique/02-api-contract.md).
+
+| Surface | Required frontend change |
+| --- | --- |
+| API schemas | Add `globalFreeTicketsEnabled`, nullable `freeTicketsEnabledOverride`, and `effectiveFreeTicketsEnabled` to public config. Parse `POST /orders` with its own response schema: `orderId`, `subtotal`, `platformFee`, `total`, `currency`, `expiresAt`, `status`, `requiresPayment`. It is not the order-details schema (`id`). |
+| Organizer ticket form | Refresh `GET /config/public?eventId=...`; offer a zero price only when effective permission is true. Otherwise keep a positive minimum. Paid VIP plus free basic tiers is supported. |
+| Discovery/detail | Display `Gratuit` for a known zero-priced tier. A zero minimum does not mean every tier is free; missing ticket data must not be presented as free admission. |
+| Booking | Do not require `availablePaymentMethods.length > 0` for wholly free baskets when policy permits. Keep availability, sales-window, authentication, and quantity checks. Submit the usual `POST /orders` request once. Never submit a client price or call ticket confirmation directly. |
+| Completion | On `requiresPayment: false` and `status: PAID`, refresh orders/tickets and navigate to tickets or the order confirmation. No gateway, payment spinner, or reservation-expiry countdown. Use `Gratuit`/`Inscription confirmée`, not a claim that money was charged. |
+| Mixed basket | Any positive-price line requires the regular payment flow and gateways. No tickets in that order, including free ones, are admitted before successful payment. |
+| Errors/retry | Handle `FREE_TICKETS_DISABLED` by refreshing event config. Disable duplicate submissions; do not automatically retry a failed/timed-out creation. Reload order/ticket state first. |
+| Future admin page | `PATCH /events/:id/free-tickets` with `{ enabled: true }`, `{ enabled: false }`, or `{ enabled: null }`; display Allow / Block / Inherit. Admin-only; the server enforces authority. Invalidate event config after changing it. |
+
+Configuration: `FREE_TICKETS_ENABLED=false` is the deployment default. A nullable
+database event override wins, including explicit false. The global default needs
+a backend restart; individual overrides take effect on subsequent uncached reads
+without redeployment. Turning permission off blocks new free bookings, not existing
+issued tickets. Keep caches short and refresh on entry to booking.
+
+Limits: keep the existing configured 5 order attempts/account/hour and 10 tickets
+per account/event counter defaults for both free and paid lines. The complete
+basket is checked together. These Redis counters are currently best-effort,
+expire, and fail open on cache failure; they are not lifetime quotas or identity
+verification. Do not advertise a stricter guarantee in the UI.
+
+Acceptance checks for the frontend owner: all-free booking with gateways off;
+free basic plus paid VIP; explicit false overriding global true; inherited policy;
+sold-out/sales-closed free tiers; policy changes while a page is open; double-click
+and timeout handling; no gateway call for a free order; cancellation without a
+financial refund. Existing backend ticket check-in still requires issued tickets.
+
+Operational caveat: free fulfillment uses the existing reservation/confirmation
+ports and compensates on failure. It is not one cross-module transaction and has
+no durable retry/outbox; failure recovery and duplicate-create replay remain
+hardening work. Do not show success based on a zero price alone.
+
+---
+
 ## Contents
 
 |        | Section                                                                                  |

@@ -48,8 +48,12 @@ describe('TicketPrice Value Object', () => {
   });
 
   describe('validation', () => {
-    it('should throw for zero price', () => {
-      expect(() => TicketPriceVO.create(0)).toThrow(InvalidPriceException);
+    it('should accept zero price', () => {
+      expect(TicketPriceVO.create(0).amount).toBe(0);
+    });
+
+    it.each([-0.0001, Infinity, -Infinity])('should reject invalid price %s before rounding', (amount) => {
+      expect(() => TicketPriceVO.create(amount)).toThrow(InvalidPriceException);
     });
 
     it('should throw for negative price', () => {

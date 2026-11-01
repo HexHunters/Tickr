@@ -91,7 +91,7 @@ const PUBLISHED_EVENT = {
   organizerId: '550e8400-e29b-41d4-a716-446655440003',
   commissionRateOverride: null,
 };
-const STANDARD_TICKET = { id: TICKET_TYPE_ID, name: 'Standard', price: 50, currency: 'TND', available: 100 };
+const STANDARD_TICKET = { id: TICKET_TYPE_ID, eventId: EVENT_ID, name: 'Standard', price: 50, currency: 'TND', available: 100 };
 
 // Every provider gets credentials when gateways are on, so listing all three methods never
 // relies on a provider that has none.
@@ -302,6 +302,38 @@ describe('Payment launch HTTP contract', () => {
   afterAll(() => { fetchSpy.mockRestore(); });
 
   beforeEach(() => { jest.clearAllMocks(); });
+
+  describe('free booking HTTP contract', () => {
+    const ports = createPorts();
+    let app: INestApplication;
+
+    beforeAll(async () => {
+      ports.eventQuery.getEventById.mockResolvedValue({ ...PUBLISHED_EVENT, freeTicketsEnabledOverride: true });
+      ports.eventQuery.getTicketType.mockResolvedValue({ ...STANDARD_TICKET, price: 0 });
+      app = await bootPaymentApi(false, ports, realOrderHandlers(ports));
+    });
+
+    afterAll(async () => { await app?.close(); });
+
+    it('fulfills free admission with gateways off and exposes the event override', async () => {
+      const server = app.getHttpServer();
+      const config = await request(server).get('/api/config/public').query({ eventId: EVENT_ID }).expect(200);
+      expect(config.body).toMatchObject({ availablePaymentMethods: [], globalFreeTicketsEnabled: false,
+        freeTicketsEnabledOverride: true, effectiveFreeTicketsEnabled: true });
+      const response = await request(server).post('/api/orders').send(CREATE_ORDER_BODY).expect(201);
+      expect(response.body).toMatchObject({ status: 'PAID', total: 0, platformFee: 0, requiresPayment: false });
+      expect(ports.tickets.confirmTickets).toHaveBeenCalledWith(['ticket-1', 'ticket-2'], response.body.orderId);
+      expect(ports.payments.save).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('rejects new free bookings when an admin disables the override', async () => {
+      ports.eventQuery.getEventById.mockResolvedValueOnce({ ...PUBLISHED_EVENT, freeTicketsEnabledOverride: false });
+      const response = await request(app.getHttpServer()).post('/api/orders').send(CREATE_ORDER_BODY).expect(403);
+      expect(response.body.code).toBe('FREE_TICKETS_DISABLED');
+      expect(ports.tickets.reserveTickets).not.toHaveBeenCalled();
+    });
+  });
 
   describe('gateways disabled, order handlers stubbed', () => {
     const ports = createPorts();
@@ -552,6 +584,7 @@ describe('Payment launch HTTP contract', () => {
 
     it('keeps a rate-limited order apart from PAYMENT_METHOD_DISABLED', async () => {
       ports.fraud.checkRateLimit.mockResolvedValueOnce(false);
+      ports.eventQuery.getEventById.mockResolvedValueOnce(PUBLISHED_EVENT);
 
       const response = await request(server).post('/api/orders').send(CREATE_ORDER_BODY);
 
@@ -559,7 +592,7 @@ describe('Payment launch HTTP contract', () => {
       expect(response.body.code).not.toBe(PAYMENT_METHOD_DISABLED);
       // The rejection comes from the signed-in user's rate limit check, not from an earlier guard.
       expect(ports.fraud.checkRateLimit).toHaveBeenCalledWith(USER_ID);
-      expect(ports.eventQuery.getEventById).not.toHaveBeenCalled();
+      expect(ports.eventQuery.getEventById).toHaveBeenCalledWith(EVENT_ID);
     });
   });
 });

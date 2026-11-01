@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiTags,
+  ApiProperty,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
@@ -42,6 +43,25 @@ import {
   PaginationQueryDto,
 } from './dtos/request.dto';
 
+class CreateOrderResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  orderId!: string;
+  @ApiProperty({ example: 0 })
+  subtotal!: number;
+  @ApiProperty({ example: 0 })
+  platformFee!: number;
+  @ApiProperty({ example: 0 })
+  total!: number;
+  @ApiProperty({ example: 'TND' })
+  currency!: string;
+  @ApiProperty({ type: String, format: 'date-time', description: 'Reservation deadline; does not expire a PAID order' })
+  expiresAt!: Date;
+  @ApiProperty({ enum: ['PENDING', 'PAID'], description: 'PAID also denotes fulfilled free admission, without a financial payment' })
+  status!: string;
+  @ApiProperty({ description: 'False for fulfilled free admission; never call /pay for that order', example: false })
+  requiresPayment!: boolean;
+}
+
 @ApiTags('Orders')
 @ApiBearerAuth()
 @ApiResponse({ status: 401, description: 'Unauthorized — missing or invalid JWT token' })
@@ -59,8 +79,8 @@ export class OrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new order' })
-  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED (no available payment method)' })
-  @ApiResponse({ status: 201, description: 'Order created successfully' })
+  @ApiResponse({ status: 403, description: 'PAYMENT_METHOD_DISABLED or FREE_TICKETS_DISABLED' })
+  @ApiResponse({ status: 201, description: 'Paid basket reserved or free admission fulfilled', type: CreateOrderResponseDto })
   @ApiResponse({ status: 400, description: 'Validation error or business rule violation' })
   @ApiResponse({ status: 429, description: 'Rate limited' })
   async createOrder(
@@ -91,6 +111,7 @@ export class OrdersController {
         case 'TICKET_TYPE_NOT_FOUND':
           throw new NotFoundException(error.message);
         case 'PAYMENT_METHOD_DISABLED':
+        case 'FREE_TICKETS_DISABLED':
           throw new ForbiddenException({ code: error.type, message: error.message });
         case 'RATE_LIMITED':
           throw new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);

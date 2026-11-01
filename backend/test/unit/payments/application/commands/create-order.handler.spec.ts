@@ -50,6 +50,7 @@ describe('CreateOrderHandler', () => {
       }),
       getTicketType: jest.fn().mockResolvedValue({
         id: validTicketTypeId,
+        eventId: validEventId,
         name: 'Standard',
         price: 50,
         currency: 'TND',
@@ -136,8 +137,8 @@ describe('CreateOrderHandler', () => {
       expect(result.error.message).toBe(PAYMENTS_DISABLED_MESSAGE);
       expect(mockFraudDetection.checkRateLimit).not.toHaveBeenCalled();
       expect(mockFraudDetection.checkTicketLimit).not.toHaveBeenCalled();
-      expect(mockEventQuery.getEventById).not.toHaveBeenCalled();
-      expect(mockEventQuery.getTicketType).not.toHaveBeenCalled();
+      expect(mockEventQuery.getEventById).toHaveBeenCalledTimes(1);
+      expect(mockEventQuery.getTicketType).toHaveBeenCalledTimes(1);
       expect(mockOrderRepo.save).not.toHaveBeenCalled();
       expect(mockTicketReservation.reserveTickets).not.toHaveBeenCalled();
       expect(mockTicketReservation.confirmTickets).not.toHaveBeenCalled();
@@ -167,6 +168,109 @@ describe('CreateOrderHandler', () => {
   });
 
   it('should create order successfully', async () => {
+    const result = await handler.execute(createValidCommand());
+
+    expect(result.isSuccess).toBe(true);
+    expect(result.value.requiresPayment).toBe(true);
+    expect(result.value.status).toBe('PENDING');
+  });
+
+  describe('free and mixed bookings', () => {
+    function configure(globalEnabled: boolean, override: boolean | null, gatewaysEnabled = false) {
+      handler = new CreateOrderHandler(mockOrderRepo, mockEventQuery, mockFraudDetection,
+        mockTicketReservation, mockEventPublisher,
+        new ConfigService({ payments: { freeTickets: { enabled: globalEnabled }, gateways: { enabled: gatewaysEnabled } } }));
+      mockEventQuery.getEventById.mockResolvedValue({
+        id: validEventId, title: 'Mixed event', status: 'PUBLISHED', startDate: new Date(),
+        organizerId: validUserId, commissionRateOverride: null, freeTicketsEnabledOverride: override,
+      });
+      mockEventQuery.getTicketType.mockResolvedValue({
+        id: validTicketTypeId, eventId: validEventId, name: 'Basic', price: 0, currency: 'TND', available: 20,
+      });
+    }
+
+    it.each([[false, true, true], [true, false, false], [true, null, true], [false, null, false]])(
+      'resolves global=%s override=%s to allowed=%s', async (globalEnabled, override, allowed) => {
+        configure(globalEnabled === true, override, false);
+        const result = await handler.execute(createValidCommand());
+        expect(result.isSuccess).toBe(allowed);
+        if (allowed) {
+          expect(result.value).toMatchObject({ total: 0, platformFee: 0, status: 'PAID', requiresPayment: false });
+          expect(mockTicketReservation.confirmTickets).toHaveBeenCalledWith(['t1', 't2'], result.value.orderId);
+          const order = mockOrderRepo.save.mock.calls.at(-1)?.[0];
+          expect(order?.paymentMethod).toBeNull();
+          expect(order?.transactionId).toBeNull();
+          expect(order?.canBeRefunded()).toBe(false);
+          expect(mockEventPublisher.publishMany).toHaveBeenCalledTimes(1);
+        } else {
+          expect(result.error.type).toBe('FREE_TICKETS_DISABLED');
+          expect(mockTicketReservation.reserveTickets).not.toHaveBeenCalled();
+        }
+      },
+    );
+
+    it.each([true, false])('mixed basket requires a gateway (enabled=%s)', async (enabled) => {
+      configure(true, null, enabled);
+      const command = createValidCommand();
+      const vipId = '550e8400-e29b-41d4-a716-446655440003';
+      mockEventQuery.getTicketType.mockResolvedValueOnce({
+        id: validTicketTypeId, eventId: validEventId, name: 'Basic', price: 0, currency: 'TND', available: 20,
+      }).mockResolvedValueOnce({
+        id: vipId, eventId: validEventId, name: 'VIP', price: 50, currency: 'TND', available: 20,
+      });
+      const mixed = new CreateOrderCommand(command.userId, command.eventId,
+        [...command.items, { ...command.items[0], ticketTypeId: vipId }], command.metadata);
+      const result = await handler.execute(mixed);
+      expect(result.isSuccess).toBe(enabled);
+      expect(mockTicketReservation.confirmTickets).not.toHaveBeenCalled();
+      if (enabled) {
+        expect(result.value).toMatchObject({ subtotal: 100, status: 'PENDING', requiresPayment: true });
+        expect(mockFraudDetection.checkTicketLimit).toHaveBeenCalledTimes(1);
+        expect(mockFraudDetection.checkTicketLimit).toHaveBeenCalledWith(validUserId, validEventId, 4);
+      } else {
+        expect(result.error.type).toBe('PAYMENT_METHOD_DISABLED');
+        expect(mockTicketReservation.reserveTickets).not.toHaveBeenCalled();
+      }
+    });
+
+    it('compensates and reports failure when free confirmation fails', async () => {
+      configure(true, null);
+      mockTicketReservation.confirmTickets.mockRejectedValue(new Error('database unavailable'));
+      const result = await handler.execute(createValidCommand());
+      expect(result.error.type).toBe('PERSISTENCE_ERROR');
+      expect(mockTicketReservation.cancelReservations).toHaveBeenCalledWith(['t1', 't2']);
+      expect(mockEventPublisher.publishMany).not.toHaveBeenCalled();
+    });
+
+    it('compensates when the fulfilled order cannot be saved', async () => {
+      configure(true, null);
+      mockOrderRepo.save.mockResolvedValueOnce(expect.anything()).mockRejectedValueOnce(new Error('save failed'));
+      const result = await handler.execute(createValidCommand());
+      expect(result.error.type).toBe('PERSISTENCE_ERROR');
+      expect(mockTicketReservation.cancelReservations).toHaveBeenCalledWith(['t1', 't2']);
+    });
+
+    it('rejects ticket types belonging to a different event', async () => {
+      configure(true, null);
+      mockEventQuery.getTicketType.mockResolvedValue({
+        id: validTicketTypeId, eventId: validUserId, name: 'Wrong event', price: 0, currency: 'TND', available: 20,
+      });
+      expect((await handler.execute(createValidCommand())).error.type).toBe('TICKET_TYPE_NOT_FOUND');
+      expect(mockTicketReservation.reserveTickets).not.toHaveBeenCalled();
+    });
+
+    it('rejects duplicate tiers and holder/quantity mismatches before reserving', async () => {
+      configure(true, null);
+      const command = createValidCommand();
+      for (const items of [[...command.items, ...command.items], [{ ...command.items[0], quantity: 1 }]]) {
+        const invalid = new CreateOrderCommand(command.userId, command.eventId, items, command.metadata);
+        expect((await handler.execute(invalid)).error.type).toBe('VALIDATION_ERROR');
+      }
+      expect(mockTicketReservation.reserveTickets).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should calculate paid order totals', async () => {
     const result = await handler.execute(createValidCommand());
 
     expect(result.isSuccess).toBe(true);
@@ -291,6 +395,7 @@ describe('CreateOrderHandler', () => {
   it('should fail when insufficient availability', async () => {
     mockEventQuery.getTicketType.mockResolvedValue({
       id: validTicketTypeId,
+      eventId: validEventId,
       name: 'Standard',
       price: 50,
       currency: 'TND',

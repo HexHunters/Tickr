@@ -68,6 +68,9 @@ export class EventOrmEntity {
   })
   commissionRateOverride!: number | null;
 
+  @Column({ name: 'free_tickets_enabled_override', type: 'boolean', nullable: true })
+  freeTicketsEnabledOverride!: boolean | null;
+
   // ============================================
   // Location Fields (Embedded)
   // ============================================

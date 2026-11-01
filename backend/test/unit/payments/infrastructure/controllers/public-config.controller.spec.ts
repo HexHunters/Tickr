@@ -38,6 +38,9 @@ describe('PublicConfigController', () => {
 
   it('should return the global commission without an event', async () => {
     await expect(controller.getPublicConfig({})).resolves.toEqual({
+      globalFreeTicketsEnabled: false,
+      freeTicketsEnabledOverride: null,
+      effectiveFreeTicketsEnabled: false,
       availablePaymentMethods: [PaymentMethod.STRIPE, PaymentMethod.KONNECT, PaymentMethod.PAYMEE],
       globalCommissionRate: 0.06,
       commissionRateOverride: null,
@@ -91,6 +94,24 @@ describe('PublicConfigController', () => {
   });
 
   it('should reject an unknown event', async () => {
+    eventQuery.getEventById.mockResolvedValue(null);
+    await expect(controller.getPublicConfig({ eventId })).rejects.toThrow(NotFoundException);
+  });
+
+  it.each([true, false, null])('resolves free-ticket override %s without payment methods', async (override) => {
+    controller = new PublicConfigController(new ConfigService({ payments: { freeTickets: { enabled: true } } }), eventQuery, providerFactory);
+    providerFactory.getSupportedMethods.mockReturnValue([]);
+    eventQuery.getEventById.mockResolvedValue({
+      id: eventId, title: 'Event', status: 'PUBLISHED', startDate: new Date(), organizerId: eventId,
+      commissionRateOverride: null, freeTicketsEnabledOverride: override,
+    });
+    const result = await controller.getPublicConfig({ eventId });
+    expect(result.effectiveFreeTicketsEnabled).toBe(override ?? true);
+    expect(result.freeTicketsEnabledOverride).toBe(override);
+    expect(result.availablePaymentMethods).toEqual([]);
+  });
+
+  it('does not disclose an unknown event policy', async () => {
     eventQuery.getEventById.mockResolvedValue(null);
 
     await expect(controller.getPublicConfig({ eventId })).rejects.toThrow(
@@ -146,6 +167,9 @@ describe('PublicConfigController', () => {
 
       expect(result).toEqual({
         availablePaymentMethods: allMethods,
+        globalFreeTicketsEnabled: false,
+        freeTicketsEnabledOverride: null,
+        effectiveFreeTicketsEnabled: false,
         globalCommissionRate: 0.06,
         commissionRateOverride: null,
         effectiveCommissionRate: 0.06,
@@ -169,6 +193,9 @@ describe('PublicConfigController', () => {
       expect(eventQuery.getEventById).toHaveBeenCalledWith(eventId);
       expect(result).toEqual({
         availablePaymentMethods: allMethods,
+        globalFreeTicketsEnabled: false,
+        freeTicketsEnabledOverride: null,
+        effectiveFreeTicketsEnabled: false,
         globalCommissionRate: 0.06,
         commissionRateOverride: 0.03,
         effectiveCommissionRate: 0.03,

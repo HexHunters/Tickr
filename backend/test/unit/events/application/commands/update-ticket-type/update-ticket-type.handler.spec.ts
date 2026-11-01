@@ -15,6 +15,7 @@ import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
 import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
 import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 
 describe('UpdateTicketTypeHandler', () => {
@@ -45,6 +46,7 @@ describe('UpdateTicketTypeHandler', () => {
       mockEventRepository,
       mockUserValidationService,
       mockEventPublisher,
+      new ConfigService(),
     );
 
     jest.spyOn(Logger.prototype, 'debug').mockImplementation();

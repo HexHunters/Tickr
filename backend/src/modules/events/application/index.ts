@@ -18,6 +18,7 @@ export type { UpdateEventResult, UpdateEventError } from './commands/update-even
 
 // Set Event Commission Override (Admin)
 export { SetEventCommissionOverrideCommand } from './commands/set-event-commission-override/set-event-commission-override.command';
+export { SetEventFreeTicketsOverrideHandler } from './commands/set-event-free-tickets-override/set-event-free-tickets-override.handler';
 export type {
   SetEventCommissionOverrideError,
   SetEventCommissionOverrideResult,

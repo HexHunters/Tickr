@@ -117,6 +117,9 @@ export class TicketReservationAdapter implements TicketReservationPort {
       throw new Error(`Ticket confirmation failed: ${error.message}`);
     }
 
+    if (ticketIds.some((id) => !result.value.confirmedIds.includes(id))) {
+      throw new Error('Ticket confirmation was incomplete');
+    }
     this.logger.debug(`Confirmed ${result.value.confirmedIds.length} tickets`);
   }
 
