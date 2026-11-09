@@ -5,6 +5,8 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    /** Parsed error body, for callers that need structured details. */
+    readonly body?: unknown,
   ) {
     super(message)
   }
@@ -30,6 +32,7 @@ export async function parseResponse<T>(
       error.success && typeof error.data.message === 'string'
         ? error.data.message
         : 'Le service ne peut pas répondre pour le moment.',
+      body,
     )
   }
   const result = schema.safeParse(body)

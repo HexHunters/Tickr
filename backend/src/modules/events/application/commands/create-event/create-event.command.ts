@@ -12,6 +12,7 @@ import { EventCategory } from '../../../domain/value-objects/event-category.vo';
 export type CreateEventErrorCommand =
   | { type: 'USER_NOT_FOUND'; message: string }
   | { type: 'NOT_ORGANIZER'; message: string }
+  | { type: 'ACCOUNT_INACTIVE'; message: string }
   | { type: 'INVALID_LOCATION'; message: string }
   | { type: 'INVALID_DATE_RANGE'; message: string }
   | { type: 'INVALID_CATEGORY'; message: string }

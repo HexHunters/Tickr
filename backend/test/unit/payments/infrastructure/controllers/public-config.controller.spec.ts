@@ -25,6 +25,7 @@ describe('PublicConfigController', () => {
     } as unknown as ConfigService;
     eventQuery = {
       getEventById: jest.fn(),
+      getEventsByIds: jest.fn(),
       getTicketType: jest.fn(),
     };
     providerFactory = {

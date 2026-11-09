@@ -26,8 +26,10 @@ import { EVENT_CHECK_IN_STAFF_ASSIGNMENT_REPOSITORY } from '../application/ports
 import { EVENT_STAFF_USER_DIRECTORY } from '../application/ports/event-staff-user-directory.port';
 import { EVENT_REPOSITORY, TICKET_TYPE_REPOSITORY } from '../application/ports/event.repository.port';
 import { USER_VALIDATION_SERVICE } from '../application/ports/user-validation.service.port';
+import { GetAdminEventsHandler } from '../application/queries/get-admin-events/get-admin-events.handler';
 import { GetEventByIdHandler } from '../application/queries/get-event-by-id/get-event-by-id.handler';
 import { GetEventCheckInStaffHandler } from '../application/queries/get-event-check-in-staff/get-event-check-in-staff.handler';
+import { GetEventStatusCountsHandler } from '../application/queries/get-event-status-counts/get-event-status-counts.handler';
 import { GetEventsByCategoryHandler } from '../application/queries/get-events-by-category/get-events-by-category.handler';
 import { GetMyEventCheckInAccessHandler } from '../application/queries/get-my-event-check-in-access/get-my-event-check-in-access.handler';
 import { GetOrganizerEventsHandler } from '../application/queries/get-organizer-events/get-organizer-events.handler';
@@ -38,6 +40,7 @@ import { SearchEventsHandler } from '../application/queries/search-events/search
 import { EventSchedulerService } from '../application/services/event-scheduler.service';
 
 import { UserValidationServiceAdapter } from './adapters/user-validation.service.adapter';
+import { AdminEventsController } from './controllers/admin-events.controller';
 import { EventsController } from './controllers/events.controller';
 import { IsEventOwnerGuard } from './guards/is-event-owner.guard';
 import { EventCheckInStaffAssignmentOrmEntity } from './persistence/entities/event-check-in-staff-assignment.orm-entity';
@@ -84,6 +87,8 @@ const QueryHandlers = [
   GetEventsByCategoryHandler,
   GetUpcomingEventsHandler,
   GetOrganizerEventsHandler,
+  GetAdminEventsHandler,
+  GetEventStatusCountsHandler,
   ResolveEventCheckInAccessHandler,
 ];
 
@@ -165,7 +170,7 @@ const eventStaffUserDirectoryProvider: Provider = {
     // Users module for organizer validation
     UsersModule,
   ],
-  controllers: [EventsController],
+  controllers: [EventsController, AdminEventsController],
   providers: [
     // Mappers
     EventMapper,

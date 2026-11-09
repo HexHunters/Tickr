@@ -252,6 +252,8 @@ export class OrdersController {
       switch (error.type) {
         case 'ORDER_NOT_FOUND':
           throw new NotFoundException(error.message);
+        case 'ACCESS_DENIED':
+          throw new ForbiddenException({ code: error.type, message: error.message });
         case 'INVALID_STATUS':
         case 'REFUND_NOT_ALLOWED':
         case 'GATEWAY_ERROR':

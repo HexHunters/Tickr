@@ -208,6 +208,16 @@ export class UserValidationServiceAdapter
     }
   }
 
+  /**
+   * Check that a user is currently an active administrator
+   *
+   * @param userId - The user's UUID
+   */
+  async isActiveAdmin(userId: string): Promise<boolean> {
+    const user = await this.userRepository.findById(userId);
+    return Boolean(user && user.isActive && user.role === UserRole.ADMIN);
+  }
+
   private toEventStaffUser(user: {
     id: string;
     email: string;

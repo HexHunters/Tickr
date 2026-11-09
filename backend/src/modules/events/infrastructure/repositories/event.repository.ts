@@ -141,6 +141,35 @@ export class EventTypeOrmRepository implements EventRepositoryPort {
   }
 
   /**
+   * Find events by IDs in one query
+   */
+  async findByIds(ids: string[]): Promise<EventEntity[]> {
+    if (ids.length === 0) return [];
+    const entities = await this.repository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.ticketTypes', 'ticketTypes')
+      .where('event.id IN (:...ids)', { ids })
+      .getMany();
+    return this.mapper.toDomainArray(entities);
+  }
+
+  /**
+   * Find events of any status with filters (back office)
+   */
+  async findAll(
+    filters?: EventFilters,
+    options?: EventPaginationOptions,
+  ): Promise<PaginatedResult<EventEntity>> {
+    const qb = this.repository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.ticketTypes', 'ticketTypes');
+
+    this.applyFilters(qb, filters);
+
+    return this.executePaginatedQuery(qb, options);
+  }
+
+  /**
    * Find events by category
    */
   async findByCategory(
@@ -286,6 +315,26 @@ export class EventTypeOrmRepository implements EventRepositoryPort {
         category,
       },
     });
+  }
+
+  /**
+   * Count all events grouped by status (back office); absent statuses are 0
+   */
+  async countByStatus(): Promise<Record<EventStatus, number>> {
+    const rows = await this.repository
+      .createQueryBuilder('event')
+      .select('event.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('event.status')
+      .getRawMany<{ status: EventStatus; count: string }>();
+
+    const counts = Object.fromEntries(
+      Object.values(EventStatus).map((status) => [status, 0]),
+    ) as Record<EventStatus, number>;
+    for (const row of rows) {
+      counts[row.status] = Number(row.count);
+    }
+    return counts;
   }
 
   /**

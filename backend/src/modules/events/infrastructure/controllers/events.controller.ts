@@ -797,6 +797,7 @@ export class EventsController {
         case 'USER_NOT_FOUND':
           throw new NotFoundException(error.message);
         case 'NOT_ORGANIZER':
+        case 'ACCOUNT_INACTIVE':
           throw new ForbiddenException(error.message);
         case 'INVALID_CATEGORY':
         case 'VALIDATION_ERROR':

@@ -61,6 +61,15 @@ export interface UserValidationServicePort {
   hasRole(userId: string, role: 'ADMIN' | 'ORGANIZER' | 'PARTICIPANT'): Promise<boolean>;
 
   /**
+   * Check that a user currently holds the ADMIN role on an active account.
+   * Administrative commands use this instead of trusting the JWT role, which
+   * stays valid until expiry after a demotion or suspension.
+   *
+   * @param userId - The user's UUID
+   */
+  isActiveAdmin(userId: string): Promise<boolean>;
+
+  /**
    * Validate user is the owner of an event
    *
    * @param userId - The user's UUID

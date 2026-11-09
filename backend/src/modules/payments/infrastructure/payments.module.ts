@@ -1,5 +1,6 @@
 import { EventsModule } from '@modules/events/infrastructure/events.module';
 import { TicketsModule } from '@modules/tickets/infrastructure/tickets.module';
+import { UsersModule } from '@modules/users/infrastructure/users.module';
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -15,21 +16,26 @@ import { OrderPaidAppHandler } from '../application/event-handlers/order-paid-ap
 import { PAYMENT_EVENT_QUERY_PORT } from '../application/ports/event-query.port';
 import { FRAUD_DETECTION_PORT } from '../application/ports/fraud-detection.port';
 import { ORDER_REPOSITORY } from '../application/ports/order.repository.port';
+import { PAYMENT_ADMIN_ACCESS } from '../application/ports/payment-admin-access.port';
 import { PAYMENT_PROVIDER_FACTORY } from '../application/ports/payment-provider.port';
 import { PAYMENT_REPOSITORY } from '../application/ports/payment.repository.port';
 import { REFUND_REPOSITORY } from '../application/ports/refund.repository.port';
 import { TICKET_RESERVATION_PORT } from '../application/ports/ticket-reservation.port';
 import { WEBHOOK_EVENT_STORE } from '../application/ports/webhook-event-store.port';
+import { GetAdminOrdersHandler } from '../application/queries/get-admin-orders/get-admin-orders.handler';
 import { GetOrderByIdHandler } from '../application/queries/get-order-by-id/get-order-by-id.handler';
+import { GetOrderStatusSummaryHandler } from '../application/queries/get-order-status-summary/get-order-status-summary.handler';
 import { GetOrdersByEventHandler } from '../application/queries/get-orders-by-event/get-orders-by-event.handler';
 import { GetOrdersByUserHandler } from '../application/queries/get-orders-by-user/get-orders-by-user.handler';
 
 import { PaymentEventQueryAdapter } from './adapters/event-query.adapter';
 import { KonnectAdapter } from './adapters/konnect.adapter';
 import { PaymeeAdapter } from './adapters/paymee.adapter';
+import { PaymentAdminAccessAdapter } from './adapters/payment-admin-access.adapter';
 import { PaymentProviderFactoryAdapter } from './adapters/payment-provider-factory.adapter';
 import { StripeAdapter } from './adapters/stripe.adapter';
 import { TicketReservationAdapter } from './adapters/ticket-reservation.adapter';
+import { AdminOrdersController } from './controllers/admin-orders.controller';
 import { OrdersController } from './controllers/orders.controller';
 import { PublicConfigController } from './controllers/public-config.controller';
 import { WebhooksController } from './controllers/webhooks.controller';
@@ -70,6 +76,8 @@ const QueryHandlers = [
   GetOrderByIdHandler,
   GetOrdersByUserHandler,
   GetOrdersByEventHandler,
+  GetAdminOrdersHandler,
+  GetOrderStatusSummaryHandler,
 ];
 
 // ============================================
@@ -114,6 +122,11 @@ const refundRepositoryProvider: Provider = {
 const eventQueryProvider: Provider = {
   provide: PAYMENT_EVENT_QUERY_PORT,
   useClass: PaymentEventQueryAdapter,
+};
+
+const adminAccessProvider: Provider = {
+  provide: PAYMENT_ADMIN_ACCESS,
+  useClass: PaymentAdminAccessAdapter,
 };
 
 const ticketReservationProvider: Provider = {
@@ -173,9 +186,18 @@ const webhookEventStoreProvider: Provider = {
     ConfigModule,
     EventsModule,
     TicketsModule,
+    // Users context: re-validate administrators for back-office refunds
+    UsersModule,
   ],
-  controllers: [OrdersController, PublicConfigController, WebhooksController],
+  controllers: [
+    OrdersController,
+    AdminOrdersController,
+    PublicConfigController,
+    WebhooksController,
+  ],
   providers: [
+    adminAccessProvider,
+
     // Mappers
     OrderMapper,
     PaymentMapper,

@@ -36,6 +36,8 @@ describe('GetUserByEmailHandler', () => {
       updateLastLogin: jest.fn(),
       updateEmailVerified: jest.fn(),
       updatePassword: jest.fn(),
+      search: jest.fn(),
+      getStats: jest.fn(),
     };
 
     handler = new GetUserByEmailHandler(mockRepository);

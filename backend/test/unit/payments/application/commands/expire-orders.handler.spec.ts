@@ -51,6 +51,8 @@ describe('ExpireOrdersHandler', () => {
       findExpired: jest.fn().mockResolvedValue([]),
       countByUserIdSince: jest.fn(),
       findByGatewayPaymentRef: jest.fn(),
+      findAll: jest.fn(),
+      getStatusSummary: jest.fn(),
     };
 
     mockTicketReservation = {

@@ -34,6 +34,25 @@ export interface UserWithPasswordPort extends UserEntityPort {
 }
 
 /**
+ * Back-office user search filters
+ */
+export type UserSearchFilters = {
+  readonly search?: string;
+  readonly role?: UserRole;
+  readonly isActive?: boolean;
+};
+
+/**
+ * Back-office user counters
+ */
+export type UserStats = {
+  readonly total: number;
+  readonly active: number;
+  readonly inactive: number;
+  readonly byRole: Record<UserRole, number>;
+};
+
+/**
  * User Repository Port
  *
  * Defines the contract for user persistence operations.
@@ -92,6 +111,19 @@ export interface UserRepositoryPort extends IRepository<UserEntityPort> {
    * Update user's password hash
    */
   updatePassword(userId: string, passwordHash: string): Promise<void>;
+
+  /**
+   * Search users by name/email, role and status (back office)
+   */
+  search(
+    filters: UserSearchFilters,
+    options?: PaginationOptions,
+  ): Promise<PaginatedResult<UserEntityPort>>;
+
+  /**
+   * Aggregate user counters (back office)
+   */
+  getStats(): Promise<UserStats>;
 }
 
 /**

@@ -51,6 +51,13 @@ async function run(): Promise<void> {
           'Démo',
           'PARTICIPANT',
         ],
+        [
+          '10000000-0000-4000-8000-000000000004',
+          'admin@demo.tickr.local',
+          'Équipe',
+          'Tickr',
+          'ADMIN',
+        ],
       ];
       for (const [id, email, firstName, lastName, role] of users) {
         await manager.query(
@@ -202,7 +209,12 @@ async function run(): Promise<void> {
             'TND',
             status === 'PAID' ? now : null,
             expiresAt,
-            JSON.stringify({ demo: true }),
+            JSON.stringify({
+              demo: true,
+              holderFirstName: users[0][2],
+              holderLastName: users[0][3],
+              holderEmail: users[0][1],
+            }),
             JSON.stringify([
               { status: 'PENDING', timestamp: now.toISOString() },
               ...(status === 'PAID'

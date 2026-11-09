@@ -38,7 +38,7 @@ describe('SetEventCommissionOverrideHandler', () => {
       save: jest.fn().mockImplementation(async (value) => value),
     } as unknown as jest.Mocked<EventRepositoryPort>;
     userValidationService = {
-      hasRole: jest.fn().mockResolvedValue(true),
+      isActiveAdmin: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<UserValidationServicePort>;
     eventPublisher = {
       publishFromAggregate: jest.fn(),
@@ -74,7 +74,7 @@ describe('SetEventCommissionOverrideHandler', () => {
   });
 
   it('refuses free-ticket configuration by non-admins', async () => {
-    userValidationService.hasRole.mockResolvedValue(false);
+    userValidationService.isActiveAdmin.mockResolvedValue(false);
     const freeHandler = new SetEventFreeTicketsOverrideHandler(eventRepository, userValidationService,
       eventPublisher, new ConfigService());
     const result = await freeHandler.execute({ eventId, adminId, enabled: true });
@@ -119,7 +119,7 @@ describe('SetEventCommissionOverrideHandler', () => {
   });
 
   it('should reject a non-admin before loading the event', async () => {
-    userValidationService.hasRole.mockResolvedValue(false);
+    userValidationService.isActiveAdmin.mockResolvedValue(false);
 
     const result = await handler.execute(
       new SetEventCommissionOverrideCommand(eventId, adminId, 0.03),

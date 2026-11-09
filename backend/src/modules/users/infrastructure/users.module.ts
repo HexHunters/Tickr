@@ -7,7 +7,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Application Layer - Command Handlers
 import { ChangePasswordHandler } from '../application/commands/change-password.handler';
+import { ChangeUserRoleHandler } from '../application/commands/change-user-role.handler';
 import { DeactivateUserHandler } from '../application/commands/deactivate-user.handler';
+import { SetUserActiveStatusHandler } from '../application/commands/set-user-active-status.handler';
 import { UpdateProfileHandler } from '../application/commands/update-profile.handler';
 // Application Layer - Event Handlers
 import { EmailVerifiedEventHandler } from '../application/event-handlers/email-verified.handler';
@@ -15,11 +17,15 @@ import { PasswordResetRequestedEventHandler } from '../application/event-handler
 import { UserRegisteredEventHandler } from '../application/event-handlers/user-registered.handler';
 // Application Layer - Mappers
 import { UserMapper } from '../application/mappers/user.mapper';
+import { ADMIN_ACCOUNT_UNIT_OF_WORK } from '../application/ports/admin-account-unit-of-work.port';
 import { USER_REPOSITORY } from '../application/ports/user.repository.port';
 import { GetUserByEmailHandler } from '../application/queries/get-user-by-email.handler';
 import { GetUserByIdHandler } from '../application/queries/get-user-by-id.handler';
+import { GetUserStatsHandler } from '../application/queries/get-user-stats.handler';
 import { GetUsersByRoleHandler } from '../application/queries/get-users-by-role.handler';
+import { SearchUsersHandler } from '../application/queries/search-users.handler';
 
+import { AdminUsersController } from './controllers/admin-users.controller';
 import { AuthController } from './controllers/auth.controller';
 import { UsersController } from './controllers/users.controller';
 import { EmailVerifiedGuard } from './guards/email-verified.guard';
@@ -28,6 +34,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { UserEntity } from './persistence/entities/user.orm-entity';
 import { VerificationTokenEntity } from './persistence/entities/verification-token.orm-entity';
 import { UserPersistenceMapper } from './persistence/mappers/user-persistence.mapper';
+import { AdminAccountUnitOfWorkRepository } from './persistence/repositories/admin-account-unit-of-work.repository';
 import { UserTypeOrmRepository } from './persistence/repositories/user.typeorm-repository';
 import { VerificationTokenRepository } from './persistence/repositories/verification-token.repository';
 // Infrastructure Layer - Services
@@ -45,6 +52,8 @@ const CommandHandlers = [
   ChangePasswordHandler,
   UpdateProfileHandler,
   DeactivateUserHandler,
+  ChangeUserRoleHandler,
+  SetUserActiveStatusHandler,
 ];
 
 /**
@@ -54,6 +63,8 @@ const QueryHandlers = [
   GetUserByIdHandler,
   GetUserByEmailHandler,
   GetUsersByRoleHandler,
+  SearchUsersHandler,
+  GetUserStatsHandler,
 ];
 
 /**
@@ -130,6 +141,7 @@ const repositoryProvider: Provider = {
   controllers: [
     AuthController,
     UsersController,
+    AdminUsersController,
   ],
   providers: [
     // Mappers
@@ -138,6 +150,7 @@ const repositoryProvider: Provider = {
 
     // Repository
     repositoryProvider,
+    { provide: ADMIN_ACCOUNT_UNIT_OF_WORK, useClass: AdminAccountUnitOfWorkRepository },
     VerificationTokenRepository,
 
     // Services

@@ -967,6 +967,143 @@ inconnu pour l'événement est `404`, et un opérateur non autorisé reçoit `40
 
 ---
 
+## 🛡️ Administration (back-office)
+
+Toutes les routes `/admin/*` exigent un JWT `ADMIN`. Elles vivent dans le module qui possède la
+donnée (users, events, payments). Limite de débit élargie : 10 req/s, 300 req/min.
+
+Les commandes d'administration ne font pas confiance au rôle du JWT (valable jusqu'à expiration) :
+elles relisent le compte et exigent un `ADMIN` actif (`403`, code `ACTOR_NOT_AUTHORIZED`, ou
+`ACCESS_DENIED` pour un remboursement). Les changements de rôle et de statut sont sérialisés dans une
+transaction sous un verrou PostgreSQL partagé (`pg_advisory_xact_lock`) : des requêtes simultanées
+(deux administrateurs qui se rétrogradent mutuellement, jeton périmé) s'appliquent l'une après
+l'autre, et la plateforme garde toujours au moins un administrateur actif (`409 LAST_ACTIVE_ADMIN`).
+Un administrateur ne peut ni changer son propre rôle ni suspendre son propre compte (`403`, code
+`SELF_MODIFICATION`).
+
+### GET /admin/users/stats
+
+**Response 200:** `{ total, active, inactive, byRole: { ADMIN, ORGANIZER, PARTICIPANT } }`
+
+### GET /admin/users
+
+**Query:** `search` (e-mail, prénom, nom), `role`, `status` (`active` | `inactive`), `page`, `limit` (≤ 100)  
+**Response 200:** profils paginés (`data`, `total`, `page`, `limit`, `totalPages`).
+
+### GET /admin/users/:id
+
+**Response 200:** profil complet (`isActive`, `lastLoginAt`, `createdAt`…).
+
+### PATCH /admin/users/:id/role
+
+```json
+{ "role": "ORGANIZER" }
+```
+
+**Response 200:** profil mis à jour. Le nouveau rôle prend effet au prochain renouvellement de
+session (`/auth/refresh-token` relit désormais le compte).
+
+**Retrait du rôle organisateur** (`ORGANIZER` ou `ADMIN` → `PARTICIPANT`) : refusé tant que le compte
+a des obligations ouvertes, sans rien annuler ni rembourser à sa place :
+
+```json
+{
+  "statusCode": 409,
+  "code": "ORGANIZER_HAS_OPEN_OBLIGATIONS",
+  "message": "…",
+  "details": { "obligations": { "openEvents": 2, "unsettledOrders": 1, "pendingRefunds": 0 } }
+}
+```
+
+- `openEvents` : événements `DRAFT` ou `PUBLISHED` (en cours compris), vendus ou non ;
+- `unsettledOrders` : commandes `PENDING`/`PROCESSING`, ou `PAID` sur un événement annulé
+  (remboursement dû) ;
+- `pendingRefunds` : remboursements `PENDING`, y compris ceux à traiter manuellement (commande sans
+  moyen de paiement) — aucun flux ne permet encore de les clôturer.
+
+La rétrogradation est autorisée une fois tout soldé ; l'historique (événements, commandes) est
+conservé. La création d'événement et la rétrogradation se vérifient mutuellement après leur propre
+écriture : si elles se croisent, au moins l'une est refusée (rôle restauré ou brouillon supprimé),
+jamais un participant propriétaire d'un événement ouvert. Il n'existe pas encore de transfert de
+propriété : la transition est refusée plutôt que de réassigner ou supprimer des données.
+
+**Erreurs:** `403` propre compte ou administrateur inactif, `404` absent, `409`
+`LAST_ACTIVE_ADMIN` ou `ORGANIZER_HAS_OPEN_OBLIGATIONS`.
+
+### PATCH /admin/users/:id/status
+
+```json
+{ "isActive": false }
+```
+
+**Response 200:** profil mis à jour. Un compte suspendu ne peut plus se connecter ni renouveler sa
+session ; son jeton d'accès en cours expire après sa durée de vie (15 min). Opération idempotente.
+
+La suspension est une mesure d'urgence : elle s'applique même si l'organisateur a des obligations
+ouvertes. Ses événements restent en ligne et se gèrent depuis `GET /admin/events?organizerId=…`. Un
+organisateur suspendu ne peut plus créer d'événement ni scanner ; le staff qu'il a affecté garde son
+propre accès.
+
+### GET /admin/events/stats
+
+**Response 200:** `{ DRAFT, PUBLISHED, CANCELLED, COMPLETED }`
+
+### GET /admin/events
+
+**Query:** `search` (titre), `status`, `category`, `organizerId`, `page`, `limit`  
+**Response 200:** événements de tous statuts avec organisateur (`id`, `name`, `email`), billets
+vendus, capacité, ventes, `commissionRateOverride`, `freeTicketsEnabledOverride` et
+`cancellationReason`.
+
+### POST /admin/events/:id/cancel
+
+```json
+{ "reason": "Contenu non conforme" }
+```
+
+**Description:** annule n'importe quel événement `DRAFT` ou `PUBLISHED` non commencé. Mêmes règles
+de cycle de vie que l'annulation organisateur.
+
+> L'annulation **ne rembourse pas** les commandes payées : `EventCancelledEvent` est seulement
+> journalisé (intégration Payments encore à faire). Les commandes restent `PAID` et se remboursent
+> une par une via `POST /admin/orders/:id/refund` ; tant qu'elles ne le sont pas, elles bloquent la
+> rétrogradation de l'organisateur.
+
+**Erreurs:** `400` déjà annulé/terminé/commencé, `403` administrateur inactif, `404` absent.
+
+La commission et la politique de billets gratuits par événement restent sur
+`PATCH /events/:id/commission` et `PATCH /events/:id/free-tickets`.
+
+### GET /admin/orders/stats
+
+**Response 200:** une entrée par statut : `{ status, count, totalAmount, platformFeeAmount }`.
+
+### GET /admin/orders
+
+**Query:** `status`, `eventId`, `userId`, `page`, `limit`  
+**Response 200:** commandes paginées avec `eventTitle`, acheteur (`buyerName`, `buyerEmail` issus du
+titulaire saisi au paiement), `ticketCount`, montants et dates.
+
+### POST /admin/orders/:id/refund
+
+```json
+{ "reason": "Geste commercial" }
+```
+
+**Description:** rembourse une commande `PAID` quel que soit l'acheteur. Même politique que le
+remboursement client : commission non remboursée, billets annulés, et aucune commande marquée
+remboursée si la passerelle refuse ou est désactivée (`403 PAYMENT_METHOD_DISABLED`). L'identifiant
+de l'administrateur est journalisé avec la commande et le remboursement.
+
+Avant tout appel à la passerelle, le remboursement réserve la commande en insérant un remboursement
+`PENDING` (index unique partiel `UQ_refunds_order_open` : un seul `PENDING`/`COMPLETED` par
+commande). Deux demandes simultanées (client et admin, double clic) ne peuvent donc pas rembourser
+deux fois : la seconde reçoit `400` « already in progress or completed ». Un refus de la passerelle
+passe la réservation en `FAILED` pour permettre un nouvel essai. Cette règle s'applique aussi à
+`POST /orders/:id/refund`.
+
+---
+
 ## 📤 Uploads
 
 ### POST /upload/image

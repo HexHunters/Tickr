@@ -4,6 +4,7 @@ import {
   TICKET_TYPE_REPOSITORY,
 } from '@modules/events/application/ports/event.repository.port';
 import type { EventRepositoryPort, TicketTypeRepositoryPort } from '@modules/events/application/ports/event.repository.port';
+import type { EventEntity } from '@modules/events/domain/entities/event.entity';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 
 import type {
@@ -37,6 +38,15 @@ export class PaymentEventQueryAdapter implements PaymentEventQueryPort {
       return null;
     }
 
+    return this.toInfo(event);
+  }
+
+  async getEventsByIds(eventIds: string[]): Promise<PaymentEventInfo[]> {
+    const events = await this.eventRepository.findByIds(eventIds);
+    return events.map((event) => this.toInfo(event));
+  }
+
+  private toInfo(event: EventEntity): PaymentEventInfo {
     return {
       id: event.id,
       title: event.title,

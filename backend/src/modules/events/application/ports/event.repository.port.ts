@@ -122,6 +122,27 @@ export interface EventRepositoryPort extends IRepository<EventEntity> {
    */
   findEventsToComplete(beforeDate: Date): Promise<EventEntity[]>;
 
+  /**
+   * Find events by IDs, any status, in one query (cross-module batch hydration)
+   *
+   * @param ids - Event UUIDs; unknown IDs are simply absent from the result
+   */
+  findByIds(ids: string[]): Promise<EventEntity[]>;
+
+  /**
+   * Find events of any status with filters (back office)
+   *
+   * Unlike findPublished, drafts, cancelled and completed events are included
+   * unless filters.status narrows the result.
+   *
+   * @param filters - Event filters
+   * @param options - Pagination options
+   */
+  findAll(
+    filters?: EventFilters,
+    options?: EventPaginationOptions,
+  ): Promise<PaginatedResult<EventEntity>>;
+
   // ============================================
   // Count Methods
   // ============================================
@@ -145,6 +166,11 @@ export interface EventRepositoryPort extends IRepository<EventEntity> {
    * Count total published events
    */
   countPublished(): Promise<number>;
+
+  /**
+   * Count all events grouped by status (back office)
+   */
+  countByStatus(): Promise<Record<EventStatus, number>>;
 
   // ============================================
   // Existence Checks

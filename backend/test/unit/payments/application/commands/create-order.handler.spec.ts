@@ -37,9 +37,12 @@ describe('CreateOrderHandler', () => {
       findExpired: jest.fn(),
       countByUserIdSince: jest.fn(),
       findByGatewayPaymentRef: jest.fn(),
+      findAll: jest.fn(),
+      getStatusSummary: jest.fn(),
     };
 
     mockEventQuery = {
+      getEventsByIds: jest.fn(),
       getEventById: jest.fn().mockResolvedValue({
         id: validEventId,
         title: 'Test Event',

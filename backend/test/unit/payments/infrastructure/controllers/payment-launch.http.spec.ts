@@ -19,6 +19,7 @@ import { FRAUD_DETECTION_PORT } from '@modules/payments/application/ports/fraud-
 import type { FraudDetectionPort } from '@modules/payments/application/ports/fraud-detection.port';
 import { ORDER_REPOSITORY } from '@modules/payments/application/ports/order.repository.port';
 import type { OrderRepositoryPort } from '@modules/payments/application/ports/order.repository.port';
+import { PAYMENT_ADMIN_ACCESS } from '@modules/payments/application/ports/payment-admin-access.port';
 import { PAYMENT_PROVIDER_FACTORY } from '@modules/payments/application/ports/payment-provider.port';
 import { PAYMENT_REPOSITORY } from '@modules/payments/application/ports/payment.repository.port';
 import type { PaymentRepositoryPort } from '@modules/payments/application/ports/payment.repository.port';
@@ -167,6 +168,15 @@ class InMemoryOrderRepository implements OrderRepositoryPort {
   async findByGatewayPaymentRef(ref: string): Promise<OrderEntity | null> {
     return [...this.orders.values()].find((o) => o.gatewayPaymentRef === ref) ?? null;
   }
+
+  async findAll(): Promise<{ data: OrderEntity[]; total: number }> {
+    const data = [...this.orders.values()];
+    return { data, total: data.length };
+  }
+
+  async getStatusSummary(): Promise<[]> {
+    return [];
+  }
 }
 
 function createPorts() {
@@ -179,10 +189,12 @@ function createPorts() {
     },
     refunds: {
       save: jest.fn<RefundRepositoryPort['save']>(async (refund) => refund),
+      claim: jest.fn<RefundRepositoryPort['claim']>(async () => true),
       findByOrderId: jest.fn<RefundRepositoryPort['findByOrderId']>(async () => []),
     },
     eventQuery: {
       getEventById: jest.fn<PaymentEventQueryPort['getEventById']>(async () => PUBLISHED_EVENT),
+      getEventsByIds: jest.fn<PaymentEventQueryPort['getEventsByIds']>(async () => [PUBLISHED_EVENT]),
       getTicketType: jest.fn<PaymentEventQueryPort['getTicketType']>(async () => STANDARD_TICKET),
     },
     fraud: {
@@ -224,6 +236,7 @@ function realOrderHandlers(ports: Ports): Provider[] {
     { provide: FRAUD_DETECTION_PORT, useValue: ports.fraud },
     { provide: TICKET_RESERVATION_PORT, useValue: ports.tickets },
     { provide: DomainEventPublisher, useValue: ports.publisher },
+    { provide: PAYMENT_ADMIN_ACCESS, useValue: { isActiveAdmin: async () => false } },
   ];
 }
 

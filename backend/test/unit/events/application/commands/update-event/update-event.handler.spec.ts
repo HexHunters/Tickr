@@ -38,6 +38,7 @@ describe('UpdateEventHandler', () => {
       validateOrganizer: jest.fn(),
       userExists: jest.fn(),
       hasRole: jest.fn(),
+      isActiveAdmin: jest.fn(),
       isEventOwner: jest.fn(),
     };
 

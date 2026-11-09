@@ -37,7 +37,7 @@ export class SetEventFreeTicketsOverrideHandler {
   async execute(
     command: SetEventFreeTicketsOverrideCommand,
   ): Promise<Result<EventFreeTicketsPolicy, PolicyError>> {
-    if (!(await this.users.hasRole(command.adminId, 'ADMIN'))) {
+    if (!(await this.users.isActiveAdmin(command.adminId))) {
       return Result.fail({
         type: 'ACCESS_DENIED',
         message: 'Only an administrator can configure free tickets',

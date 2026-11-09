@@ -2,9 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginatedResult, PaginationOptions } from '@shared/application/interfaces/repository.interface';
 import { BaseTypeOrmRepository } from '@shared/infrastructure/database/base-typeorm.repository';
-import { In, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 
-import { UserEntityPort, UserRepositoryPort, UserWithPasswordPort } from '../../../application/ports/user.repository.port';
+import {
+  UserEntityPort,
+  UserRepositoryPort,
+  UserSearchFilters,
+  UserStats,
+  UserWithPasswordPort,
+} from '../../../application/ports/user.repository.port';
 import { UserRole } from '../../../domain/value-objects/user-role.vo';
 import { UserEntity } from '../entities/user.orm-entity';
 import { UserPersistenceMapper } from '../mappers/user-persistence.mapper';
@@ -175,6 +181,87 @@ export class UserTypeOrmRepository
       passwordHash,
       updatedAt: new Date(),
     });
+  }
+
+  /**
+   * Search users by name/email, role and status (back office)
+   */
+  async search(
+    filters: UserSearchFilters,
+    options?: PaginationOptions,
+  ): Promise<PaginatedResult<UserEntityPort>> {
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 20;
+    const qb = this.repository.createQueryBuilder('user');
+
+    if (filters.search?.trim()) {
+      // Typed % and _ must match literally, not act as LIKE wildcards.
+      const literal = filters.search.trim().toLowerCase().replace(/[\\%_]/g, '\\$&');
+      const term = `%${literal}%`;
+      qb.andWhere(
+        new Brackets((sub) => {
+          sub
+            .where('LOWER(user.email) LIKE :term', { term })
+            .orWhere('LOWER(user.firstName) LIKE :term', { term })
+            .orWhere('LOWER(user.lastName) LIKE :term', { term })
+            .orWhere("LOWER(user.firstName || ' ' || user.lastName) LIKE :term", { term });
+        }),
+      );
+    }
+    if (filters.role) {
+      qb.andWhere('user.role = :role', { role: filters.role });
+    }
+    if (filters.isActive !== undefined) {
+      qb.andWhere('user.isActive = :isActive', { isActive: filters.isActive });
+    }
+
+    const [entities, total] = await qb
+      .orderBy('user.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: this.mapper.toDomainArray(entities),
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    };
+  }
+
+  /**
+   * Aggregate user counters (back office)
+   */
+  async getStats(): Promise<UserStats> {
+    const rows = await this.repository
+      .createQueryBuilder('user')
+      .select('user.role', 'role')
+      .addSelect('user.isActive', 'isActive')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('user.role')
+      .addGroupBy('user.isActive')
+      .getRawMany<{ role: UserRole; isActive: boolean; count: string }>();
+
+    const byRole: Record<UserRole, number> = {
+      [UserRole.ADMIN]: 0,
+      [UserRole.ORGANIZER]: 0,
+      [UserRole.PARTICIPANT]: 0,
+    };
+    let active = 0;
+    let inactive = 0;
+    for (const row of rows) {
+      const count = Number(row.count);
+      byRole[row.role] = (byRole[row.role] ?? 0) + count;
+      if (row.isActive) active += count;
+      else inactive += count;
+    }
+
+    return { total: active + inactive, active, inactive, byRole };
   }
 
   /**
