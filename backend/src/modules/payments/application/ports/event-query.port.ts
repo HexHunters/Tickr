@@ -14,5 +14,7 @@ import type { PaymentTicketTypeInfo } from '../types/event-query.types';
 
 export interface PaymentEventQueryPort {
   getEventById(eventId: string): Promise<PaymentEventInfo | null>;
+  /** Batch lookup in one query; unknown IDs are absent from the result */
+  getEventsByIds(eventIds: string[]): Promise<PaymentEventInfo[]>;
   getTicketType(ticketTypeId: string): Promise<PaymentTicketTypeInfo | null>;
 }

@@ -63,6 +63,7 @@ describe('CreateEventHandler', () => {
       validateOrganizer: jest.fn(),
       userExists: jest.fn(),
       hasRole: jest.fn(),
+      isActiveAdmin: jest.fn(),
       isEventOwner: jest.fn(),
     };
 
@@ -254,6 +255,59 @@ describe('CreateEventHandler', () => {
   // ============================================
   // Location Validation Errors
   // ============================================
+
+  describe('Organizer eligibility (suspension and concurrent demotion)', () => {
+    it('should refuse a suspended organizer before creating anything', async () => {
+      mockUserValidationService.validateOrganizer.mockResolvedValue({
+        ...mockValidOrganizerValidation(),
+        isActive: false,
+      });
+
+      const result = await handler.execute(createValidCommand());
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error!.type).toBe('ACCOUNT_INACTIVE');
+      expect(mockEventRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should re-check eligibility after the draft is committed', async () => {
+      const command = createValidCommand();
+      const calls: string[] = [];
+      mockUserValidationService.validateOrganizer.mockImplementation(async () => {
+        calls.push('validate');
+        return mockValidOrganizerValidation();
+      });
+      mockEventRepository.save.mockImplementation(async (event) => {
+        calls.push('save');
+        return event;
+      });
+
+      const result = await handler.execute(command);
+
+      expect(result.isSuccess).toBe(true);
+      expect(calls).toEqual(['validate', 'save', 'validate']);
+    });
+
+    it.each([
+      ['demoted', { isOrganizer: false, role: 'PARTICIPANT' as const }],
+      ['suspended', { isActive: false }],
+    ])('should discard the draft when the organizer was %s during creation', async (_case, change) => {
+      const command = createValidCommand();
+      const savedEvent = mockSavedEvent(command);
+      mockUserValidationService.validateOrganizer
+        .mockResolvedValueOnce(mockValidOrganizerValidation())
+        .mockResolvedValueOnce({ ...mockValidOrganizerValidation(), ...change });
+      mockEventRepository.save.mockResolvedValue(savedEvent);
+      jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+      const result = await handler.execute(command);
+
+      expect(result.isFailure).toBe(true);
+      expect(result.error!.type).toBe('NOT_ORGANIZER');
+      expect(mockEventRepository.delete).toHaveBeenCalledWith(savedEvent.id);
+      expect(mockEventPublisher.publishFromAggregate).not.toHaveBeenCalled();
+    });
+  });
 
   describe('Location Validation Errors', () => {
     it('should fail with invalid location (missing city)', async () => {

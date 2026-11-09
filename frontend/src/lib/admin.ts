@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 import { ApiError, friendlyError } from '@/lib/api/request'
 import { formatMoney } from '@/lib/format'
 
@@ -82,17 +84,113 @@ export function summarizeOrders(stats: OrderStats) {
   }
 }
 
+export interface OrganizerObligations {
+  openEvents: number
+  unsettledOrders: number
+  pendingRefunds: number
+}
+
+const obligationsBodySchema = z.object({
+  details: z.object({
+    obligations: z.object({
+      openEvents: z.number(),
+      unsettledOrders: z.number(),
+      pendingRefunds: z.number(),
+    }),
+  }),
+})
+
+/** Obligation counts from a 409 ORGANIZER_HAS_OPEN_OBLIGATIONS response. */
+export function organizerObligations(
+  error: unknown,
+): OrganizerObligations | null {
+  if (
+    !(error instanceof ApiError) ||
+    error.code !== 'ORGANIZER_HAS_OPEN_OBLIGATIONS'
+  )
+    return null
+  const parsed = obligationsBodySchema.safeParse(error.body)
+  return parsed.success ? parsed.data.details.obligations : null
+}
+
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count > 1 ? many : one}`
+}
+
+export function describeObligations(obligations: OrganizerObligations): string {
+  const parts = [
+    obligations.openEvents &&
+      plural(obligations.openEvents, 'événement ouvert', 'événements ouverts'),
+    obligations.unsettledOrders &&
+      plural(
+        obligations.unsettledOrders,
+        'commande non soldée',
+        'commandes non soldées',
+      ),
+    obligations.pendingRefunds &&
+      plural(
+        obligations.pendingRefunds,
+        'remboursement en cours',
+        'remboursements en cours',
+      ),
+  ].filter((part): part is string => Boolean(part))
+  return parts.length > 1
+    ? `${parts.slice(0, -1).join(', ')} et ${parts.at(-1)}`
+    : (parts[0] ?? '')
+}
+
+// Backend messages are English; known refusals are shown in French.
+const stateRefusals: Array<[RegExp, string]> = [
+  [
+    /already in progress or completed/i,
+    'Un remboursement est déjà en cours ou effectué pour cette commande.',
+  ],
+  [
+    /declined by the payment gateway/i,
+    'La passerelle a refusé le remboursement.',
+  ],
+  [
+    /manual processing/i,
+    'Ce remboursement doit être traité depuis le tableau de bord de la passerelle.',
+  ],
+  [
+    /cannot be refunded|PAID to REFUNDED/i,
+    'Cette commande ne peut pas être remboursée dans son état actuel.',
+  ],
+  [/already cancelled/i, 'Cet événement est déjà annulé.'],
+  [
+    /already completed/i,
+    'Cet événement est terminé : il ne peut plus être annulé.',
+  ],
+  [
+    /after it has started/i,
+    'L’événement a commencé : il ne peut plus être annulé.',
+  ],
+]
+
 export function adminError(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.code === 'SELF_MODIFICATION')
-      return 'Vous ne pouvez pas modifier votre propre compte depuis l’administration.'
-    if (error.code === 'PAYMENT_METHOD_DISABLED')
-      return 'Ce moyen de paiement est désactivé : le remboursement doit être traité depuis la passerelle.'
+    switch (error.code) {
+      case 'SELF_MODIFICATION':
+        return 'Vous ne pouvez pas modifier votre propre compte depuis l’administration.'
+      case 'ACTOR_NOT_AUTHORIZED':
+      case 'ACCESS_DENIED':
+        return 'Votre compte n’a plus les droits d’administration. Reconnectez-vous ou contactez un autre administrateur.'
+      case 'LAST_ACTIVE_ADMIN':
+        return 'La plateforme doit garder au moins un administrateur actif.'
+      case 'ORGANIZER_HAS_OPEN_OBLIGATIONS': {
+        const obligations = organizerObligations(error)
+        return `Ce compte a encore ${obligations ? describeObligations(obligations) : 'des événements ou des paiements en cours'}. Clôturez ou soldez-les avant de retirer le rôle organisateur ; la suspension reste possible.`
+      }
+      case 'PAYMENT_METHOD_DISABLED':
+        return 'Ce moyen de paiement est désactivé : le remboursement doit être traité depuis la passerelle.'
+    }
     if (error.status === 403)
       return 'Cette action est réservée aux administrateurs.'
-    if (error.status === 400 || error.status === 422)
+    if (error.status === 400 || error.status === 409 || error.status === 422)
       return (
-        error.message || 'Cette action n’est pas possible dans l’état actuel.'
+        stateRefusals.find(([pattern]) => pattern.test(error.message))?.[1] ??
+        'Cette action n’est pas possible dans l’état actuel.'
       )
   }
   return friendlyError(error)

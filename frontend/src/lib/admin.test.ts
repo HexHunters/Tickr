@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   adminError,
+  describeObligations,
+  organizerObligations,
   freeTicketsChoice,
   freeTicketsOverride,
   parseCommissionPercent,
@@ -54,6 +56,70 @@ describe('back-office helpers', () => {
       expect(freeTicketsOverride(freeTicketsChoice(override))).toBe(override)
     }
     expect(freeTicketsChoice(null)).toBe('inherit')
+  })
+
+  it('reads obligation counts from a demotion refusal and describes them in French', () => {
+    const refusal = new ApiError(
+      409,
+      'ORGANIZER_HAS_OPEN_OBLIGATIONS',
+      'This account…',
+      {
+        code: 'ORGANIZER_HAS_OPEN_OBLIGATIONS',
+        details: {
+          obligations: { openEvents: 2, unsettledOrders: 1, pendingRefunds: 0 },
+        },
+      },
+    )
+    expect(organizerObligations(refusal)).toEqual({
+      openEvents: 2,
+      unsettledOrders: 1,
+      pendingRefunds: 0,
+    })
+    expect(adminError(refusal)).toBe(
+      'Ce compte a encore 2 événements ouverts et 1 commande non soldée. Clôturez ou soldez-les avant de retirer le rôle organisateur ; la suspension reste possible.',
+    )
+    expect(
+      describeObligations({
+        openEvents: 1,
+        unsettledOrders: 3,
+        pendingRefunds: 2,
+      }),
+    ).toBe(
+      '1 événement ouvert, 3 commandes non soldées et 2 remboursements en cours',
+    )
+    expect(
+      organizerObligations(new ApiError(409, 'LAST_ACTIVE_ADMIN', '')),
+    ).toBeNull()
+  })
+
+  it('explains stale-admin, last-admin and state refusals in French', () => {
+    expect(
+      adminError(new ApiError(403, 'ACTOR_NOT_AUTHORIZED', 'Only…')),
+    ).toMatch(/n’a plus les droits/)
+    expect(adminError(new ApiError(403, 'ACCESS_DENIED', 'Only…'))).toMatch(
+      /n’a plus les droits/,
+    )
+    expect(adminError(new ApiError(409, 'LAST_ACTIVE_ADMIN', ''))).toMatch(
+      /au moins un administrateur actif/,
+    )
+    expect(
+      adminError(
+        new ApiError(
+          400,
+          '',
+          'A refund is already in progress or completed for this order',
+        ),
+      ),
+    ).toBe(
+      'Un remboursement est déjà en cours ou effectué pour cette commande.',
+    )
+    expect(
+      adminError(new ApiError(400, '', 'Event is already cancelled')),
+    ).toBe('Cet événement est déjà annulé.')
+    // Unknown English messages never leak into the French UI.
+    expect(adminError(new ApiError(400, '', 'Some new backend rule'))).toBe(
+      'Cette action n’est pas possible dans l’état actuel.',
+    )
   })
 
   it('explains self-modification refusals', () => {

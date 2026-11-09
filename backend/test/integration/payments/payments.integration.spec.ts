@@ -127,6 +127,7 @@ function createMockFraudDetection(): FraudDetectionPort {
 
 function createMockEventQuery(): PaymentEventQueryPort {
   return {
+    getEventsByIds: jest.fn(),
     getEventById: jest.fn().mockResolvedValue({
       id: TEST_EVENT_ID,
       title: 'Test Event',
@@ -218,7 +219,7 @@ describe('Payments Module - Integration Tests', () => {
     mockProviderFactory = createMockProviderFactory(mockProvider);
     mockEventPublisher = { publish: jest.fn(), publishMany: jest.fn() };
     mockPaymentRepository = { save: jest.fn(), findByOrderId: jest.fn().mockResolvedValue([]), findById: jest.fn(), countByOrderId: jest.fn().mockResolvedValue(0) } as any;
-    mockRefundRepository = { save: jest.fn(), findByOrderId: jest.fn().mockResolvedValue([]) } as any;
+    mockRefundRepository = { save: jest.fn(), claim: jest.fn().mockResolvedValue(true), findByOrderId: jest.fn().mockResolvedValue([]) } as any;
     mockConfigService = {
       get: jest.fn().mockImplementation((key: string, def?: any) => {
         const map: Record<string, any> = {
@@ -273,6 +274,7 @@ describe('Payments Module - Integration Tests', () => {
       const processResult = await processHandler.execute(new ProcessPaymentCommand(order.id, TEST_USER_ID, PaymentMethod.KONNECT));
       const refundHandler = new RequestRefundHandler(
         orderRepository, mockRefundRepository, factory, mockTicketReservation, mockEventPublisher,
+        { isActiveAdmin: jest.fn().mockResolvedValue(false) },
       );
       const refundResult = await refundHandler.execute(new RequestRefundCommand(order.id, TEST_USER_ID, 'Event cancelled'));
 
@@ -442,6 +444,7 @@ describe('Payments Module - Integration Tests', () => {
         mockProviderFactory as any,
         mockTicketReservation,
         mockEventPublisher,
+        { isActiveAdmin: jest.fn().mockResolvedValue(false) },
       );
 
       const refundCommand = new RequestRefundCommand(

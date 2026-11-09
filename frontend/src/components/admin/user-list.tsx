@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CheckCircleIcon,
@@ -14,13 +15,20 @@ import { useSession } from '@/components/session-provider'
 import { adminUserSchema } from '@/lib/api/admin-contracts'
 import { paginated } from '@/lib/api/contracts'
 import { requestApi } from '@/lib/api/request'
-import { adminError, roleLabels } from '@/lib/admin'
+import { adminError, organizerObligations, roleLabels } from '@/lib/admin'
 import { formatEventDate } from '@/lib/format'
 
 import type { FormEvent } from 'react'
 import type { AdminUser, UserRole } from '@/lib/api/admin-contracts'
 
 const roles = Object.keys(roleLabels) as UserRole[]
+
+type Notice = { text: string; eventsOf?: string }
+
+/** Admins and organizers can own events. */
+function canOwnEvents(user: AdminUser) {
+  return user.role !== 'PARTICIPANT'
+}
 
 function fullName(user: AdminUser) {
   return [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
@@ -31,7 +39,7 @@ function UserPanel({
   onDone,
 }: {
   user: AdminUser
-  onDone: (message: string) => void
+  onDone: (notice: Notice) => void
 }) {
   const queryClient = useQueryClient()
   const [role, setRole] = useState<UserRole>(user.role)
@@ -44,9 +52,9 @@ function UserPanel({
       }),
     onSuccess: async (updated) => {
       await refresh()
-      onDone(
-        `${fullName(updated)} est maintenant ${roleLabels[updated.role].toLowerCase()}.`,
-      )
+      onDone({
+        text: `${fullName(updated)} est maintenant ${roleLabels[updated.role].toLowerCase()}.`,
+      })
     },
   })
   const setStatus = useMutation({
@@ -59,8 +67,13 @@ function UserPanel({
       await refresh()
       onDone(
         updated.isActive
-          ? `Le compte de ${fullName(updated)} est réactivé.`
-          : `Le compte de ${fullName(updated)} est suspendu.`,
+          ? { text: `Le compte de ${fullName(updated)} est réactivé.` }
+          : canOwnEvents(updated)
+            ? {
+                text: `Le compte de ${fullName(updated)} est suspendu. Ses événements restent en ligne : décidez de leur suite.`,
+                eventsOf: updated.id,
+              }
+            : { text: `Le compte de ${fullName(updated)} est suspendu.` },
       )
     },
   })
@@ -118,7 +131,15 @@ function UserPanel({
       </div>
       {error && (
         <p className="form-error" role="alert">
-          {adminError(error)}
+          {adminError(error)}{' '}
+          {organizerObligations(error) && (
+            <Link
+              className="text-link"
+              href={`/admin/events?organizerId=${user.id}`}
+            >
+              Voir ses événements
+            </Link>
+          )}
         </p>
       )}
     </div>
@@ -132,7 +153,7 @@ export function AdminUserList() {
   const [role, setRole] = useState('')
   const [status, setStatus] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<Notice | null>(null)
   const params = new URLSearchParams({ page: String(page), limit: '20' })
   if (search) params.set('search', search)
   if (role) params.set('role', role)
@@ -215,7 +236,17 @@ export function AdminUserList() {
       {notice && (
         <p className="form-success" role="status">
           <CheckCircleIcon />
-          {notice}
+          <span>
+            {notice.text}{' '}
+            {notice.eventsOf && (
+              <Link
+                className="text-link"
+                href={`/admin/events?organizerId=${notice.eventsOf}`}
+              >
+                Voir ses événements
+              </Link>
+            )}
+          </span>
         </p>
       )}
       <div className="workspace-section-title">
@@ -262,6 +293,15 @@ export function AdminUserList() {
                           Suspendu
                         </span>
                       )}
+                      {canOwnEvents(user) && (
+                        <Link
+                          prefetch={false}
+                          className="text-link"
+                          href={`/admin/events?organizerId=${user.id}`}
+                        >
+                          Ses événements
+                        </Link>
+                      )}
                     </div>
                     <button
                       className="button button-outline"
@@ -273,7 +313,7 @@ export function AdminUserList() {
                           : undefined
                       }
                       onClick={() => {
-                        setNotice('')
+                        setNotice(null)
                         setOpenId(isOpen ? null : user.id)
                       }}
                     >
@@ -284,8 +324,8 @@ export function AdminUserList() {
                     <UserPanel
                       key={`${user.id}-${user.role}-${user.isActive}`}
                       user={user}
-                      onDone={(message) => {
-                        setNotice(message)
+                      onDone={(next) => {
+                        setNotice(next)
                         setOpenId(null)
                       }}
                     />

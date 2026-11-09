@@ -53,8 +53,6 @@ describe('GetUsersByRoleHandler', () => {
       updatePassword: jest.fn(),
       search: jest.fn(),
       getStats: jest.fn(),
-      updateRole: jest.fn(),
-      updateActiveStatus: jest.fn(),
     };
 
     handler = new GetUsersByRoleHandler(mockRepository);

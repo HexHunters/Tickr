@@ -1,5 +1,6 @@
 import { EventsModule } from '@modules/events/infrastructure/events.module';
 import { TicketsModule } from '@modules/tickets/infrastructure/tickets.module';
+import { UsersModule } from '@modules/users/infrastructure/users.module';
 import { Module, Provider } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -15,6 +16,7 @@ import { OrderPaidAppHandler } from '../application/event-handlers/order-paid-ap
 import { PAYMENT_EVENT_QUERY_PORT } from '../application/ports/event-query.port';
 import { FRAUD_DETECTION_PORT } from '../application/ports/fraud-detection.port';
 import { ORDER_REPOSITORY } from '../application/ports/order.repository.port';
+import { PAYMENT_ADMIN_ACCESS } from '../application/ports/payment-admin-access.port';
 import { PAYMENT_PROVIDER_FACTORY } from '../application/ports/payment-provider.port';
 import { PAYMENT_REPOSITORY } from '../application/ports/payment.repository.port';
 import { REFUND_REPOSITORY } from '../application/ports/refund.repository.port';
@@ -29,6 +31,7 @@ import { GetOrdersByUserHandler } from '../application/queries/get-orders-by-use
 import { PaymentEventQueryAdapter } from './adapters/event-query.adapter';
 import { KonnectAdapter } from './adapters/konnect.adapter';
 import { PaymeeAdapter } from './adapters/paymee.adapter';
+import { PaymentAdminAccessAdapter } from './adapters/payment-admin-access.adapter';
 import { PaymentProviderFactoryAdapter } from './adapters/payment-provider-factory.adapter';
 import { StripeAdapter } from './adapters/stripe.adapter';
 import { TicketReservationAdapter } from './adapters/ticket-reservation.adapter';
@@ -121,6 +124,11 @@ const eventQueryProvider: Provider = {
   useClass: PaymentEventQueryAdapter,
 };
 
+const adminAccessProvider: Provider = {
+  provide: PAYMENT_ADMIN_ACCESS,
+  useClass: PaymentAdminAccessAdapter,
+};
+
 const ticketReservationProvider: Provider = {
   provide: TICKET_RESERVATION_PORT,
   useClass: TicketReservationAdapter,
@@ -178,6 +186,8 @@ const webhookEventStoreProvider: Provider = {
     ConfigModule,
     EventsModule,
     TicketsModule,
+    // Users context: re-validate administrators for back-office refunds
+    UsersModule,
   ],
   controllers: [
     OrdersController,
@@ -186,6 +196,8 @@ const webhookEventStoreProvider: Provider = {
     WebhooksController,
   ],
   providers: [
+    adminAccessProvider,
+
     // Mappers
     OrderMapper,
     PaymentMapper,

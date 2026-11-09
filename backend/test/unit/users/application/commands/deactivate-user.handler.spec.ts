@@ -38,8 +38,6 @@ describe('DeactivateUserHandler', () => {
       updatePassword: jest.fn(),
       search: jest.fn(),
       getStats: jest.fn(),
-      updateRole: jest.fn(),
-      updateActiveStatus: jest.fn(),
     };
 
     handler = new DeactivateUserHandler(mockRepository);

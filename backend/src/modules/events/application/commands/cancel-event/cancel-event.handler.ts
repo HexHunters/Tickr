@@ -80,7 +80,7 @@ export class CancelEventHandler {
     // 3. Validate ownership (or administrator access)
     // ============================================
     const isAllowed = command.asAdmin
-      ? await this.userValidationService.hasRole(command.userId, 'ADMIN')
+      ? await this.userValidationService.isActiveAdmin(command.userId)
       : this.userValidationService.isEventOwner(command.userId, event.organizerId);
     if (!isAllowed) {
       return Result.fail({

@@ -10,6 +10,8 @@ import {
 } from '../../constants/payment-method-disabled.constants';
 import { ORDER_REPOSITORY } from '../../ports/order.repository.port';
 import type { OrderRepositoryPort } from '../../ports/order.repository.port';
+import { PAYMENT_ADMIN_ACCESS } from '../../ports/payment-admin-access.port';
+import type { PaymentAdminAccessPort } from '../../ports/payment-admin-access.port';
 import { PAYMENT_PROVIDER_FACTORY } from '../../ports/payment-provider.port';
 import type { PaymentProviderFactoryPort } from '../../ports/payment-provider.port';
 import { REFUND_REPOSITORY } from '../../ports/refund.repository.port';
@@ -33,6 +35,8 @@ export class RequestRefundHandler {
     @Inject(TICKET_RESERVATION_PORT)
     private readonly ticketReservation: TicketReservationPort,
     private readonly eventPublisher: DomainEventPublisher,
+    @Inject(PAYMENT_ADMIN_ACCESS)
+    private readonly adminAccess: PaymentAdminAccessPort,
   ) {}
 
   async execute(
@@ -45,6 +49,14 @@ export class RequestRefundHandler {
       return Result.fail({
         type: 'PAYMENT_METHOD_DISABLED',
         message: PAYMENTS_DISABLED_MESSAGE,
+      });
+    }
+
+    // Back-office refunds re-check the account rather than the JWT role.
+    if (command.asAdmin && !(await this.adminAccess.isActiveAdmin(command.userId))) {
+      return Result.fail({
+        type: 'ACCESS_DENIED',
+        message: 'Only an active administrator can refund another buyer\'s order',
       });
     }
 
@@ -94,7 +106,26 @@ export class RequestRefundHandler {
       reason: command.reason,
     });
 
-    // 5. Attempt refund with gateway — only proceed if successful
+    // 5. Claim the order before any money moves: a concurrent refund request
+    //    (customer and admin, or a double submit) loses the claim here.
+    let claimed: boolean;
+    try {
+      claimed = await this.refundRepository.claim(refund);
+    } catch (error) {
+      this.logger.error(`Failed to claim refund for order ${order.id}: ${error}`);
+      return Result.fail({
+        type: 'PERSISTENCE_ERROR',
+        message: 'Failed to process refund',
+      });
+    }
+    if (!claimed) {
+      return Result.fail({
+        type: 'INVALID_STATUS',
+        message: 'A refund is already in progress or completed for this order',
+      });
+    }
+
+    // 6. Attempt refund with gateway — only proceed if successful
     if (order.paymentMethod) {
       try {
         const provider = this.providerFactory.getProvider(order.paymentMethod);
@@ -104,8 +135,8 @@ export class RequestRefundHandler {
         if (refundResult.success) {
           refund.markAsCompleted(refundResult.refundId);
         } else {
-          refund.markAsFailed();
           this.logger.warn(`Gateway refund failed for order ${order.id}`);
+          await this.releaseClaim(refund);
           return Result.fail({
             type: 'GATEWAY_ERROR',
             message: 'Refund was declined by the payment gateway',
@@ -114,6 +145,7 @@ export class RequestRefundHandler {
       } catch (error) {
         // Konnect throws for manual refunds — do not mark order as refunded
         this.logger.warn(`Refund requires manual processing: ${error}`);
+        await this.releaseClaim(refund);
         return Result.fail({
           type: 'GATEWAY_ERROR',
           message: 'Refund requires manual processing via payment gateway dashboard',
@@ -121,16 +153,21 @@ export class RequestRefundHandler {
       }
     }
 
-    // 6. Mark order as refunded (only reached if gateway succeeded or no payment method)
+    // 7. Mark order as refunded (only reached if gateway succeeded or no payment method)
     const refundedResult = order.markAsRefunded(command.reason);
     if (refundedResult.isFailure) {
+      // Money may already be back with the buyer: keep the PENDING claim so no
+      // retry can refund twice, and leave it for manual reconciliation.
+      this.logger.error(
+        `Refund ${refund.id} for order ${order.id} needs reconciliation: ${refundedResult.error!.message}`,
+      );
       return Result.fail({
         type: 'INVALID_STATUS',
         message: refundedResult.error!.message,
       });
     }
 
-    // 7. Cancel tickets
+    // 8. Cancel tickets
     try {
       // Use real ticket IDs stored in metadata during order creation
       const ticketIds = (order.metadata?.ticketIds as string[]) ?? [];
@@ -141,7 +178,7 @@ export class RequestRefundHandler {
       this.logger.error(`Failed to cancel tickets on refund: ${error}`);
     }
 
-    // 8. Persist
+    // 9. Persist
     try {
       await this.refundRepository.save(refund);
       await this.orderRepository.save(order);
@@ -153,15 +190,30 @@ export class RequestRefundHandler {
       });
     }
 
-    // 9. Publish events
+    // 10. Publish events
     const events = order.pullDomainEvents();
     await this.eventPublisher.publishMany(events);
 
     this.logger.log(`Refund ${refund.id} processed for order ${order.id}`);
+    if (command.asAdmin) {
+      this.logger.log(
+        `Admin ${command.userId} refunded order ${order.id} (refund ${refund.id}): ${command.reason}`,
+      );
+    }
 
     return Result.ok({
       refundId: refund.id,
       status: refund.status,
     });
+  }
+
+  /** Marks the claim FAILED so a later attempt can claim the order again. */
+  private async releaseClaim(refund: RefundEntity): Promise<void> {
+    refund.markAsFailed();
+    try {
+      await this.refundRepository.save(refund);
+    } catch (error) {
+      this.logger.error(`Failed to release refund claim ${refund.id}: ${error}`);
+    }
   }
 }

@@ -420,6 +420,7 @@ export const createMockUserValidationService = () => ({
     (userId: string, organizerId: string) => userId === organizerId,
   ),
   hasRole: jest.fn().mockResolvedValue(true),
+  isActiveAdmin: jest.fn().mockResolvedValue(true),
   isAdmin: jest.fn().mockResolvedValue(false),
 });
 

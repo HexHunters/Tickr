@@ -79,6 +79,13 @@ export class CreateEventHandler {
       });
     }
 
+    if (!userValidation.isActive) {
+      return Result.fail({
+        type: 'ACCOUNT_INACTIVE',
+        message: `User '${command.organizerId}' is suspended`,
+      });
+    }
+
     // ============================================
     // 2. Create Location Value Object
     // ============================================
@@ -146,7 +153,28 @@ export class CreateEventHandler {
       const savedEvent = await this.eventRepository.save(event);
 
       // ============================================
-      // 6. Publish domain events
+      // 6. Re-check eligibility after the draft is committed
+      // ============================================
+      // An administrator may remove the organizer role while this request
+      // runs. The demotion verifies obligations after its own commit; this
+      // mirror check after ours guarantees at least one side sees the other,
+      // so a demoted account never keeps a newly created event.
+      const stillEligible = await this.userValidationService.validateOrganizer(
+        command.organizerId,
+      );
+      if (!stillEligible.isOrganizer || !stillEligible.isActive) {
+        await this.eventRepository.delete(savedEvent.id);
+        this.logger.warn(
+          `Event ${savedEvent.id} discarded: organizer ${command.organizerId} lost eligibility during creation`,
+        );
+        return Result.fail({
+          type: 'NOT_ORGANIZER',
+          message: `User '${command.organizerId}' can no longer create events`,
+        });
+      }
+
+      // ============================================
+      // 7. Publish domain events
       // ============================================
       await this.eventPublisher.publishFromAggregate(event);
 

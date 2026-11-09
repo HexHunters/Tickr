@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Get,
@@ -115,8 +116,12 @@ export class AdminUsersController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change a user role (Admin only)' })
   @ApiResponse({ status: 200, description: 'Updated user profile' })
-  @ApiResponse({ status: 403, description: 'Cannot change own role' })
+  @ApiResponse({ status: 403, description: 'Own account, or acting admin no longer active' })
   @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({
+    status: 409,
+    description: 'LAST_ACTIVE_ADMIN, or ORGANIZER_HAS_OPEN_OBLIGATIONS with details.obligations counts',
+  })
   async changeRole(
     @CurrentUser() admin: AdminUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -130,8 +135,17 @@ export class AdminUsersController {
       switch (error.type) {
         case 'USER_NOT_FOUND':
           throw new NotFoundException(error.message);
+        case 'ACTOR_NOT_AUTHORIZED':
         case 'SELF_MODIFICATION':
           throw new ForbiddenException({ code: error.type, message: error.message });
+        case 'LAST_ACTIVE_ADMIN':
+          throw new ConflictException({ code: error.type, message: error.message });
+        case 'ORGANIZER_HAS_OPEN_OBLIGATIONS':
+          throw new ConflictException({
+            code: error.type,
+            message: error.message,
+            details: { obligations: error.obligations },
+          });
         case 'PERSISTENCE_ERROR':
           throw new InternalServerErrorException(error.message);
       }
@@ -143,8 +157,9 @@ export class AdminUsersController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Suspend or reactivate a user (Admin only)' })
   @ApiResponse({ status: 200, description: 'Updated user profile' })
-  @ApiResponse({ status: 403, description: 'Cannot suspend own account' })
+  @ApiResponse({ status: 403, description: 'Own account, or acting admin no longer active' })
   @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 409, description: 'LAST_ACTIVE_ADMIN' })
   async setStatus(
     @CurrentUser() admin: AdminUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -158,8 +173,11 @@ export class AdminUsersController {
       switch (error.type) {
         case 'USER_NOT_FOUND':
           throw new NotFoundException(error.message);
+        case 'ACTOR_NOT_AUTHORIZED':
         case 'SELF_MODIFICATION':
           throw new ForbiddenException({ code: error.type, message: error.message });
+        case 'LAST_ACTIVE_ADMIN':
+          throw new ConflictException({ code: error.type, message: error.message });
         case 'PERSISTENCE_ERROR':
           throw new InternalServerErrorException(error.message);
       }

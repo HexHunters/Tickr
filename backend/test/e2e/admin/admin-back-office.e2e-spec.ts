@@ -5,26 +5,37 @@ import { USER_VALIDATION_SERVICE } from '@modules/events/application/ports/user-
 import { GetAdminEventsHandler } from '@modules/events/application/queries/get-admin-events/get-admin-events.handler';
 import { GetEventStatusCountsHandler } from '@modules/events/application/queries/get-event-status-counts/get-event-status-counts.handler';
 import { EventEntity } from '@modules/events/domain/entities/event.entity';
+import { TicketTypeEntity } from '@modules/events/domain/entities/ticket-type.entity';
+import { Currency } from '@modules/events/domain/value-objects/currency.vo';
 import { EventCategory } from '@modules/events/domain/value-objects/event-category.vo';
 import { EventDateRangeVO } from '@modules/events/domain/value-objects/event-date-range.vo';
 import { EventStatus } from '@modules/events/domain/value-objects/event-status.vo';
 import { LocationVO } from '@modules/events/domain/value-objects/location.vo';
+import { SalesPeriodVO } from '@modules/events/domain/value-objects/sales-period.vo';
+import { TicketPriceVO } from '@modules/events/domain/value-objects/ticket-price.vo';
 import { AdminEventsController } from '@modules/events/infrastructure/controllers/admin-events.controller';
 import { RequestRefundHandler } from '@modules/payments/application/commands/request-refund/request-refund.handler';
 import { PAYMENT_EVENT_QUERY_PORT } from '@modules/payments/application/ports/event-query.port';
 import { ORDER_REPOSITORY } from '@modules/payments/application/ports/order.repository.port';
+import { PAYMENT_ADMIN_ACCESS } from '@modules/payments/application/ports/payment-admin-access.port';
 import { PAYMENT_PROVIDER_FACTORY } from '@modules/payments/application/ports/payment-provider.port';
 import { REFUND_REPOSITORY } from '@modules/payments/application/ports/refund.repository.port';
 import { TICKET_RESERVATION_PORT } from '@modules/payments/application/ports/ticket-reservation.port';
 import { GetAdminOrdersHandler } from '@modules/payments/application/queries/get-admin-orders/get-admin-orders.handler';
 import { GetOrderStatusSummaryHandler } from '@modules/payments/application/queries/get-order-status-summary/get-order-status-summary.handler';
 import { OrderEntity } from '@modules/payments/domain/entities/order.entity';
+import type { RefundEntity } from '@modules/payments/domain/entities/refund.entity';
 import { OrderStatus } from '@modules/payments/domain/value-objects/order-status.vo';
 import { PaymentMethod } from '@modules/payments/domain/value-objects/payment-method.vo';
 import { AdminOrdersController } from '@modules/payments/infrastructure/controllers/admin-orders.controller';
 import { ChangeUserRoleHandler } from '@modules/users/application/commands/change-user-role.handler';
 import { SetUserActiveStatusHandler } from '@modules/users/application/commands/set-user-active-status.handler';
 import { UserMapper } from '@modules/users/application/mappers/user.mapper';
+import { ADMIN_ACCOUNT_UNIT_OF_WORK } from '@modules/users/application/ports/admin-account-unit-of-work.port';
+import type {
+  AdminAccountTransactionPort,
+  AdminAccountUnitOfWorkPort,
+} from '@modules/users/application/ports/admin-account-unit-of-work.port';
 import { USER_REPOSITORY } from '@modules/users/application/ports/user.repository.port';
 import type { UserEntityPort, UserSearchFilters } from '@modules/users/application/ports/user.repository.port';
 import { GetUserStatsHandler } from '@modules/users/application/queries/get-user-stats.handler';
@@ -48,6 +59,7 @@ import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerGuard, ThrottlerModule, ThrottlerStorage, ThrottlerStorageService } from '@nestjs/throttler';
 import { DOMAIN_EVENT_PUBLISHER } from '@shared/application/interfaces/domain-event-publisher.port';
+import { AllExceptionsFilter } from '@shared/infrastructure/common/filters/all-exceptions.filter';
 import { DomainEventPublisher } from '@shared/infrastructure/events/domain-event.publisher';
 import request from 'supertest';
 import { App } from 'supertest/types';
@@ -56,6 +68,7 @@ import { App } from 'supertest/types';
 const PASSWORD = 'AdminE2e!2026';
 const ids = {
   admin: '00000000-0000-4000-8000-0000000000a1',
+  admin2: '00000000-0000-4000-8000-0000000000a2',
   organizer: '00000000-0000-4000-8000-0000000000b1',
   participant: '00000000-0000-4000-8000-0000000000c1',
   draft: '00000000-0000-4000-8000-0000000000d1',
@@ -129,6 +142,59 @@ class InMemoryUsers {
   }
 }
 
+/** Serialized like the PostgreSQL advisory lock; obligations derive from the in-memory events/orders/refunds. */
+class InMemoryAdminAccounts implements AdminAccountUnitOfWorkPort {
+  private queue: Promise<unknown> = Promise.resolve();
+
+  constructor(
+    private readonly users: InMemoryUsers,
+    private readonly events: Map<string, EventEntity>,
+    private readonly orders: Map<string, OrderEntity>,
+    private readonly refunds: Map<string, RefundEntity>,
+  ) {}
+
+  run<T>(work: (tx: AdminAccountTransactionPort) => Promise<T>): Promise<T> {
+    const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
+    const tx: AdminAccountTransactionPort = {
+      findUser: async (id) => {
+        await tick();
+        const user = this.users.users.get(id);
+        return user ? { ...user } : null;
+      },
+      countActiveAdmins: async () =>
+        [...this.users.users.values()].filter((u) => u.role === UserRole.ADMIN && u.isActive).length,
+      updateRole: async (id, role) => {
+        await tick();
+        await this.users.updateRole(id, role);
+      },
+      updateActiveStatus: async (id, isActive) => {
+        await tick();
+        await this.users.updateActiveStatus(id, isActive);
+      },
+      findOrganizerObligations: async (organizerId) => {
+        const owned = [...this.events.values()].filter((e) => e.organizerId === organizerId);
+        const ownedIds = new Set(owned.map((e) => e.id));
+        const statusOf = (eventId: string) => this.events.get(eventId)?.status;
+        const orders = [...this.orders.values()].filter((o) => ownedIds.has(o.eventId));
+        return {
+          openEvents: owned.filter((e) => [EventStatus.DRAFT, EventStatus.PUBLISHED].includes(e.status)).length,
+          unsettledOrders: orders.filter(
+            (o) =>
+              [OrderStatus.PENDING, OrderStatus.PROCESSING].includes(o.status) ||
+              (o.status === OrderStatus.PAID && statusOf(o.eventId) === EventStatus.CANCELLED),
+          ).length,
+          pendingRefunds: [...this.refunds.values()].filter(
+            (r) => r.status === 'PENDING' && orders.some((o) => o.id === r.orderId),
+          ).length,
+        };
+      },
+    };
+    const next = this.queue.then(() => work(tx));
+    this.queue = next.catch(() => undefined);
+    return next;
+  }
+}
+
 function createEvent(id: string, title: string): EventEntity {
   const startDate = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000);
   const event = EventEntity.create({
@@ -176,6 +242,7 @@ describe('E2E: Admin back office', () => {
   let users: InMemoryUsers;
   let events: Map<string, EventEntity>;
   let orders: Map<string, OrderEntity>;
+  let refunds: Map<string, RefundEntity>;
   const gatewayRefund = jest.fn();
   const cancelTickets = jest.fn();
 
@@ -183,6 +250,7 @@ describe('E2E: Admin back office', () => {
     users = new InMemoryUsers();
     events = new Map();
     orders = new Map();
+    refunds = new Map();
     const eventRepository = {
       findById: async (id: string) => events.get(id) ?? null,
       save: async (event: EventEntity) => {
@@ -257,6 +325,10 @@ describe('E2E: Admin back office', () => {
         GetUserStatsHandler,
         ChangeUserRoleHandler,
         SetUserActiveStatusHandler,
+        {
+          provide: ADMIN_ACCOUNT_UNIT_OF_WORK,
+          useValue: new InMemoryAdminAccounts(users, events, orders, refunds),
+        },
         { provide: EVENT_REPOSITORY, useValue: eventRepository },
         {
           provide: EVENT_STAFF_USER_DIRECTORY,
@@ -266,6 +338,10 @@ describe('E2E: Admin back office', () => {
           provide: USER_VALIDATION_SERVICE,
           useValue: {
             hasRole: async (userId: string, role: string) => (await users.findById(userId))?.role === role,
+            isActiveAdmin: async (userId: string) => {
+              const user = await users.findById(userId);
+              return Boolean(user?.isActive && user.role === UserRole.ADMIN);
+            },
             isEventOwner: (userId: string, organizerId: string) => userId === organizerId,
           },
         },
@@ -274,7 +350,35 @@ describe('E2E: Admin back office', () => {
         GetEventStatusCountsHandler,
         CancelEventHandler,
         { provide: ORDER_REPOSITORY, useValue: orderRepository },
-        { provide: REFUND_REPOSITORY, useValue: { save: async (refund: unknown) => refund, findByOrderId: async () => [] } },
+        {
+          // Same contract as the partial unique index: one PENDING/COMPLETED refund per order.
+          provide: REFUND_REPOSITORY,
+          useValue: {
+            claim: async (refund: RefundEntity) => {
+              await new Promise<void>((resolve) => setImmediate(resolve));
+              const open = [...refunds.values()].some(
+                (r) => r.orderId === refund.orderId && r.status !== 'FAILED',
+              );
+              if (open) return false;
+              refunds.set(refund.id, refund);
+              return true;
+            },
+            save: async (refund: RefundEntity) => {
+              refunds.set(refund.id, refund);
+              return refund;
+            },
+            findByOrderId: async (orderId: string) => [...refunds.values()].filter((r) => r.orderId === orderId),
+          },
+        },
+        {
+          provide: PAYMENT_ADMIN_ACCESS,
+          useValue: {
+            isActiveAdmin: async (userId: string) => {
+              const user = await users.findById(userId);
+              return Boolean(user?.isActive && user.role === UserRole.ADMIN);
+            },
+          },
+        },
         {
           provide: PAYMENT_PROVIDER_FACTORY,
           useValue: {
@@ -293,6 +397,13 @@ describe('E2E: Admin back office', () => {
               const event = events.get(id);
               return event ? { id, title: event.title, status: event.status, startDate: new Date(), organizerId: ids.organizer, commissionRateOverride: null } : null;
             },
+            getEventsByIds: async (eventIds: string[]) =>
+              eventIds.flatMap((id) => {
+                const event = events.get(id);
+                return event
+                  ? [{ id, title: event.title, status: event.status, startDate: new Date(), organizerId: ids.organizer, commissionRateOverride: null }]
+                  : [];
+              }),
             getTicketType: async () => null,
           },
         },
@@ -309,7 +420,10 @@ describe('E2E: Admin back office', () => {
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, transformOptions: { enableImplicitConversion: true } }),
     );
     app.setGlobalPrefix('api');
-    await app.init();
+    // Same error shape as production (main.ts / AppModule).
+    app.useGlobalFilters(new AllExceptionsFilter());
+    // Listen on a real port so parallel requests genuinely overlap.
+    await app.listen(0);
   });
 
   afterAll(async () => {
@@ -339,12 +453,25 @@ describe('E2E: Admin back office', () => {
         updatedAt: new Date(),
       });
     seed(ids.admin, 'admin@e2e.tn', 'Ada', UserRole.ADMIN);
+    seed(ids.admin2, 'admin2@e2e.tn', 'Badr', UserRole.ADMIN);
     seed(ids.organizer, 'organizer@e2e.tn', 'Olfa', UserRole.ORGANIZER);
     seed(ids.participant, 'participant@e2e.tn', 'Amal', UserRole.PARTICIPANT);
     events.clear();
     events.set(ids.draft, createEvent(ids.draft, 'Brouillon secret'));
     const published = createEvent(ids.published, 'Nuit du jazz');
+    published.addTicketType(
+      TicketTypeEntity.create({
+        eventId: ids.published,
+        name: 'Standard',
+        price: TicketPriceVO.create(40, Currency.TND),
+        quantity: 100,
+        salesPeriod: SalesPeriodVO.create(new Date(Date.now() - 86_400_000), new Date(Date.now() + 10 * 86_400_000)),
+      }).value,
+    );
+    published.publish();
+    published.pullDomainEvents();
     events.set(ids.published, published);
+    refunds.clear();
     orders.clear();
     orders.set(ids.paidOrder, createOrder(ids.paidOrder, OrderStatus.PAID));
     orders.set(ids.pendingOrder, createOrder(ids.pendingOrder, OrderStatus.PENDING));
@@ -387,7 +514,7 @@ describe('E2E: Admin back office', () => {
     it('searches, filters and counts accounts', async () => {
       const { accessToken } = await login('admin@e2e.tn');
       const all = await http().get('/api/admin/users?page=1&limit=10').set(bearer(accessToken)).expect(200);
-      expect(all.body.total).toBe(3);
+      expect(all.body.total).toBe(4);
       expect(all.body.data[0]).not.toHaveProperty('passwordHash');
 
       const search = await http().get('/api/admin/users?search=OLFA').set(bearer(accessToken)).expect(200);
@@ -397,7 +524,7 @@ describe('E2E: Admin back office', () => {
       expect(byRole.body.total).toBe(1);
 
       const stats = await http().get('/api/admin/users/stats').set(bearer(accessToken)).expect(200);
-      expect(stats.body).toEqual({ total: 3, active: 3, inactive: 0, byRole: { ADMIN: 1, ORGANIZER: 1, PARTICIPANT: 1 } });
+      expect(stats.body).toEqual({ total: 4, active: 4, inactive: 0, byRole: { ADMIN: 2, ORGANIZER: 1, PARTICIPANT: 1 } });
     });
 
     it('rejects invalid filters and bodies', async () => {
@@ -471,7 +598,7 @@ describe('E2E: Admin back office', () => {
 
       await http().get('/api/admin/events?status=LIVE').set(bearer(accessToken)).expect(400);
       const stats = await http().get('/api/admin/events/stats').set(bearer(accessToken)).expect(200);
-      expect(stats.body).toEqual({ DRAFT: 2, PUBLISHED: 0, CANCELLED: 0, COMPLETED: 0 });
+      expect(stats.body).toEqual({ DRAFT: 1, PUBLISHED: 1, CANCELLED: 0, COMPLETED: 0 });
     });
 
     it('cancels another organizer\'s event once, with a reason', async () => {
@@ -498,7 +625,7 @@ describe('E2E: Admin back office', () => {
       // Role revoked after the token was issued: the handler must refuse.
       await users.updateRole(ids.admin, UserRole.PARTICIPANT);
       await http().post(`/api/admin/events/${ids.published}/cancel`).set(bearer(accessToken)).send({ reason: 'x' }).expect(403);
-      expect(events.get(ids.published)?.status).toBe(EventStatus.DRAFT);
+      expect(events.get(ids.published)?.status).toBe(EventStatus.PUBLISHED);
     });
   });
 
@@ -551,6 +678,124 @@ describe('E2E: Admin back office', () => {
       await http().post(`/api/admin/orders/${ids.paidOrder}/refund`).set(bearer(accessToken)).send({ reason: 'Declined' }).expect(400);
       expect(orders.get(ids.paidOrder)?.status).toBe(OrderStatus.PAID);
       expect(cancelTickets).not.toHaveBeenCalled();
+    });
+  });
+
+
+  describe('stale admin tokens and concurrent administrators', () => {
+    it("a suspended admin's still-valid token can no longer change accounts, cancel or refund", async () => {
+      const ada = await login('admin@e2e.tn');
+      const badr = await login('admin2@e2e.tn');
+      await http().patch(`/api/admin/users/${ids.admin2}/status`).set(bearer(ada.accessToken)).send({ isActive: false }).expect(200);
+
+      const demote = await http().patch(`/api/admin/users/${ids.admin}/role`).set(bearer(badr.accessToken)).send({ role: 'PARTICIPANT' }).expect(403);
+      expect(demote.body.code).toBe('ACTOR_NOT_AUTHORIZED');
+      await http().patch(`/api/admin/users/${ids.admin}/status`).set(bearer(badr.accessToken)).send({ isActive: false }).expect(403);
+      await http().post(`/api/admin/events/${ids.published}/cancel`).set(bearer(badr.accessToken)).send({ reason: 'x' }).expect(403);
+      const refund = await http().post(`/api/admin/orders/${ids.paidOrder}/refund`).set(bearer(badr.accessToken)).send({ reason: 'x' }).expect(403);
+      expect(refund.body.code).toBe('ACCESS_DENIED');
+
+      expect(users.users.get(ids.admin)).toMatchObject({ role: UserRole.ADMIN, isActive: true });
+      expect(events.get(ids.published)?.status).toBe(EventStatus.PUBLISHED);
+      expect(gatewayRefund).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['cross-demotion', 'role', { role: 'PARTICIPANT' }],
+      ['cross-suspension', 'status', { isActive: false }],
+    ])('simultaneous %s leaves exactly one active administrator', async (_case, route, body) => {
+      const ada = await login('admin@e2e.tn');
+      const badr = await login('admin2@e2e.tn');
+
+      const responses = await Promise.all([
+        http().patch(`/api/admin/users/${ids.admin2}/${route}`).set(bearer(ada.accessToken)).send(body),
+        http().patch(`/api/admin/users/${ids.admin}/${route}`).set(bearer(badr.accessToken)).send(body),
+      ]);
+
+      expect(responses.map((r) => r.status).sort()).toEqual([200, 403]);
+      const activeAdmins = [...users.users.values()].filter((u) => u.role === UserRole.ADMIN && u.isActive);
+      expect(activeAdmins).toHaveLength(1);
+    });
+
+    it('two simultaneous refunds of the same order reach the gateway once', async () => {
+      gatewayRefund.mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve({ success: true, refundId: 're_once', amount: 41 }), 20)),
+      );
+      const ada = await login('admin@e2e.tn');
+      const badr = await login('admin2@e2e.tn');
+
+      const responses = await Promise.all([
+        http().post(`/api/admin/orders/${ids.paidOrder}/refund`).set(bearer(ada.accessToken)).send({ reason: 'Ada' }),
+        http().post(`/api/admin/orders/${ids.paidOrder}/refund`).set(bearer(badr.accessToken)).send({ reason: 'Badr' }),
+      ]);
+
+      expect(responses.map((r) => r.status).sort()).toEqual([200, 400]);
+      expect(gatewayRefund).toHaveBeenCalledTimes(1);
+      expect(orders.get(ids.paidOrder)?.status).toBe(OrderStatus.REFUNDED);
+      expect([...refunds.values()].filter((r) => r.status === 'COMPLETED')).toHaveLength(1);
+    });
+
+    it('a declined refund releases the order for a later attempt', async () => {
+      const { accessToken } = await login('admin@e2e.tn');
+      gatewayRefund.mockResolvedValueOnce({ success: false });
+      await http().post(`/api/admin/orders/${ids.paidOrder}/refund`).set(bearer(accessToken)).send({ reason: 'Try 1' }).expect(400);
+
+      await http().post(`/api/admin/orders/${ids.paidOrder}/refund`).set(bearer(accessToken)).send({ reason: 'Try 2' }).expect(200);
+      expect(gatewayRefund).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('organizer demotion and obligations', () => {
+    const demoteOrganizer = (token: string) =>
+      http().patch(`/api/admin/users/${ids.organizer}/role`).set(bearer(token)).send({ role: 'PARTICIPANT' });
+
+    it('is refused with actionable counts while the organizer has open events or unsettled orders', async () => {
+      const { accessToken } = await login('admin@e2e.tn');
+
+      const response = await demoteOrganizer(accessToken).expect(409);
+
+      expect(response.body).toMatchObject({
+        code: 'ORGANIZER_HAS_OPEN_OBLIGATIONS',
+        details: { obligations: { openEvents: 2, unsettledOrders: 1, pendingRefunds: 0 } },
+      });
+      expect(users.users.get(ids.organizer)?.role).toBe(UserRole.ORGANIZER);
+    });
+
+    it('suspension stays immediate even with obligations, and blocks the organizer at once', async () => {
+      const { accessToken } = await login('admin@e2e.tn');
+      const organizer = await login('organizer@e2e.tn');
+
+      await http().patch(`/api/admin/users/${ids.organizer}/status`).set(bearer(accessToken)).send({ isActive: false }).expect(200);
+
+      expect(users.users.get(ids.organizer)).toMatchObject({ role: UserRole.ORGANIZER, isActive: false });
+      await http().post('/api/auth/refresh-token').send({ refreshToken: organizer.refreshToken }).expect(401);
+    });
+
+    it('cancelling does not refund paid orders: they stay owed, and block demotion, until refunded', async () => {
+      const { accessToken } = await login('admin@e2e.tn');
+
+      await http().post(`/api/admin/events/${ids.published}/cancel`).set(bearer(accessToken)).send({ reason: 'Salle indisponible' }).expect(200);
+      await http().post(`/api/admin/events/${ids.draft}/cancel`).set(bearer(accessToken)).send({ reason: 'Abandonné' }).expect(200);
+
+      // No automatic refund: the paid order is untouched and the gateway was never called.
+      expect(orders.get(ids.paidOrder)?.status).toBe(OrderStatus.PAID);
+      expect(gatewayRefund).not.toHaveBeenCalled();
+      const paidOnCancelled = await http().get(`/api/admin/orders?status=PAID&eventId=${ids.published}`).set(bearer(accessToken)).expect(200);
+      expect(paidOnCancelled.body.total).toBe(1);
+
+      // Events are closed, but the paid order (refund owed) and the pending payment remain.
+      const blocked = await demoteOrganizer(accessToken).expect(409);
+      expect(blocked.body.details.obligations).toEqual({ openEvents: 0, unsettledOrders: 2, pendingRefunds: 0 });
+
+      await http().post(`/api/admin/orders/${ids.paidOrder}/refund`).set(bearer(accessToken)).send({ reason: 'Événement annulé' }).expect(200);
+      expect((await demoteOrganizer(accessToken).expect(409)).body.details.obligations.unsettledOrders).toBe(1);
+
+      orders.get(ids.pendingOrder)!.cancel('Payment abandoned');
+      const demoted = await demoteOrganizer(accessToken).expect(200);
+      expect(demoted.body.role).toBe('PARTICIPANT');
+      // History is kept: the events and orders still belong to the account.
+      expect(events.get(ids.published)?.organizerId).toBe(ids.organizer);
+      expect(orders.size).toBe(2);
     });
   });
 

@@ -123,6 +123,13 @@ export interface EventRepositoryPort extends IRepository<EventEntity> {
   findEventsToComplete(beforeDate: Date): Promise<EventEntity[]>;
 
   /**
+   * Find events by IDs, any status, in one query (cross-module batch hydration)
+   *
+   * @param ids - Event UUIDs; unknown IDs are simply absent from the result
+   */
+  findByIds(ids: string[]): Promise<EventEntity[]>;
+
+  /**
    * Find events of any status with filters (back office)
    *
    * Unlike findPublished, drafts, cancelled and completed events are included

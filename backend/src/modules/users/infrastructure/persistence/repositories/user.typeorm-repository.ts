@@ -195,7 +195,9 @@ export class UserTypeOrmRepository
     const qb = this.repository.createQueryBuilder('user');
 
     if (filters.search?.trim()) {
-      const term = `%${filters.search.trim().toLowerCase()}%`;
+      // Typed % and _ must match literally, not act as LIKE wildcards.
+      const literal = filters.search.trim().toLowerCase().replace(/[\\%_]/g, '\\$&');
+      const term = `%${literal}%`;
       qb.andWhere(
         new Brackets((sub) => {
           sub
@@ -260,27 +262,6 @@ export class UserTypeOrmRepository
     }
 
     return { total: active + inactive, active, inactive, byRole };
-  }
-
-  /**
-   * Update user's role (keeps the legacy is_organizer flag in sync)
-   */
-  async updateRole(userId: string, role: UserRole): Promise<void> {
-    await this.repository.update(userId, {
-      role,
-      isOrganizer: role === UserRole.ORGANIZER,
-      updatedAt: new Date(),
-    });
-  }
-
-  /**
-   * Activate or deactivate a user account
-   */
-  async updateActiveStatus(userId: string, isActive: boolean): Promise<void> {
-    await this.repository.update(userId, {
-      isActive,
-      updatedAt: new Date(),
-    });
   }
 
   /**

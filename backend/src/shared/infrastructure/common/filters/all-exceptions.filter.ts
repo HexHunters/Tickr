@@ -28,7 +28,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let code = 'INTERNAL_ERROR';
-    const details: unknown = undefined;
+    let details: unknown = undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -38,7 +38,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? exceptionResponse
           : (exceptionResponse as { message?: string }).message || message;
       if (typeof exceptionResponse !== 'string') {
-        const httpError = exceptionResponse as { code?: unknown; error?: unknown };
+        const httpError = exceptionResponse as { code?: unknown; error?: unknown; details?: unknown };
+        // Structured, intentionally public context (e.g. obligation counts).
+        if (httpError.details !== null && typeof httpError.details === 'object') {
+          details = httpError.details;
+        }
         if (typeof httpError.code === 'string' && httpError.code !== '') {
           code = httpError.code;
         } else if (typeof httpError.error === 'string' && httpError.error !== '') {

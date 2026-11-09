@@ -42,6 +42,7 @@ describe('CreateOrderHandler', () => {
     };
 
     mockEventQuery = {
+      getEventsByIds: jest.fn(),
       getEventById: jest.fn().mockResolvedValue({
         id: validEventId,
         title: 'Test Event',

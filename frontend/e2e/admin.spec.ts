@@ -122,6 +122,46 @@ test.describe('Back office, as an administrator', () => {
     await expect(page.getByRole('status')).toContainText('réactivé')
   })
 
+  test('organizer with open events: demotion refused, suspension immediate', async () => {
+    await page.goto('/admin/users')
+    await page.getByRole('combobox').first().selectOption('ORGANIZER')
+    const organizer = page.locator('.admin-list > li', {
+      hasText: 'organizer@demo.tickr.local',
+    })
+    await expect(
+      organizer.locator('.admin-row-tags .status-pill').first(),
+    ).toHaveText('Organisateur')
+
+    await organizer.getByRole('button', { name: 'Gérer' }).click()
+    await organizer.getByRole('combobox').selectOption('PARTICIPANT')
+    await organizer.getByRole('button', { name: 'Changer le rôle' }).click()
+    const refusal = organizer.locator('.form-error')
+    await expect(refusal).toContainText(
+      /Ce compte a encore \d+ événements? ouverts?/,
+    )
+    await expect(refusal).toContainText('la suspension reste possible')
+    await expect(
+      organizer.locator('.admin-row-tags .status-pill').first(),
+    ).toHaveText('Organisateur')
+
+    await organizer.getByRole('button', { name: 'Suspendre le compte' }).click()
+    const notice = page.getByRole('status').filter({ hasText: 'est suspendu' })
+    await expect(notice).toContainText('Ses événements restent en ligne')
+    await notice.getByRole('link', { name: 'Voir ses événements' }).click()
+    await page.waitForURL((url) => url.searchParams.has('organizerId'))
+    await expect(page.locator('.filter-chip.is-active')).toBeVisible()
+    await expect(page.locator('.admin-list > li').first()).toContainText(
+      'organizer@demo.tickr.local',
+    )
+
+    // Restore the organizer.
+    await page.goto('/admin/users')
+    await page.getByRole('combobox').first().selectOption('ORGANIZER')
+    await organizer.getByRole('button', { name: 'Gérer' }).click()
+    await organizer.getByRole('button', { name: 'Réactiver le compte' }).click()
+    await expect(page.getByRole('status')).toContainText('réactivé')
+  })
+
   test('events: commission, free tickets and cancellation', async () => {
     await page.goto('/admin/events')
     await page.getByRole('combobox').first().selectOption('PUBLISHED')

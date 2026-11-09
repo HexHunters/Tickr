@@ -37,6 +37,7 @@ describe('CancelEventHandler', () => {
     mockUserValidationService = {
       isEventOwner: jest.fn(),
       hasRole: jest.fn(),
+      isActiveAdmin: jest.fn(),
     } as any;
 
     mockEventPublisher = {
@@ -340,24 +341,24 @@ describe('CancelEventHandler', () => {
       const command = new CancelEventCommand(eventId, adminId, validReason, true);
 
       mockEventRepository.findById.mockResolvedValue(event);
-      mockUserValidationService.hasRole.mockResolvedValue(true);
+      mockUserValidationService.isActiveAdmin.mockResolvedValue(true);
       mockEventRepository.save.mockResolvedValue(event);
 
       const result = await handler.execute(command);
 
       expect(result.isSuccess).toBe(true);
-      expect(mockUserValidationService.hasRole).toHaveBeenCalledWith(adminId, 'ADMIN');
+      expect(mockUserValidationService.isActiveAdmin).toHaveBeenCalledWith(adminId);
       expect(mockUserValidationService.isEventOwner).not.toHaveBeenCalled();
       expect(event.status).toBe(EventStatus.CANCELLED);
       expect(mockEventPublisher.publishFromAggregate).toHaveBeenCalledTimes(1);
     });
 
-    it('should refuse a back-office cancellation from a non-admin', async () => {
+    it('should refuse a back-office cancellation from an account no longer an active admin', async () => {
       const event = createPublishedEvent();
       const command = new CancelEventCommand(eventId, adminId, validReason, true);
 
       mockEventRepository.findById.mockResolvedValue(event);
-      mockUserValidationService.hasRole.mockResolvedValue(false);
+      mockUserValidationService.isActiveAdmin.mockResolvedValue(false);
 
       const result = await handler.execute(command);
 
@@ -372,7 +373,7 @@ describe('CancelEventHandler', () => {
       const command = new CancelEventCommand(eventId, adminId, validReason, true);
 
       mockEventRepository.findById.mockResolvedValue(event);
-      mockUserValidationService.hasRole.mockResolvedValue(true);
+      mockUserValidationService.isActiveAdmin.mockResolvedValue(true);
 
       const result = await handler.execute(command);
 

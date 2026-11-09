@@ -17,6 +17,7 @@ import { PasswordResetRequestedEventHandler } from '../application/event-handler
 import { UserRegisteredEventHandler } from '../application/event-handlers/user-registered.handler';
 // Application Layer - Mappers
 import { UserMapper } from '../application/mappers/user.mapper';
+import { ADMIN_ACCOUNT_UNIT_OF_WORK } from '../application/ports/admin-account-unit-of-work.port';
 import { USER_REPOSITORY } from '../application/ports/user.repository.port';
 import { GetUserByEmailHandler } from '../application/queries/get-user-by-email.handler';
 import { GetUserByIdHandler } from '../application/queries/get-user-by-id.handler';
@@ -33,6 +34,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { UserEntity } from './persistence/entities/user.orm-entity';
 import { VerificationTokenEntity } from './persistence/entities/verification-token.orm-entity';
 import { UserPersistenceMapper } from './persistence/mappers/user-persistence.mapper';
+import { AdminAccountUnitOfWorkRepository } from './persistence/repositories/admin-account-unit-of-work.repository';
 import { UserTypeOrmRepository } from './persistence/repositories/user.typeorm-repository';
 import { VerificationTokenRepository } from './persistence/repositories/verification-token.repository';
 // Infrastructure Layer - Services
@@ -148,6 +150,7 @@ const repositoryProvider: Provider = {
 
     // Repository
     repositoryProvider,
+    { provide: ADMIN_ACCOUNT_UNIT_OF_WORK, useClass: AdminAccountUnitOfWorkRepository },
     VerificationTokenRepository,
 
     // Services

@@ -106,6 +106,38 @@ describe('AllExceptionsFilter', () => {
       }));
     });
 
+    it('passes an explicit details object through, and nothing else from the body', () => {
+      filter.catch(
+        new HttpException({
+          code: 'ORGANIZER_HAS_OPEN_OBLIGATIONS',
+          message: 'Close or settle them first',
+          details: { obligations: { openEvents: 2, unsettledOrders: 1, pendingRefunds: 0 } },
+          internal: 'never exposed',
+        }, HttpStatus.CONFLICT),
+        mockExecutionContext as ExecutionContext,
+      );
+
+      const body = mockJson.mock.calls[0][0];
+      expect(mockStatus).toHaveBeenCalledWith(409);
+      expect(body).toMatchObject({
+        code: 'ORGANIZER_HAS_OPEN_OBLIGATIONS',
+        details: { obligations: { openEvents: 2, unsettledOrders: 1, pendingRefunds: 0 } },
+      });
+      expect(body).not.toHaveProperty('internal');
+    });
+
+    it.each([['a string', 'oops'], ['null', null], ['absent', undefined]])(
+      'leaves details undefined when the body details are %s',
+      (_case, details) => {
+        filter.catch(
+          new HttpException({ code: 'X', message: 'm', details }, HttpStatus.BAD_REQUEST),
+          mockExecutionContext as ExecutionContext,
+        );
+
+        expect(mockJson.mock.calls[0][0].details).toBeUndefined();
+      },
+    );
+
     it('keeps the machine code of the payment gate exception, which has no error label', () => {
       // The body that the payment gateway gates throw: a code and a message, no `error` field.
       const exception = new ForbiddenException({

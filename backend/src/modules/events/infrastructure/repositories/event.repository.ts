@@ -141,6 +141,19 @@ export class EventTypeOrmRepository implements EventRepositoryPort {
   }
 
   /**
+   * Find events by IDs in one query
+   */
+  async findByIds(ids: string[]): Promise<EventEntity[]> {
+    if (ids.length === 0) return [];
+    const entities = await this.repository
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.ticketTypes', 'ticketTypes')
+      .where('event.id IN (:...ids)', { ids })
+      .getMany();
+    return this.mapper.toDomainArray(entities);
+  }
+
+  /**
    * Find events of any status with filters (back office)
    */
   async findAll(
@@ -305,7 +318,7 @@ export class EventTypeOrmRepository implements EventRepositoryPort {
   }
 
   /**
-   * Count total published events
+   * Count all events grouped by status (back office); absent statuses are 0
    */
   async countByStatus(): Promise<Record<EventStatus, number>> {
     const rows = await this.repository
@@ -324,6 +337,9 @@ export class EventTypeOrmRepository implements EventRepositoryPort {
     return counts;
   }
 
+  /**
+   * Count total published events
+   */
   async countPublished(): Promise<number> {
     return this.repository.count({
       where: { status: EventStatus.PUBLISHED },

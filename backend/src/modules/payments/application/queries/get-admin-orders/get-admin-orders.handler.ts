@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 
 import type { OrderEntity } from '../../../domain/entities/order.entity';
 import type { AdminOrderDto, PaginatedAdminOrdersDto } from '../../dtos/order.dto';
@@ -14,10 +14,12 @@ import { GetAdminOrdersQuery } from './get-admin-orders.query';
  * Handler for GetAdminOrdersQuery
  *
  * Buyer identity comes from the holder captured at checkout; event titles
- * are resolved once per distinct event on the page.
+ * are resolved in one batch for the distinct events on the page.
  */
 @Injectable()
 export class GetAdminOrdersHandler {
+  private readonly logger = new Logger(GetAdminOrdersHandler.name);
+
   constructor(
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: OrderRepositoryPort,
@@ -32,13 +34,7 @@ export class GetAdminOrdersHandler {
       query.limit,
     );
 
-    const eventIds = [...new Set(data.map((order) => order.eventId))];
-    const events = await Promise.all(
-      eventIds.map((id) => this.eventQuery.getEventById(id).catch(() => null)),
-    );
-    const titles = new Map(
-      events.flatMap((event) => (event ? [[event.id, event.title] as const] : [])),
-    );
+    const titles = await this.eventTitles([...new Set(data.map((order) => order.eventId))]);
 
     return {
       data: data.map((order) => this.toDto(order, titles.get(order.eventId) ?? null)),
@@ -47,6 +43,25 @@ export class GetAdminOrdersHandler {
       limit: query.limit,
       totalPages: Math.ceil(total / query.limit),
     };
+  }
+
+  /**
+   * Titles are presentation only: if the Events lookup fails, the orders are
+   * still listed (shown as unavailable) and the failure is logged.
+   */
+  private async eventTitles(eventIds: string[]): Promise<Map<string, string>> {
+    if (eventIds.length === 0) return new Map();
+    try {
+      const events = await this.eventQuery.getEventsByIds(eventIds);
+      return new Map(events.map((event) => [event.id, event.title]));
+    } catch (error) {
+      this.logger.warn(
+        `Event titles unavailable for admin orders (events ${eventIds.join(', ')}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return new Map();
+    }
   }
 
   private toDto(order: OrderEntity, eventTitle: string | null): AdminOrderDto {

@@ -124,16 +124,6 @@ export interface UserRepositoryPort extends IRepository<UserEntityPort> {
    * Aggregate user counters (back office)
    */
   getStats(): Promise<UserStats>;
-
-  /**
-   * Update user's role
-   */
-  updateRole(userId: string, role: UserRole): Promise<void>;
-
-  /**
-   * Activate or deactivate a user account
-   */
-  updateActiveStatus(userId: string, isActive: boolean): Promise<void>;
 }
 
 /**

@@ -158,4 +158,52 @@ describe('ResolveEventCheckInAccessHandler', () => {
     expect(result.value.canCheckIn).toBe(false);
     expect(result.value.canViewBasicStats).toBe(true);
   });
+
+  describe('after an administrator acts on the organizer', () => {
+    const owner = (overrides: Partial<{ role: 'ADMIN' | 'ORGANIZER' | 'PARTICIPANT'; isActive: boolean }>) => ({
+      id: organizerId,
+      email: 'owner@example.com',
+      firstName: 'Event',
+      lastName: 'Owner',
+      role: 'ORGANIZER' as const,
+      isActive: true,
+      emailVerified: true,
+      ...overrides,
+    });
+
+    it('a suspended owner loses check-in access to their published event immediately', async () => {
+      userDirectory.getUserById.mockResolvedValue(owner({ isActive: false }));
+
+      const result = await handler.execute(new ResolveEventCheckInAccessQuery(eventId, organizerId));
+
+      expect(result.error.type).toBe('ACCESS_DENIED');
+    });
+
+    it("staff assigned to a suspended owner's event keep their own access", async () => {
+      const assignment = EventCheckInStaffAssignmentEntity.create({
+        eventId,
+        userId: actorId,
+        assignedBy: organizerId,
+      }).value;
+      assignmentRepository.findActiveByEventAndUser.mockResolvedValue(assignment);
+
+      const result = await handler.execute(new ResolveEventCheckInAccessQuery(eventId, actorId));
+
+      expect(result.value.authorizationSource).toBe('ASSIGNMENT');
+      expect(result.value.canCheckIn).toBe(true);
+    });
+
+    it.each([EventStatus.CANCELLED, EventStatus.COMPLETED])(
+      'historical ownership of a %s event does not let a demoted participant scan',
+      async (closed) => {
+        // Demotion is only allowed once every owned event is closed.
+        jest.spyOn(event, 'status', 'get').mockReturnValue(closed);
+        userDirectory.getUserById.mockResolvedValue(owner({ role: 'PARTICIPANT' }));
+
+        const result = await handler.execute(new ResolveEventCheckInAccessQuery(eventId, organizerId));
+
+        expect(result.value.canCheckIn).toBe(false);
+      },
+    );
+  });
 });

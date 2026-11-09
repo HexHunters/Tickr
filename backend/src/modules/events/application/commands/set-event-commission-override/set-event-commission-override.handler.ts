@@ -39,9 +39,8 @@ export class SetEventCommissionOverrideHandler {
   ): Promise<
     Result<SetEventCommissionOverrideResult, SetEventCommissionOverrideError>
   > {
-    const isAdmin = await this.userValidationService.hasRole(
+    const isAdmin = await this.userValidationService.isActiveAdmin(
       command.adminId,
-      'ADMIN',
     );
     if (!isAdmin) {
       return Result.fail({

@@ -9,6 +9,7 @@ import {
   CalendarDaysIcon,
   CheckCircleIcon,
   MagnifyingGlassIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 import { AdminPagination } from '@/components/admin/workspace'
@@ -41,7 +42,7 @@ function EventPanel({
   onDone,
 }: {
   event: AdminEvent
-  onDone: (message: string) => void
+  onDone: (message: string, paidOrdersOf?: string) => void
 }) {
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState('')
@@ -88,7 +89,8 @@ function EventPanel({
     onSuccess: async () => {
       await refresh()
       onDone(
-        `« ${event.title} » est annulé. Les commandes payées suivent le parcours de remboursement.`,
+        `« ${event.title} » est annulé. Les commandes déjà payées ne sont pas remboursées automatiquement : remboursez-les depuis Commandes.`,
+        event.id,
       )
     },
   })
@@ -217,7 +219,7 @@ function EventPanel({
           <div className="admin-panel-form">
             <p className="field-help">
               {event.status === 'PUBLISHED'
-                ? 'L’annulation retire l’événement du programme et déclenche le remboursement des billets vendus.'
+                ? 'L’annulation retire l’événement du programme. Les commandes déjà payées restent à rembourser depuis Commandes : rien n’est remboursé automatiquement.'
                 : 'Le brouillon ne pourra plus être publié.'}
             </p>
             <button
@@ -238,17 +240,21 @@ function EventPanel({
   )
 }
 
-export function AdminEventList() {
+export function AdminEventList({ organizerId }: { organizerId?: string }) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [category, setCategory] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState<{
+    text: string
+    paidOrdersOf?: string
+  } | null>(null)
   const params = new URLSearchParams({ page: String(page), limit: '20' })
   if (search) params.set('search', search)
   if (status) params.set('status', status)
   if (category) params.set('category', category)
+  if (organizerId) params.set('organizerId', organizerId)
   const events = useQuery({
     queryKey: ['admin', 'events', params.toString()],
     queryFn: () =>
@@ -326,11 +332,28 @@ export function AdminEventList() {
             ))}
           </select>
         </label>
+        {organizerId && (
+          <Link className="filter-chip is-active" href="/admin/events">
+            {events.data?.data[0]?.organizer.name ?? 'Un organisateur'}
+            <XMarkIcon />
+            <span className="sr-only">Retirer le filtre organisateur</span>
+          </Link>
+        )}
       </div>
       {notice && (
         <p className="form-success" role="status">
           <CheckCircleIcon />
-          {notice}
+          <span>
+            {notice.text}{' '}
+            {notice.paidOrdersOf && (
+              <Link
+                className="text-link"
+                href={`/admin/orders?eventId=${notice.paidOrdersOf}`}
+              >
+                Voir les commandes
+              </Link>
+            )}
+          </span>
         </p>
       )}
       <div className="workspace-section-title">
@@ -409,7 +432,7 @@ export function AdminEventList() {
                         className="button button-outline"
                         aria-expanded={isOpen}
                         onClick={() => {
-                          setNotice('')
+                          setNotice(null)
                           setOpenId(isOpen ? null : event.id)
                         }}
                       >
@@ -438,8 +461,8 @@ export function AdminEventList() {
                     <EventPanel
                       key={`${event.id}-${event.status}-${event.commissionRateOverride}-${event.freeTicketsEnabledOverride}`}
                       event={event}
-                      onDone={(message) => {
-                        setNotice(message)
+                      onDone={(text, paidOrdersOf) => {
+                        setNotice({ text, paidOrdersOf })
                         setOpenId(null)
                       }}
                     />

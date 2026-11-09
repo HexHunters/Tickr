@@ -16,6 +16,11 @@ import { RefundStatus } from '../../../domain/value-objects/refund-status.vo';
  * @see RefundEntity for domain logic
  */
 @Entity({ name: 'refunds', schema: 'payments' })
+// One open or completed refund per order (see migration AddRefundOpenClaimIndex).
+@Index('UQ_refunds_order_open', ['orderId'], {
+  unique: true,
+  where: `"status" IN ('PENDING', 'COMPLETED')`,
+})
 export class RefundOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

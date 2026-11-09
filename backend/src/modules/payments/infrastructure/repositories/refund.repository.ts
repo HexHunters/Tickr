@@ -26,6 +26,20 @@ export class RefundTypeOrmRepository implements RefundRepositoryPort {
     return this.mapper.toDomain(saved);
   }
 
+  async claim(refund: RefundEntity): Promise<boolean> {
+    // Relies on the partial unique index UQ_refunds_order_open
+    // (order_id WHERE status IN ('PENDING', 'COMPLETED')).
+    const result = await this.repository
+      .createQueryBuilder()
+      .insert()
+      .into(RefundOrmEntity)
+      .values(this.mapper.toPersistence(refund))
+      .orIgnore()
+      .returning('id')
+      .execute();
+    return Array.isArray(result.raw) && result.raw.length > 0;
+  }
+
   async findByOrderId(orderId: string): Promise<RefundEntity[]> {
     const entities = await this.repository.find({
       where: { orderId },
