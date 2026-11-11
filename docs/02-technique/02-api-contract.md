@@ -235,11 +235,82 @@ Utiliser `null` pour rétablir le taux global. Valeurs acceptées: 0 à 0.20, ma
 }
 ```
 
+**Response 200 (second factor required):** pour un `ADMIN` (ou un compte ayant activé l'authentification
+à deux facteurs), le mot de passe seul n'ouvre aucune session :
+
+```json
+{
+  "mfaRequired": true,
+  "mfaMethod": "ENROLL",
+  "mfaToken": "eyJhbGc...",
+  "expiresIn": 300
+}
+```
+
+`mfaMethod` vaut `ENROLL` à la première connexion (aucune application configurée) et `VERIFY` ensuite.
+`mfaToken` est valable 5 minutes et ne vaut ni access ni refresh token. Voir
+[Authentification à deux facteurs](#-authentification-à-deux-facteurs-administrateurs).
+
+---
+
+### 🔐 Authentification à deux facteurs (administrateurs)
+
+Codes à usage unique basés sur le temps (TOTP, RFC 6238 : SHA-1, 6 chiffres, 30 s, ±30 s de dérive),
+compatibles avec Google Authenticator, Microsoft Authenticator, 1Password, Aegis…
+
+- **Obligatoire** pour le rôle `ADMIN`. Les sessions ouvertes après le second facteur portent la
+  revendication `mfa: true` ; un access ou refresh token `ADMIN` sans elle est refusé (`401`). Les
+  sessions administrateur ouvertes avant le déploiement doivent donc se reconnecter.
+- Le secret est chiffré au repos (AES-256-GCM, clé `MFA_ENCRYPTION_KEY`, à défaut dérivée de
+  `JWT_SECRET`). Les codes de récupération ne sont stockés que sous forme d'empreinte (HMAC-SHA256).
+- Chaque code TOTP n'est accepté qu'une fois (pas de rejeu, même en requêtes simultanées). Après 5 codes
+  erronés consécutifs, le second facteur est bloqué 15 minutes (`429 MFA_LOCKED`).
+- Une application déjà configurée ne peut jamais être remplacée depuis la connexion (le mot de passe
+  seul ne suffit pas). En cas de perte du téléphone **et** des codes : réinitialisation par un opérateur
+  ayant accès à la base, `npm run mfa:reset -- <email>` ; la connexion suivante reconfigure une
+  application.
+- La première configuration fait confiance au premier détenteur du mot de passe (« trust on first
+  use ») : activez-la dès la création d'un compte administrateur.
+
+#### POST /auth/mfa/enroll/start
+
+**Body:** `{ "mfaToken": "…" }` (méthode `ENROLL`)
+**Response 200:** `{ "secret": "BASE32…", "otpauthUri": "otpauth://totp/Tickr:…", "qrCodeDataUrl": "data:image/png;base64,…" }`
+**Erreurs:** `401 MFA_CHALLENGE_EXPIRED`, `403` rôle sans second facteur, `409 MFA_ALREADY_ENROLLED`
+
+#### POST /auth/mfa/enroll/confirm
+
+**Body:** `{ "mfaToken": "…", "code": "123456" }`
+**Response 200:** session (`accessToken`, `refreshToken`, `expiresIn`, `user`) et `recoveryCodes` : 10 codes
+`XXXXX-XXXXX` à usage unique, **affichés une seule fois**.
+**Erreurs:** `401 INVALID_MFA_CODE`, `401 MFA_CHALLENGE_EXPIRED`, `409 MFA_ALREADY_ENROLLED` /
+`MFA_ENROLLMENT_NOT_STARTED`, `429 MFA_LOCKED`
+
+#### POST /auth/mfa/verify
+
+**Body:** `{ "mfaToken": "…", "code": "123456" }` **ou** `{ "mfaToken": "…", "recoveryCode": "ABCDE-FGHJK" }`
+**Response 200:** session et `{ "method": "TOTP" | "RECOVERY_CODE", "remainingRecoveryCodes": 9 }`
+**Erreurs:** `400` ni code ni code de récupération (ou les deux), `401 INVALID_MFA_CODE`,
+`401 MFA_CHALLENGE_EXPIRED`, `429 MFA_LOCKED`
+
+#### GET /users/me/mfa
+
+**Auth:** Required
+**Response 200:** `{ "enabled": true, "enabledAt": "…", "required": true, "remainingRecoveryCodes": 10 }`
+
+#### POST /users/me/mfa/recovery-codes
+
+**Auth:** Required
+**Body:** `{ "code": "123456" }` (code de l'application, pas un code de récupération)
+**Response 200:** `{ "recoveryCodes": [ … ] }` — les anciens codes cessent immédiatement de fonctionner.
+**Erreurs:** `401 INVALID_MFA_CODE`, `409 MFA_NOT_ENROLLED`, `429 MFA_LOCKED`
+
 ---
 
 ### POST /auth/refresh-token
 
-**Description:** Renouveler access token
+**Description:** Renouveler access token. Un refresh token `ADMIN` sans revendication `mfa` est
+refusé (`401`) ; la revendication est conservée dans le nouvel access token.
 
 **Body:**
 

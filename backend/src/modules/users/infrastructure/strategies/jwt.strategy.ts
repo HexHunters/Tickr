@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
+import { MFA_REQUIRED_ROLES } from '../../domain/value-objects/user-role.vo';
 import { JwtPayload } from '../services/jwt.service';
 
 /**
@@ -60,6 +61,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Verify required fields
     if (!payload.userId || !payload.email || !payload.role) {
       throw new UnauthorizedException('Invalid token payload');
+    }
+
+    // Roles that require a second factor are only accepted from sessions
+    // opened with it (older tokens, or a promotion, force a new sign-in).
+    if (MFA_REQUIRED_ROLES.includes(payload.role) && payload.mfa !== true) {
+      throw new UnauthorizedException('Two-factor authentication required');
     }
 
     // Return user data to be attached to request

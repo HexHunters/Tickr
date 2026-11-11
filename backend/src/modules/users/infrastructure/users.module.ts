@@ -7,31 +7,44 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Application Layer - Command Handlers
 import { ChangePasswordHandler } from '../application/commands/change-password.handler';
+import { ConfirmMfaEnrollmentHandler } from '../application/commands/confirm-mfa-enrollment.handler';
 import { DeactivateUserHandler } from '../application/commands/deactivate-user.handler';
+import { RegenerateRecoveryCodesHandler } from '../application/commands/regenerate-recovery-codes.handler';
+import { StartMfaEnrollmentHandler } from '../application/commands/start-mfa-enrollment.handler';
 import { UpdateProfileHandler } from '../application/commands/update-profile.handler';
+import { VerifyMfaHandler } from '../application/commands/verify-mfa.handler';
 // Application Layer - Event Handlers
 import { EmailVerifiedEventHandler } from '../application/event-handlers/email-verified.handler';
 import { PasswordResetRequestedEventHandler } from '../application/event-handlers/password-reset-requested.handler';
 import { UserRegisteredEventHandler } from '../application/event-handlers/user-registered.handler';
 // Application Layer - Mappers
 import { UserMapper } from '../application/mappers/user.mapper';
+import { MFA_CRYPTO } from '../application/ports/mfa-crypto.port';
+import { MFA_REPOSITORY } from '../application/ports/mfa.repository.port';
 import { USER_REPOSITORY } from '../application/ports/user.repository.port';
+import { GetMfaStatusHandler } from '../application/queries/get-mfa-status.handler';
 import { GetUserByEmailHandler } from '../application/queries/get-user-by-email.handler';
 import { GetUserByIdHandler } from '../application/queries/get-user-by-id.handler';
 import { GetUsersByRoleHandler } from '../application/queries/get-users-by-role.handler';
+import { MfaCodeVerifier } from '../application/services/mfa-code-verifier.service';
 
 import { AuthController } from './controllers/auth.controller';
+import { MfaController } from './controllers/mfa.controller';
 import { UsersController } from './controllers/users.controller';
 import { EmailVerifiedGuard } from './guards/email-verified.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { MfaRecoveryCodeEntity } from './persistence/entities/mfa-recovery-code.orm-entity';
+import { UserMfaEntity } from './persistence/entities/user-mfa.orm-entity';
 import { UserEntity } from './persistence/entities/user.orm-entity';
 import { VerificationTokenEntity } from './persistence/entities/verification-token.orm-entity';
 import { UserPersistenceMapper } from './persistence/mappers/user-persistence.mapper';
+import { MfaTypeOrmRepository } from './persistence/repositories/mfa.typeorm-repository';
 import { UserTypeOrmRepository } from './persistence/repositories/user.typeorm-repository';
 import { VerificationTokenRepository } from './persistence/repositories/verification-token.repository';
 // Infrastructure Layer - Services
 import { JwtTokenService } from './services/jwt.service';
+import { MfaCryptoService } from './services/mfa-crypto.service';
 import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 // Infrastructure Layer - Strategies
@@ -45,6 +58,10 @@ const CommandHandlers = [
   ChangePasswordHandler,
   UpdateProfileHandler,
   DeactivateUserHandler,
+  StartMfaEnrollmentHandler,
+  ConfirmMfaEnrollmentHandler,
+  VerifyMfaHandler,
+  RegenerateRecoveryCodesHandler,
 ];
 
 /**
@@ -54,6 +71,7 @@ const QueryHandlers = [
   GetUserByIdHandler,
   GetUserByEmailHandler,
   GetUsersByRoleHandler,
+  GetMfaStatusHandler,
 ];
 
 /**
@@ -107,7 +125,7 @@ const repositoryProvider: Provider = {
 @Module({
   imports: [
     // TypeORM for persistence
-    TypeOrmModule.forFeature([UserEntity, VerificationTokenEntity]),
+    TypeOrmModule.forFeature([UserEntity, VerificationTokenEntity, UserMfaEntity, MfaRecoveryCodeEntity]),
 
     // CQRS for command/query separation
     CqrsModule,
@@ -130,6 +148,7 @@ const repositoryProvider: Provider = {
   controllers: [
     AuthController,
     UsersController,
+    MfaController,
   ],
   providers: [
     // Mappers
@@ -138,6 +157,9 @@ const repositoryProvider: Provider = {
 
     // Repository
     repositoryProvider,
+    { provide: MFA_REPOSITORY, useClass: MfaTypeOrmRepository },
+    { provide: MFA_CRYPTO, useClass: MfaCryptoService },
+    MfaCodeVerifier,
     VerificationTokenRepository,
 
     // Services

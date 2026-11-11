@@ -383,5 +383,7 @@ export function generateTestToken(
     email: payload.email,
     role: payload.role,
     type: 'access',
+    // Sessions in these suites are already fully signed in (second factor included).
+    mfa: true,
   });
 }

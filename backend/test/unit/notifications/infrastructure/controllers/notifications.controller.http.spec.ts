@@ -196,7 +196,7 @@ describe('NotificationsController (HTTP)', () => {
 
     it('allows an administrator to send a notification', async () => {
       const token = app.get(JwtService).sign({
-        userId, email: 'admin@tickr.tn', role: UserRole.ADMIN, type: 'access',
+        userId, email: 'admin@tickr.tn', role: UserRole.ADMIN, type: 'access', mfa: true,
       });
       mockSendHandler.execute.mockResolvedValue(Result.ok({
         notificationId, status: NotificationStatus.SENT,

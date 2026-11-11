@@ -104,6 +104,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 };
 
 /**
+ * Roles whose accounts must enroll and use an authenticator app (TOTP) to sign in.
+ */
+export const MFA_REQUIRED_ROLES: readonly UserRole[] = [UserRole.ADMIN];
+
+/**
  * UserRole Value Object
  *
  * Provides role-based access control utilities
@@ -170,6 +175,13 @@ export class UserRoleVO {
    */
   isAdmin(): boolean {
     return this.role === UserRole.ADMIN;
+  }
+
+  /**
+   * Check if accounts with this role must sign in with a second factor
+   */
+  requiresMfa(): boolean {
+    return MFA_REQUIRED_ROLES.includes(this.role);
   }
 
   /**

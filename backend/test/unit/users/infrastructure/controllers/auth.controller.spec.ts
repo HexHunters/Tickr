@@ -1,3 +1,4 @@
+import { MFA_REPOSITORY } from '@modules/users/application/ports/mfa.repository.port';
 import { USER_REPOSITORY } from '@modules/users/application/ports/user.repository.port';
 import { HashedPasswordVO } from '@modules/users/domain/value-objects/hashed-password.vo';
 import { UserRole } from '@modules/users/domain/value-objects/user-role.vo';
@@ -28,6 +29,7 @@ describe('AuthController', () => {
   let mockVerificationTokenRepository: any;
   let mockEventEmitter: any;
   let mockConfigService: any;
+  let mockMfaRepository: any;
 
   const mockUser = {
     id: mockUUID,
@@ -54,6 +56,8 @@ describe('AuthController', () => {
       signAccessToken: jest.fn().mockReturnValue('new-access-token'),
       verifyRefreshToken: jest.fn(),
       getAccessTokenExpiration: jest.fn().mockReturnValue(604800),
+      signMfaChallengeToken: jest.fn().mockReturnValue('mfa-challenge-token'),
+      getMfaChallengeExpiration: jest.fn().mockReturnValue(300),
     };
 
     mockPasswordService = {
@@ -86,6 +90,10 @@ describe('AuthController', () => {
       get: jest.fn().mockReturnValue('http://localhost:3001'),
     };
 
+    mockMfaRepository = {
+      getState: jest.fn().mockResolvedValue(null),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -95,6 +103,7 @@ describe('AuthController', () => {
         { provide: VerificationTokenRepository, useValue: mockVerificationTokenRepository },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: MFA_REPOSITORY, useValue: mockMfaRepository },
       ],
     }).compile();
 
@@ -211,6 +220,44 @@ describe('AuthController', () => {
         role: validatedUser.role,
       });
       expect(mockUserRepository.updateLastLogin).toHaveBeenCalledWith(validatedUser.userId);
+    });
+
+    it('should ask an administrator to enroll an authenticator on first sign-in, without opening a session', async () => {
+      const result = await controller.login({ user: { ...validatedUser, role: UserRole.ADMIN } });
+
+      expect(result).toEqual({
+        mfaRequired: true,
+        mfaMethod: 'ENROLL',
+        mfaToken: 'mfa-challenge-token',
+        expiresIn: 300,
+      });
+      expect(mockJwtService.signMfaChallengeToken).toHaveBeenCalledWith(validatedUser.userId);
+      expect(mockJwtService.generateTokenPair).not.toHaveBeenCalled();
+      expect(mockUserRepository.updateLastLogin).not.toHaveBeenCalled();
+    });
+
+    it('should ask an enrolled administrator for a code', async () => {
+      mockMfaRepository.getState.mockResolvedValue({ enabledAt: new Date() });
+
+      const result = await controller.login({ user: { ...validatedUser, role: UserRole.ADMIN } });
+
+      expect(result).toMatchObject({ mfaRequired: true, mfaMethod: 'VERIFY' });
+      expect(mockJwtService.generateTokenPair).not.toHaveBeenCalled();
+    });
+
+    it('should keep asking for a code after an enrolled administrator is demoted', async () => {
+      mockMfaRepository.getState.mockResolvedValue({ enabledAt: new Date() });
+
+      const result = await controller.login({ user: validatedUser });
+
+      expect(result).toMatchObject({ mfaRequired: true, mfaMethod: 'VERIFY' });
+    });
+
+    it('should check the verified email before any second-factor step', async () => {
+      await expect(
+        controller.login({ user: { ...validatedUser, role: UserRole.ADMIN, emailVerified: false } }),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockJwtService.signMfaChallengeToken).not.toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException when email is not verified', async () => {
@@ -373,6 +420,24 @@ describe('AuthController', () => {
         email: refreshPayload.email,
         role: refreshPayload.role,
       });
+    });
+
+    it('should refuse an administrator refresh token issued without a second factor', async () => {
+      mockJwtService.verifyRefreshToken.mockResolvedValue({ ...refreshPayload, role: UserRole.ADMIN });
+
+      await expect(controller.refreshToken({ refreshToken: 'old-admin-session' }))
+        .rejects.toThrow(UnauthorizedException);
+      expect(mockJwtService.signAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('should carry the second-factor claim into the new access token', async () => {
+      mockJwtService.verifyRefreshToken.mockResolvedValue({ ...refreshPayload, role: UserRole.ADMIN, mfa: true });
+
+      await controller.refreshToken({ refreshToken: 'admin-session' });
+
+      expect(mockJwtService.signAccessToken).toHaveBeenCalledWith(
+        expect.objectContaining({ role: UserRole.ADMIN, mfa: true }),
+      );
     });
 
     it('should throw UnauthorizedException for invalid refresh token', async () => {

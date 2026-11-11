@@ -105,11 +105,47 @@ describe('JwtStrategy', () => {
           email: 'test@example.com',
           role,
           type: 'access',
+          mfa: true,
         };
 
         const result = await strategy.validate(payload);
         expect(result.role).toBe(role);
       }
+    });
+
+    it('should reject an admin access token issued without a second factor', async () => {
+      for (const mfa of [undefined, false]) {
+        await expect(
+          strategy.validate({
+            userId: '123e4567-e89b-12d3-a456-426614174000',
+            email: 'admin@example.com',
+            role: UserRole.ADMIN,
+            type: 'access',
+            mfa,
+          }),
+        ).rejects.toThrow(new UnauthorizedException('Two-factor authentication required'));
+      }
+    });
+
+    it('should not require a second factor from organizers and participants', async () => {
+      for (const role of [UserRole.ORGANIZER, UserRole.PARTICIPANT]) {
+        const result = await strategy.validate({
+          userId: '123e4567-e89b-12d3-a456-426614174000',
+          email: 'user@example.com',
+          role,
+          type: 'access',
+        });
+        expect(result.role).toBe(role);
+      }
+    });
+
+    it('should reject an MFA sign-in challenge used as an access token', async () => {
+      await expect(
+        strategy.validate({
+          userId: '123e4567-e89b-12d3-a456-426614174000',
+          type: 'mfa_challenge',
+        } as unknown as JwtPayload),
+      ).rejects.toThrow(new UnauthorizedException('Invalid token type'));
     });
 
     it('should only return essential user fields', async () => {

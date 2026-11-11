@@ -13,6 +13,8 @@ export interface JwtPayload {
   email: string;
   role: UserRole;
   type: 'access' | 'refresh';
+  /** Set when the session was opened with a second factor */
+  mfa?: boolean;
   iat?: number;
   exp?: number;
 }
@@ -32,7 +34,19 @@ export interface TokenPair {
 export enum TokenType {
   ACCESS = 'access',
   REFRESH = 'refresh',
+  MFA_CHALLENGE = 'mfa_challenge',
 }
+
+/**
+ * Proves the password step of a sign-in that still needs a second factor.
+ * Short-lived; never accepted as an access or refresh token.
+ */
+export interface MfaChallengePayload {
+  userId: string;
+  type: TokenType.MFA_CHALLENGE;
+}
+
+const MFA_CHALLENGE_TTL_SECONDS = 5 * 60;
 
 /**
  * Custom JWT Service
@@ -121,11 +135,15 @@ export class JwtTokenService {
    * @param user - User data for token payload
    * @returns TokenPair - Access and refresh tokens with expiration
    */
-  generateTokenPair(user: { userId: string; email: string; role: UserRole }): TokenPair {
+  generateTokenPair(
+    user: { userId: string; email: string; role: UserRole },
+    options: { mfa?: boolean } = {},
+  ): TokenPair {
     const payload = {
       userId: user.userId,
       email: user.email,
       role: user.role,
+      ...(options.mfa ? { mfa: true } : {}),
     };
 
     return {
@@ -133,6 +151,44 @@ export class JwtTokenService {
       refreshToken: this.signRefreshToken(payload),
       expiresIn: this.parseExpirationToSeconds(this.accessTokenExpiration),
     };
+  }
+
+  /**
+   * Sign the short-lived token that links the password step to the second factor
+   */
+  signMfaChallengeToken(userId: string): string {
+    return this.jwtService.sign(
+      { userId, type: TokenType.MFA_CHALLENGE },
+      {
+        secret: this.accessTokenSecret,
+        expiresIn: MFA_CHALLENGE_TTL_SECONDS,
+        algorithm: 'HS256',
+      },
+    );
+  }
+
+  /**
+   * Verify an MFA challenge token
+   *
+   * @throws UnauthorizedException if invalid, expired or of another type
+   */
+  async verifyMfaChallengeToken(token: string): Promise<MfaChallengePayload> {
+    try {
+      const payload = await this.jwtService.verifyAsync<MfaChallengePayload>(token, {
+        secret: this.accessTokenSecret,
+        algorithms: ['HS256'],
+      });
+      if (payload.type !== TokenType.MFA_CHALLENGE || !payload.userId) {
+        throw new UnauthorizedException('Invalid or expired sign-in challenge');
+      }
+      return payload;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired sign-in challenge');
+    }
+  }
+
+  getMfaChallengeExpiration(): number {
+    return MFA_CHALLENGE_TTL_SECONDS;
   }
 
   /**

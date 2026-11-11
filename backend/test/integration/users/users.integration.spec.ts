@@ -17,6 +17,7 @@ import { EmailVerifiedEventHandler } from '../../../src/modules/users/applicatio
 import { PasswordResetRequestedEventHandler } from '../../../src/modules/users/application/event-handlers/password-reset-requested.handler';
 import { UserRegisteredEventHandler } from '../../../src/modules/users/application/event-handlers/user-registered.handler';
 import { UserMapper } from '../../../src/modules/users/application/mappers/user.mapper';
+import { MFA_REPOSITORY } from '../../../src/modules/users/application/ports/mfa.repository.port';
 import { USER_REPOSITORY } from '../../../src/modules/users/application/ports/user.repository.port';
 import { GetUserByEmailHandler } from '../../../src/modules/users/application/queries/get-user-by-email.handler';
 import { GetUserByIdHandler } from '../../../src/modules/users/application/queries/get-user-by-id.handler';
@@ -252,6 +253,7 @@ describe('Users Module Integration Tests', () => {
       controllers: [AuthController, UsersController],
       providers: [
         // Repository
+        { provide: MFA_REPOSITORY, useValue: { getState: async () => null } },
         {
           provide: USER_REPOSITORY,
           useValue: mockUserRepository,
@@ -486,7 +488,7 @@ describe('Users Module Integration Tests', () => {
         userId: adminUserId,
         email: 'admin@example.com',
         role: UserRole.ADMIN,
-      });
+      }, { mfa: true });
 
       const response = await request(app.getHttpServer())
         .get('/api/users')

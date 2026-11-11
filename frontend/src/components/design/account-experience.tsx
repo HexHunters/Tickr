@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 import { DataState, SessionGate } from '@/components/design/data-state'
+import { AccountSecurity } from '@/components/design/account-security'
 import { AccountNavigation } from '@/components/design/account-navigation'
 import { useSession } from '@/components/session-provider'
 import { userSchema } from '@/lib/api/contracts'
@@ -232,6 +233,7 @@ function AccountForm() {
             </button>
           </form>
         </section>
+        <AccountSecurity email={user.email} />
       </div>
       <aside className="account-side-note">
         <span className="profile-initial">{user.firstName.slice(0, 1)}</span>

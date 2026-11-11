@@ -16,6 +16,9 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+# Real deployment values (secrets such as JWT_SECRET, MFA_ENCRYPTION_KEY)
+.env.production
+.env.staging
 
 # Build outputs
 dist/

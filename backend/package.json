@@ -35,6 +35,7 @@
     "migration:show:prod": "typeorm migration:show -d dist/shared/infrastructure/database/data-source.js",
     "schema:sync": "npm run typeorm -- schema:sync -d src/shared/infrastructure/database/data-source.ts",
     "schema:drop": "npm run typeorm -- schema:drop -d src/shared/infrastructure/database/data-source.ts",
+    "mfa:reset": "node -r dotenv/config -r ts-node/register -r tsconfig-paths/register src/modules/users/infrastructure/cli/reset-mfa.cli.ts",
     "seed:demo": "DOTENV_CONFIG_PATH=.env.demo.example node -r dotenv/config -r ts-node/register -r tsconfig-paths/register src/shared/infrastructure/database/seeds/run-demo.ts",
     "start:demo": "DOTENV_CONFIG_PATH=.env.demo.example NODE_ENV=test node -r dotenv/config dist/main.js"
   },

@@ -15,7 +15,7 @@ import {
   EyeSlashIcon,
 } from '@heroicons/react/24/outline'
 
-import { userSchema } from '@/lib/api/contracts'
+import { loginResultSchema } from '@/lib/api/mfa-contracts'
 import { ApiError, parseResponse } from '@/lib/api/request'
 import { safeReturnPath } from '@/lib/format'
 
@@ -129,10 +129,16 @@ export function AuthExperience({
         body: JSON.stringify(payload),
       })
       if (mode === 'login') {
-        const result = await parseResponse(
-          response,
-          z.object({ user: userSchema }),
-        )
+        const result = await parseResponse(response, loginResultSchema)
+        if ('mfaRequired' in result) {
+          // Administrators finish signing in with their authenticator app.
+          const next =
+            result.mfaMethod === 'ENROLL' ? '/auth/mfa/setup' : '/auth/mfa'
+          router.push(
+            `${next}?returnTo=${encodeURIComponent(safeReturnPath(returnTo))}`,
+          )
+          return
+        }
         queryClient.clear()
         queryClient.setQueryData(['session'], result.user)
         router.replace(safeReturnPath(returnTo))
