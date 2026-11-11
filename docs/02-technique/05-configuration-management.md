@@ -374,6 +374,22 @@ PLATFORM_COMMISSION_RATE=0.06
 # Commission standard production
 ```
 
+### Secret : `MFA_ENCRYPTION_KEY` (authentification à deux facteurs)
+
+Chiffre (AES-256-GCM) les secrets des applications d'authentification des administrateurs et sert de
+base aux empreintes des codes de récupération.
+
+- **Format :** 32 octets en base64 (ou 64 caractères hexadécimaux). Générer : `openssl rand -base64 32`.
+- **Une clé par environnement** (staging ≠ production), jamais commitée : AWS Secrets Manager
+  (`tickr/<environnement>/mfa/encryption-key`, injectée par la définition de tâche ECS) ou
+  `backend/.env.production` (ignoré par git) pour `docker-compose.prod.yml`.
+- **Absente :** une clé est dérivée de `JWT_SECRET` (avertissement au démarrage en production).
+  Changer `JWT_SECRET` casse alors toutes les applications enrôlées.
+- **Rotation :** les secrets existants ne sont plus déchiffrables avec une nouvelle clé. Il faut
+  réinitialiser chaque administrateur (`npm run mfa:reset -- <email>`) pour qu'il se réenrôle. Le
+  format chiffré est versionné (`v1.…`) pour permettre une rotation sans réenrôlement plus tard.
+- **Perte de la clé :** même effet qu'une rotation. Conservez-la aussi dans le coffre de l'équipe.
+
 ---
 
 ## 🧪 Tests

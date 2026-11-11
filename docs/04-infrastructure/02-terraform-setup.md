@@ -195,6 +195,10 @@ resource "aws_ecs_task_definition" "backend" {
       {
         name      = "JWT_SECRET"
         valueFrom = aws_secretsmanager_secret.jwt_secret.arn
+      },
+      {
+        name      = "MFA_ENCRYPTION_KEY"
+        valueFrom = aws_secretsmanager_secret.mfa_encryption_key.arn
       }
     ]
 
@@ -532,7 +536,17 @@ aws secretsmanager get-secret-value \
   --secret-id tickr/dev/jwt/secret \
   --query SecretString \
   --output text
+
+# Clé de chiffrement MFA des administrateurs : une valeur distincte par environnement,
+# générée localement, jamais commitée (voir 02-technique/05-configuration-management.md)
+aws secretsmanager create-secret \
+  --name tickr/production/mfa/encryption-key \
+  --secret-string "$(openssl rand -base64 32)"
 ```
+
+> La définition de tâche ECS doit référencer ce secret (`MFA_ENCRYPTION_KEY` ci-dessus) **avant**
+> le premier déploiement de l'authentification à deux facteurs : un administrateur enrôlé avec la
+> clé dérivée de `JWT_SECRET` devrait sinon être réinitialisé quand la vraie clé est ajoutée.
 
 ---
 
