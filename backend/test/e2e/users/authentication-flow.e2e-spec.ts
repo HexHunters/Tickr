@@ -18,6 +18,7 @@ import { EmailVerifiedEventHandler } from '../../../src/modules/users/applicatio
 import { PasswordResetRequestedEventHandler } from '../../../src/modules/users/application/event-handlers/password-reset-requested.handler';
 import { UserRegisteredEventHandler } from '../../../src/modules/users/application/event-handlers/user-registered.handler';
 import { UserMapper } from '../../../src/modules/users/application/mappers/user.mapper';
+import { MFA_REPOSITORY } from '../../../src/modules/users/application/ports/mfa.repository.port';
 import { USER_REPOSITORY } from '../../../src/modules/users/application/ports/user.repository.port';
 import { GetUserByEmailHandler } from '../../../src/modules/users/application/queries/get-user-by-email.handler';
 import { GetUserByIdHandler } from '../../../src/modules/users/application/queries/get-user-by-id.handler';
@@ -232,6 +233,7 @@ describe('E2E: Authentication Flow', () => {
       ],
       controllers: [AuthController, UsersController],
       providers: [
+        { provide: MFA_REPOSITORY, useValue: { getState: async () => null } },
         { provide: USER_REPOSITORY, useValue: userRepository },
         { provide: VerificationTokenRepository, useValue: verificationTokenRepository },
         UserPersistenceMapper,
@@ -394,7 +396,7 @@ describe('E2E: Authentication Flow', () => {
         userId: adminId,
         email: 'admin@example.com',
         role: UserRole.ADMIN,
-      });
+      }, { mfa: true });
 
       const response = await request(app.getHttpServer())
         .get('/api/users')
@@ -454,6 +456,32 @@ describe('E2E: Authentication Flow', () => {
       expect(response.body.role).toBe(UserRole.ORGANIZER);
     });
 
+    it('should refuse an admin token issued without a second factor', async () => {
+      await userRepository.seedUser({
+        id: 'admin-no-mfa',
+        email: 'nomfa@example.com',
+        firstName: 'Admin',
+        lastName: 'NoMfa',
+        role: UserRole.ADMIN,
+        isActive: true,
+        emailVerified: true,
+      });
+      const tokens = jwtService.generateTokenPair({
+        userId: 'admin-no-mfa',
+        email: 'nomfa@example.com',
+        role: UserRole.ADMIN,
+      });
+
+      await request(app.getHttpServer())
+        .get('/api/users/me')
+        .set('Authorization', `Bearer ${tokens.accessToken}`)
+        .expect(HttpStatus.UNAUTHORIZED);
+      await request(app.getHttpServer())
+        .post('/api/auth/refresh-token')
+        .send({ refreshToken: tokens.refreshToken })
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
     it('should handle role hierarchy correctly', async () => {
       // Admin can do what regular users can do
       const adminId = 'admin-hierarchy';
@@ -471,7 +499,7 @@ describe('E2E: Authentication Flow', () => {
         userId: adminId,
         email: 'admin-hierarchy@example.com',
         role: UserRole.ADMIN,
-      });
+      }, { mfa: true });
 
       // Admin can access their own profile (regular user endpoint)
       const response = await request(app.getHttpServer())

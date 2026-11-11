@@ -23,9 +23,11 @@ import {
 } from '@nestjs/swagger';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 
+import { MFA_REPOSITORY } from '../../application/ports/mfa.repository.port';
+import type { MfaRepositoryPort } from '../../application/ports/mfa.repository.port';
 import { USER_REPOSITORY } from '../../application/ports/user.repository.port';
 import type { UserRepositoryPort, UserEntityPort } from '../../application/ports/user.repository.port';
-import { UserRole } from '../../domain/value-objects/user-role.vo';
+import { MFA_REQUIRED_ROLES, UserRole, UserRoleVO } from '../../domain/value-objects/user-role.vo';
 import { Public } from '../decorators/auth.decorators';
 import { TokenType } from '../persistence/entities/verification-token.orm-entity';
 import { VerificationTokenRepository } from '../persistence/repositories/verification-token.repository';
@@ -62,6 +64,17 @@ interface AuthResponse {
 /**
  * Register response interface
  */
+/**
+ * Password accepted; the session opens only after the second factor.
+ * ENROLL: first sign-in, the authenticator must be set up. VERIFY: enter a code.
+ */
+interface MfaChallengeResponse {
+  mfaRequired: true;
+  mfaMethod: 'ENROLL' | 'VERIFY';
+  mfaToken: string;
+  expiresIn: number;
+}
+
 interface RegisterResponse {
   userId: string;
   message: string;
@@ -107,6 +120,8 @@ export class AuthController {
     private readonly verificationTokenRepository: VerificationTokenRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
+    @Inject(MFA_REPOSITORY)
+    private readonly mfaRepository: MfaRepositoryPort,
   ) {}
 
   /**
@@ -208,12 +223,15 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
-    description: 'Login successful',
+    description:
+      'Login successful (tokens), or { mfaRequired, mfaMethod, mfaToken } when a second factor is required',
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiResponse({ status: 403, description: 'Email not verified or account deactivated' })
   @ApiResponse({ status: 429, description: 'Too many login attempts' })
-  async login(@Request() req: { user: ValidatedUser }): Promise<AuthResponse> {
+  async login(
+    @Request() req: { user: ValidatedUser },
+  ): Promise<AuthResponse | MfaChallengeResponse> {
     const user = req.user;
 
     // Check if email is verified
@@ -221,6 +239,19 @@ export class AuthController {
       throw new ForbiddenException(
         'Email not verified. Please verify your email address.',
       );
+    }
+
+    // Administrators (and any account that enabled it) need a second factor:
+    // no session is opened until /auth/mfa/* succeeds.
+    const mfa = await this.mfaRepository.getState(user.userId);
+    const role = user.role as UserRole;
+    if (UserRoleVO.fromEnum(role).requiresMfa() || mfa?.enabledAt) {
+      return {
+        mfaRequired: true,
+        mfaMethod: mfa?.enabledAt ? 'VERIFY' : 'ENROLL',
+        mfaToken: this.jwtService.signMfaChallengeToken(user.userId),
+        expiresIn: this.jwtService.getMfaChallengeExpiration(),
+      };
     }
 
     // Generate token pair
@@ -464,11 +495,18 @@ export class AuthController {
       // Verify refresh token
       const payload = await this.jwtService.verifyRefreshToken(dto.refreshToken);
 
+      // Sessions of roles that require a second factor must have been opened
+      // with it; older refresh tokens force a new sign-in.
+      if (MFA_REQUIRED_ROLES.includes(payload.role) && payload.mfa !== true) {
+        throw new UnauthorizedException('Two-factor authentication required');
+      }
+
       // Generate new access token
       const accessToken = this.jwtService.signAccessToken({
         userId: payload.userId,
         email: payload.email,
         role: payload.role,
+        ...(payload.mfa ? { mfa: true } : {}),
       });
 
       return {

@@ -20,6 +20,8 @@ import { PaymentOrmEntity } from '../../../modules/payments/infrastructure/persi
 import { RefundOrmEntity } from '../../../modules/payments/infrastructure/persistence/entities/refund.orm-entity';
 import { CheckInOrmEntity } from '../../../modules/tickets/infrastructure/persistence/entities/check-in.orm-entity';
 import { TicketOrmEntity } from '../../../modules/tickets/infrastructure/persistence/entities/ticket.orm-entity';
+import { MfaRecoveryCodeEntity } from '../../../modules/users/infrastructure/persistence/entities/mfa-recovery-code.orm-entity';
+import { UserMfaEntity } from '../../../modules/users/infrastructure/persistence/entities/user-mfa.orm-entity';
 import { UserEntity } from '../../../modules/users/infrastructure/persistence/entities/user.orm-entity';
 import { VerificationTokenEntity } from '../../../modules/users/infrastructure/persistence/entities/verification-token.orm-entity';
 
@@ -40,6 +42,8 @@ import { VerificationTokenEntity } from '../../../modules/users/infrastructure/p
           // Users module entities
           UserEntity,
           VerificationTokenEntity,
+          UserMfaEntity,
+          MfaRecoveryCodeEntity,
           // Events module entities
           EventOrmEntity,
           EventCheckInStaffAssignmentOrmEntity,

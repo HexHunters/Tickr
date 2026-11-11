@@ -18,6 +18,7 @@ import { EmailVerifiedEventHandler } from '../../../src/modules/users/applicatio
 import { PasswordResetRequestedEventHandler } from '../../../src/modules/users/application/event-handlers/password-reset-requested.handler';
 import { UserRegisteredEventHandler } from '../../../src/modules/users/application/event-handlers/user-registered.handler';
 import { UserMapper } from '../../../src/modules/users/application/mappers/user.mapper';
+import { MFA_REPOSITORY } from '../../../src/modules/users/application/ports/mfa.repository.port';
 import { USER_REPOSITORY } from '../../../src/modules/users/application/ports/user.repository.port';
 import { GetUserByEmailHandler } from '../../../src/modules/users/application/queries/get-user-by-email.handler';
 import { GetUserByIdHandler } from '../../../src/modules/users/application/queries/get-user-by-id.handler';
@@ -278,6 +279,7 @@ describe('E2E: Registration Flow', () => {
       ],
       controllers: [AuthController, UsersController],
       providers: [
+        { provide: MFA_REPOSITORY, useValue: { getState: async () => null } },
         { provide: USER_REPOSITORY, useValue: userRepository },
         { provide: VerificationTokenRepository, useValue: verificationTokenRepository },
         UserPersistenceMapper,
